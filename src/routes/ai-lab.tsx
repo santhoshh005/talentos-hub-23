@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/layout/PageShell";
+import { AiLabCards } from "@/components/ai-lab/AiLabCards";
 
 export const Route = createFileRoute("/ai-lab")({
   head: () => ({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/ai-lab")({
       eyebrow="AI Lab"
       title={<>Experiments in <span className="text-gradient">applied AI</span></>}
       description="A sandbox of AI-powered tools shaping the future of technical recruiting."
-    />
+    >
+      <AiLabCards />
+    </PageShell>
   ),
 });
