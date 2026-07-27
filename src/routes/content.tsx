@@ -14,8 +14,8 @@ export const Route = createFileRoute("/content")({
   component: () => (
     <PageShell
       eyebrow="Content"
-      title={<>Writing on the <span className="text-gradient">future of hiring</span></>}
-      description="Articles, talks, and playbooks distilled from years in the field."
+      title={<>Recruitment <span className="text-gradient">Insights</span></>}
+      description="LinkedIn highlights on resumes, AI in hiring, and the real story behind recruitment."
     >
       <ContentLibrary />
     </PageShell>
