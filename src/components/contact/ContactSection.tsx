@@ -3,8 +3,7 @@ import { motion } from "framer-motion";
 import {
   Mail,
   Linkedin,
-  Github,
-  Twitter,
+  Instagram,
   Clock,
   MapPin,
   Send,
@@ -27,12 +26,14 @@ interface FormErrors {
   message?: string;
 }
 
+const CONTACT_EMAIL = "hemanthhemu1104@gmail.com";
+
 const contactLinks = [
   {
     id: "email",
     label: "Email",
-    value: "hemanth@talentos.dev",
-    href: "mailto:hemanth@talentos.dev",
+    value: CONTACT_EMAIL,
+    href: `mailto:${CONTACT_EMAIL}`,
     icon: Mail,
     color: "rgba(37, 99, 235, 0.4)",
   },
@@ -45,19 +46,11 @@ const contactLinks = [
     color: "rgba(56, 189, 248, 0.4)",
   },
   {
-    id: "github",
-    label: "GitHub",
-    value: "github.com/hemanthkumar",
-    href: "https://github.com/hemanthkumar",
-    icon: Github,
-    color: "rgba(139, 92, 246, 0.4)",
-  },
-  {
-    id: "twitter",
-    label: "X / Twitter",
-    value: "@hemanthkumar",
-    href: "https://twitter.com/hemanthkumar",
-    icon: Twitter,
+    id: "instagram",
+    label: "Instagram",
+    value: "@heyyy.m_ant",
+    href: "https://www.instagram.com/heyyy.m_ant/",
+    icon: Instagram,
     color: "rgba(244, 63, 94, 0.4)",
   },
 ];
@@ -130,8 +123,13 @@ export function ContactSection() {
     }
 
     setIsSubmitting(true);
-    // Simulate form submission — no backend connected yet.
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    // Open user's email client pre-filled with the message directed to CONTACT_EMAIL.
+    const subject = encodeURIComponent(formData.subject);
+    const body = encodeURIComponent(
+      `Name: ${formData.name}\nEmail: ${formData.email}\n\n${formData.message}`,
+    );
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${subject}&body=${body}`;
+    await new Promise((resolve) => setTimeout(resolve, 600));
     setIsSubmitting(false);
     setIsSuccess(true);
     setFormData({ name: "", email: "", subject: "", message: "" });
