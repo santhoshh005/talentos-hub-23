@@ -5,10 +5,10 @@ import { ContentLibrary } from "@/components/content/ContentLibrary";
 export const Route = createFileRoute("/content")({
   head: () => ({
     meta: [
-      { title: "Content — TalentOS" },
-      { name: "description", content: "Articles, talks, and playbooks on modern AI-powered recruitment." },
-      { property: "og:title", content: "Content — TalentOS" },
-      { property: "og:description", content: "Writing on the future of recruiting." },
+      { title: "Recruitment Insights — TalentOS" },
+      { name: "description", content: "LinkedIn highlights on resumes, AI in hiring, and the real story behind recruitment." },
+      { property: "og:title", content: "Recruitment Insights — TalentOS" },
+      { property: "og:description", content: "Fresh thinking from the recruiting frontlines." },
     ],
   }),
   component: () => (
