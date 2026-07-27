@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import {
   Area,
   AreaChart,
@@ -26,6 +27,15 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  ALL_SOURCES,
+  ALL_TECHS,
+  RANGE_KEYS,
+  normalizeDashboardSearch,
+  type RangeKey,
+  type Source,
+  type Tech,
+} from "@/lib/dashboard-search";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -97,11 +107,6 @@ function KpiCard({
 }
 
 /* ---------- Mock data ---------- */
-const ALL_TECHS = ["React", "Node.js", "Python", "Go", "AWS/Cloud", "Data/ML"] as const;
-const ALL_SOURCES = ["LinkedIn", "Referrals", "Boolean Search", "Inbound"] as const;
-type Tech = (typeof ALL_TECHS)[number];
-type Source = (typeof ALL_SOURCES)[number];
-
 const techData: { name: Tech; value: number }[] = [
   { name: "React", value: 28 },
   { name: "Node.js", value: 22 },
@@ -134,12 +139,7 @@ const trendData = [
   { m: "Aug", hires: 5, pipeline: 34 },
 ];
 
-const RANGES = [
-  { key: 3, label: "3M" },
-  { key: 6, label: "6M" },
-  { key: 8, label: "YTD" },
-] as const;
-type RangeKey = (typeof RANGES)[number]["key"];
+const RANGE_LABELS: Record<RangeKey, string> = { 3: "3M", 6: "6M", 8: "YTD" };
 
 const PIE_COLORS = ["#2563EB", "#38BDF8", "#7C3AED", "#22D3EE", "#3B82F6", "#0EA5E9"];
 
@@ -226,23 +226,49 @@ export function DashboardSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
-  const [range, setRange] = useState<RangeKey>(8);
-  const [techs, setTechs] = useState<Set<Tech>>(() => new Set(ALL_TECHS));
-  const [sources, setSources] = useState<Set<Source>>(() => new Set(ALL_SOURCES));
+  const rawSearch = useSearch({ strict: false }) as
+    | { range?: number; techs?: string[]; sources?: string[] }
+    | undefined;
+  const navigate = useNavigate();
+  const { range, techs: techsArr, sources: sourcesArr } = normalizeDashboardSearch(rawSearch);
+  const techs = useMemo(() => new Set<Tech>(techsArr), [techsArr]);
+  const sources = useMemo(() => new Set<Source>(sourcesArr), [sourcesArr]);
 
-  const toggle = <T,>(set: Set<T>, val: T, setter: (s: Set<T>) => void) => {
-    const next = new Set(set);
-    if (next.has(val)) {
-      if (next.size > 1) next.delete(val);
-    } else next.add(val);
-    setter(next);
+  const updateSearch = (patch: {
+    range?: RangeKey;
+    techs?: Tech[];
+    sources?: Source[];
+  }) => {
+    navigate({
+      to: ".",
+      search: (prev: Record<string, unknown> | undefined) => ({
+        ...(prev ?? {}),
+        ...patch,
+      }),
+      replace: true,
+    });
   };
 
-  const resetFilters = () => {
-    setRange(8);
-    setTechs(new Set(ALL_TECHS));
-    setSources(new Set(ALL_SOURCES));
+  const setRange = (r: RangeKey) => updateSearch({ range: r });
+
+  const toggleTech = (t: Tech) => {
+    const next = new Set(techs);
+    if (next.has(t)) {
+      if (next.size > 1) next.delete(t);
+    } else next.add(t);
+    updateSearch({ techs: [...ALL_TECHS].filter((x) => next.has(x)) });
   };
+
+  const toggleSource = (s: Source) => {
+    const next = new Set(sources);
+    if (next.has(s)) {
+      if (next.size > 1) next.delete(s);
+    } else next.add(s);
+    updateSearch({ sources: [...ALL_SOURCES].filter((x) => next.has(x)) });
+  };
+
+  const resetFilters = () =>
+    updateSearch({ range: 8, techs: [...ALL_TECHS], sources: [...ALL_SOURCES] });
 
   const {
     filteredTech,
@@ -329,19 +355,19 @@ export function DashboardSection() {
                 Date Range
               </div>
               <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.03] p-0.5">
-                {RANGES.map((r) => (
+                {RANGE_KEYS.map((r) => (
                   <button
-                    key={r.key}
+                    key={r}
                     type="button"
-                    onClick={() => setRange(r.key)}
+                    onClick={() => setRange(r)}
                     className={cn(
                       "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                      range === r.key
+                      range === r
                         ? "bg-gradient-to-r from-primary to-accent text-white"
                         : "text-muted-foreground hover:text-foreground",
                     )}
                   >
-                    {r.label}
+                    {RANGE_LABELS[r]}
                   </button>
                 ))}
               </div>
@@ -358,7 +384,7 @@ export function DashboardSection() {
                   <Chip
                     key={t}
                     active={techs.has(t)}
-                    onClick={() => toggle(techs, t, setTechs)}
+                    onClick={() => toggleTech(t)}
                   >
                     {t}
                   </Chip>
@@ -377,7 +403,7 @@ export function DashboardSection() {
                   <Chip
                     key={s}
                     active={sources.has(s)}
-                    onClick={() => toggle(sources, s, setSources)}
+                    onClick={() => toggleSource(s)}
                   >
                     {s}
                   </Chip>

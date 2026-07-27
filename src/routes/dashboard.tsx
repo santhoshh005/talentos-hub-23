@@ -1,8 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { dashboardSearchSchema } from "@/lib/dashboard-search";
 import { PageShell } from "@/components/layout/PageShell";
 import { DashboardSection } from "@/components/home/DashboardSection";
 
 export const Route = createFileRoute("/dashboard")({
+  validateSearch: zodValidator(dashboardSearchSchema),
   head: () => ({
     meta: [
       { title: "Dashboard — TalentOS" },

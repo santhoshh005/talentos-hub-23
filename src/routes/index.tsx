@@ -1,4 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { zodValidator } from "@tanstack/zod-adapter";
+import { dashboardSearchSchema } from "@/lib/dashboard-search";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, PlayCircle, ChevronDown } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -7,6 +9,7 @@ import { FloatingCards } from "@/components/home/FloatingCards";
 import { DashboardSection } from "@/components/home/DashboardSection";
 
 export const Route = createFileRoute("/")({
+  validateSearch: zodValidator(dashboardSearchSchema),
   head: () => ({
     meta: [
       { title: "TalentOS | AI Recruitment Platform" },
