@@ -4,7 +4,7 @@ import {
   FileText,
   SearchCode,
   BarChart3,
-  MessageSquareQuestion,
+  MessageSquareQuoteIcon,
   Coins,
   Sparkles,
 } from "lucide-react";
