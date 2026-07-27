@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/layout/PageShell";
+import { ContentLibrary } from "@/components/content/ContentLibrary";
 
 export const Route = createFileRoute("/content")({
   head: () => ({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/content")({
       eyebrow="Content"
       title={<>Writing on the <span className="text-gradient">future of hiring</span></>}
       description="Articles, talks, and playbooks distilled from years in the field."
-    />
+    >
+      <ContentLibrary />
+    </PageShell>
   ),
 });
