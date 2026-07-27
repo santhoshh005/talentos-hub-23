@@ -7,6 +7,7 @@ import { AppLayout } from "@/components/layout/AppLayout";
 import { HeroBackground } from "@/components/home/HeroBackground";
 import { FloatingCards } from "@/components/home/FloatingCards";
 import { DashboardSection } from "@/components/home/DashboardSection";
+import { RecruitmentInsights } from "@/components/home/RecruitmentInsights";
 
 export const Route = createFileRoute("/")({
   validateSearch: zodValidator(dashboardSearchSchema),
@@ -159,6 +160,7 @@ function Index() {
 
       <div id="next" />
       <DashboardSection />
+      <RecruitmentInsights />
     </AppLayout>
   );
 }
