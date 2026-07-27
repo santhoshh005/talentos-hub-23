@@ -187,37 +187,95 @@ export const parseResume = createServerFn({ method: "POST" })
     const gateway = createLovableGateway(key);
     const model = gateway("google/gemini-3.6-flash");
 
-    const prompt = `You are an expert resume parser. Extract structured fields from the resume text below. Return ONLY facts present in the text — do not invent anything. If a field is not present, return an empty string or empty array.
+    const system = `You are a deterministic resume parser. You extract fields VERBATIM from the resume text provided. You NEVER invent, guess, translate, or paraphrase. If a field is not clearly present in the text, return an empty string "" or empty array []. Return ONLY a single JSON object, no prose, no markdown fences.`;
+
+    const userPrompt = `Extract these fields as a JSON object with EXACTLY these keys:
+{
+  "name": string,               // candidate's full name exactly as written at the top of the resume
+  "email": string,              // email address verbatim
+  "phone": string,              // phone number verbatim (keep +, spaces, dashes)
+  "location": string,           // city, state/country as written
+  "experience": string,         // e.g. "3 years" if computable from dates; else ""
+  "currentCompany": string,     // most recent employer name
+  "skills": string[],           // skill keywords listed in the resume, deduped, max 30
+  "education": string,          // highest degree + institution on one line
+  "projects": string[],         // project titles or one-line summaries, max 10
+  "certifications": string[],   // verbatim certification names, max 15
+  "technologies": string[]      // tools/frameworks/languages/platforms, deduped, max 30
+}
 
 Rules:
-- name: candidate's full name as written.
-- email / phone: exact values from the resume.
-- location: city, country (or as stated).
-- experience: total years like "6 years" if computable; otherwise "".
-- currentCompany: most recent employer.
-- skills: soft/technical skill keywords, deduped, max 25.
-- education: highest degree + institution on one line.
-- projects: up to 8 short project titles or one-line summaries.
-- certifications: up to 10, verbatim names.
-- technologies: tools/frameworks/languages/platforms, deduped, max 25.
+- Copy values from the text; do not translate or rewrite.
+- If unsure, leave the field empty. Never fabricate.
+- Output must be valid JSON parsable by JSON.parse. No comments, no trailing commas, no code fences.
 
-RESUME TEXT:
-${data.resumeText.slice(0, 16000)}`;
+RESUME TEXT (verbatim):
+"""
+${data.resumeText.slice(0, 24000)}
+"""`;
 
+    const tryParse = (raw: string): ParsedResumeData | null => {
+      if (!raw) return null;
+      // Strip code fences if any.
+      const cleaned = raw
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/```\s*$/i, "")
+        .trim();
+      // Grab the outermost JSON object.
+      const start = cleaned.indexOf("{");
+      const end = cleaned.lastIndexOf("}");
+      if (start === -1 || end === -1) return null;
+      const slice = cleaned.slice(start, end + 1);
+      try {
+        const obj = JSON.parse(slice);
+        const merged = { ...fallback, ...obj };
+        // Coerce arrays that might come back as strings.
+        for (const k of ["skills", "projects", "certifications", "technologies"] as const) {
+          const v = (merged as Record<string, unknown>)[k];
+          if (typeof v === "string") {
+            (merged as Record<string, unknown>)[k] = v
+              .split(/[,\n;•]/)
+              .map((x) => x.trim())
+              .filter(Boolean);
+          } else if (!Array.isArray(v)) {
+            (merged as Record<string, unknown>)[k] = [];
+          }
+        }
+        return ParsedResumeSchema.parse(merged);
+      } catch {
+        return null;
+      }
+    };
+
+    // Primary path: plain JSON generation (more reliable across models than strict tool-calling).
+    try {
+      const { text } = await generateText({
+        model,
+        temperature: 0,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: userPrompt },
+        ],
+      });
+      const parsed = tryParse(text);
+      if (parsed) return { ...parsed, email: parsed.email || fallback.email, phone: parsed.phone || fallback.phone };
+    } catch {
+      /* fall through */
+    }
+
+    // Secondary path: structured output with Zod schema.
     try {
       const { output } = await generateText({
         model,
+        temperature: 0,
         output: Output.object({ schema: ParsedResumeSchema }),
-        prompt,
+        prompt: userPrompt,
       });
-      return output;
+      return { ...output, email: output.email || fallback.email, phone: output.phone || fallback.phone };
     } catch (err) {
       if (NoObjectGeneratedError.isInstance(err)) {
-        try {
-          return ParsedResumeSchema.parse(JSON.parse(err.text ?? "{}"));
-        } catch {
-          return fallback;
-        }
+        const parsed = tryParse(err.text ?? "");
+        if (parsed) return parsed;
       }
       return fallback;
     }

@@ -20,10 +20,23 @@ async function extractPdf(file: File): Promise<string> {
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
     const content = await page.getTextContent();
-    const strs = content.items
-      .map((it: unknown) => (it as { str?: string }).str ?? "")
-      .filter(Boolean);
-    parts.push(strs.join(" "));
+    // Preserve line breaks so the LLM can see resume structure (sections, bullets).
+    let pageText = "";
+    let lastY: number | null = null;
+    for (const raw of content.items) {
+      const it = raw as { str?: string; hasEOL?: boolean; transform?: number[] };
+      const s = it.str ?? "";
+      const y = it.transform?.[5] ?? null;
+      if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) {
+        pageText += "\n";
+      } else if (pageText && !pageText.endsWith(" ") && !pageText.endsWith("\n")) {
+        pageText += " ";
+      }
+      pageText += s;
+      if (it.hasEOL) pageText += "\n";
+      lastY = y;
+    }
+    parts.push(pageText);
   }
   return normalize(parts.join("\n\n"));
 }
