@@ -1,9 +1,10 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Clock, FileText, Sparkles, Users, TrendingUp, Linkedin } from "lucide-react";
-import resumeTipsCover from "@/assets/recruitment-insights/resume-tips.jpg.asset.json";
-import aiInRecruitmentCover from "@/assets/recruitment-insights/ai-in-recruitment.jpg.asset.json";
-import insideRecruitmentCover from "@/assets/recruitment-insights/inside-recruitment.jpg.asset.json";
-import hiringTrendsCover from "@/assets/recruitment-insights/hiring-trends.jpg.asset.json";
+import loseAttentionCover from "@/assets/recruitment-insights/lose-attention.png.asset.json";
+import whichResumeFirstCover from "@/assets/recruitment-insights/which-resume-first.png.asset.json";
+import aiResumesCover from "@/assets/recruitment-insights/19-ai-resumes.png.asset.json";
+import whyAtsRejectsCover from "@/assets/recruitment-insights/why-ats-rejects.png.asset.json";
+import hiringMythsCover from "@/assets/recruitment-insights/hiring-myths.png.asset.json";
 
 interface InsightPost {
   id: string;
@@ -27,8 +28,8 @@ const posts: InsightPost[] = [
       "Every resume looked exactly the same — Java, Spring Boot, AWS, SQL. We don't lose attention because of length. We lose it when nothing feels unique.",
     readTime: "5 min read",
     href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_inside-requirement-03-the-fastest-way-activity-7485931746786643968-T6-S?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
-    coverUrl: insideRecruitmentCover.url,
-    coverAlt: "Magnifying glass scanning glowing resume cards on a dark violet background",
+    coverUrl: loseAttentionCover.url,
+    coverAlt: "Inside Recruitment #03 — The fastest way to lose a recruiter's attention",
     icon: Users,
     glow: "shadow-[0_0_40px_-12px_rgba(139,92,246,0.35)]",
   },
@@ -40,8 +41,8 @@ const posts: InsightPost[] = [
       "The hidden signals recruiters scan in seconds — and why the order your resume gets opened often decides whether it gets read at all.",
     readTime: "4 min read",
     href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_insiderecruitment-resumetips-recruitment-activity-7485571441611153408-cVr5?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
-    coverUrl: resumeTipsCover.url,
-    coverAlt: "Futuristic resume document with glowing blue accents on a dark background",
+    coverUrl: whichResumeFirstCover.url,
+    coverAlt: "Inside Recruitment #02 — Why does a recruiter open one resume before another?",
     icon: FileText,
     glow: "shadow-[0_0_40px_-12px_rgba(37,99,235,0.35)]",
   },
@@ -53,8 +54,8 @@ const posts: InsightPost[] = [
       "What separated the 3 shortlisted AI/ML engineers from the other 16 — the patterns, projects, and phrasing that actually stood out.",
     readTime: "6 min read",
     href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_insiderecruitment-recruitment-aijobs-activity-7485230253007708160-RQRO?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
-    coverUrl: aiInRecruitmentCover.url,
-    coverAlt: "AI neural network and recruitment UI panels glowing on a dark background",
+    coverUrl: aiResumesCover.url,
+    coverAlt: "Inside Recruitment #01 — Out of 19 AI/ML resumes I screened, only 3 were shortlisted",
     icon: Sparkles,
     glow: "shadow-[0_0_40px_-12px_rgba(56,189,248,0.35)]",
   },
@@ -66,8 +67,8 @@ const posts: InsightPost[] = [
       "The real reasons Applicant Tracking Systems filter you out — formatting traps, keyword mismatches, and the fixes that get you past the bot.",
     readTime: "5 min read",
     href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_ats-resumetips-recruitment-activity-7484844001473269760-LQrD?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
-    coverUrl: resumeTipsCover.url,
-    coverAlt: "Futuristic resume document with glowing blue accents on a dark background",
+    coverUrl: whyAtsRejectsCover.url,
+    coverAlt: "Why ATS rejects you — your resume is good, your formatting isn't",
     icon: FileText,
     glow: "shadow-[0_0_40px_-12px_rgba(37,99,235,0.35)]",
   },
@@ -79,8 +80,8 @@ const posts: InsightPost[] = [
       "The recruiter beliefs that sound obvious but quietly break hiring — and what actually works once you let them go.",
     readTime: "4 min read",
     href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_talentacquisition-hiringmyths-recruiterlife-activity-7482410583711977472-_C4c?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
-    coverUrl: hiringTrendsCover.url,
-    coverAlt: "Glowing amber trend charts and analytics on a dark background",
+    coverUrl: hiringMythsCover.url,
+    coverAlt: "Talent Acquisition — 3 hiring myths I stopped believing",
     icon: TrendingUp,
     glow: "shadow-[0_0_40px_-12px_rgba(251,191,36,0.35)]",
   },
