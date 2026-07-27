@@ -61,12 +61,10 @@ export function Navbar() {
                 <li key={l.to} className="relative">
                   <Link
                     to={l.to}
-                    className={cn(
-                      "relative rounded-lg px-3 py-1.5 text-sm transition-colors",
-                      active
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
+                    className="relative rounded-lg px-3 py-1.5 text-sm transition-colors"
+                    activeProps={{ className: "text-foreground" }}
+                    inactiveProps={{ className: "text-muted-foreground hover:text-foreground" }}
+                    activeOptions={{ exact: l.to === "/" }}
                   >
                     {active && (
                       <motion.span
