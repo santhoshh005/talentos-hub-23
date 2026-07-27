@@ -39,8 +39,8 @@ const contactLinks = [
   {
     id: "linkedin",
     label: "LinkedIn",
-    value: "linkedin.com/in/hemanthkumar",
-    href: "https://linkedin.com/in/hemanthkumar",
+    value: "Connect with me",
+    href: "https://www.linkedin.com/in/hemanth-kumar-235078270",
     icon: Linkedin,
     color: "rgba(56, 189, 248, 0.4)",
   },

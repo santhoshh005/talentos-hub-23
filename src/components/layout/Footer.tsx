@@ -44,7 +44,7 @@ export function Footer() {
             <div className="mt-5 flex items-center gap-2">
               {[
                 { icon: Github, href: "#", label: "GitHub" },
-                { icon: Linkedin, href: "#", label: "LinkedIn" },
+                { icon: Linkedin, href: "https://www.linkedin.com/in/hemanth-kumar-235078270", label: "LinkedIn" },
                 { icon: Twitter, href: "#", label: "Twitter" },
                 { icon: Mail, href: "/contact", label: "Email" },
               ].map(({ icon: Icon, href, label }) => (
