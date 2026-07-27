@@ -97,7 +97,12 @@ function KpiCard({
 }
 
 /* ---------- Mock data ---------- */
-const techData = [
+const ALL_TECHS = ["React", "Node.js", "Python", "Go", "AWS/Cloud", "Data/ML"] as const;
+const ALL_SOURCES = ["LinkedIn", "Referrals", "Boolean Search", "Inbound"] as const;
+type Tech = (typeof ALL_TECHS)[number];
+type Source = (typeof ALL_SOURCES)[number];
+
+const techData: { name: Tech; value: number }[] = [
   { name: "React", value: 28 },
   { name: "Node.js", value: 22 },
   { name: "Python", value: 18 },
@@ -112,7 +117,7 @@ const funnelData = [
   { stage: "Offer", count: 32 },
   { stage: "Hired", count: 24 },
 ];
-const sourcesData = [
+const sourcesData: { name: Source; value: number }[] = [
   { name: "LinkedIn", value: 46 },
   { name: "Referrals", value: 22 },
   { name: "Boolean Search", value: 18 },
@@ -128,6 +133,13 @@ const trendData = [
   { m: "Jul", hires: 3, pipeline: 26 },
   { m: "Aug", hires: 5, pipeline: 34 },
 ];
+
+const RANGES = [
+  { key: 3, label: "3M" },
+  { key: 6, label: "6M" },
+  { key: 8, label: "YTD" },
+] as const;
+type RangeKey = (typeof RANGES)[number]["key"];
 
 const PIE_COLORS = ["#2563EB", "#38BDF8", "#7C3AED", "#22D3EE", "#3B82F6", "#0EA5E9"];
 
