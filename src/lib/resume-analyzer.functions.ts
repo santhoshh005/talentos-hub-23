@@ -9,6 +9,26 @@ const InputSchema = z.object({
   candidateName: z.string().optional(),
 });
 
+const ParseInputSchema = z.object({
+  resumeText: z.string().min(20),
+});
+
+const ParsedResumeSchema = z.object({
+  name: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  location: z.string(),
+  experience: z.string(),
+  currentCompany: z.string(),
+  skills: z.array(z.string()),
+  education: z.string(),
+  projects: z.array(z.string()),
+  certifications: z.array(z.string()),
+  technologies: z.array(z.string()),
+});
+
+export type ParsedResumeData = z.infer<typeof ParsedResumeSchema>;
+
 const AnalysisSchema = z.object({
   overallScore: z.number(),
   verdict: z.string(),
