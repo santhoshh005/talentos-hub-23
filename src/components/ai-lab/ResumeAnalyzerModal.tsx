@@ -211,7 +211,13 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
   const [jobDescription, setJobDescription] = useState("");
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [analyzeStatus, setAnalyzeStatus] = useState("");
+  const [jdMode, setJdMode] = useState<"paste" | "upload">("paste");
+  const [jdFileName, setJdFileName] = useState("");
+  const [jdLoading, setJdLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const jdInputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
   const parseResumeFn = useServerFn(parseResume);
   const analyzeResumeFn = useServerFn(analyzeResumeMatch);
@@ -228,7 +234,13 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     setJobDescription("");
     setAnalysis(null);
     setAnalyzing(false);
+    setAnalyzeProgress(0);
+    setAnalyzeStatus("");
+    setJdMode("paste");
+    setJdFileName("");
+    setJdLoading(false);
     if (inputRef.current) inputRef.current.value = "";
+    if (jdInputRef.current) jdInputRef.current.value = "";
   }, []);
 
   useEffect(() => {
@@ -321,6 +333,25 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       return;
     }
     setAnalyzing(true);
+    setAnalyzeProgress(6);
+    setAnalyzeStatus("Reading job description");
+    const steps = [
+      { at: 22, label: "Matching skills & keywords" },
+      { at: 44, label: "Scoring experience & education" },
+      { at: 66, label: "Generating recruiter insights" },
+      { at: 84, label: "Preparing interview questions" },
+    ];
+    let stepIndex = 0;
+    const timer = setInterval(() => {
+      setAnalyzeProgress((value) => {
+        const next = Math.min(92, value + 4);
+        if (stepIndex < steps.length && next >= steps[stepIndex].at) {
+          setAnalyzeStatus(steps[stepIndex].label);
+          stepIndex += 1;
+        }
+        return next;
+      });
+    }, 220);
     try {
       const result = await analyzeResumeFn({
         data: {
@@ -330,14 +361,43 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
         },
       });
       setAnalysis(result);
+      setAnalyzeProgress(100);
+      setAnalyzeStatus("Analysis ready");
       toast.success("Match analysis complete");
     } catch (caught) {
       console.error("[TalentOS Resume Analyzer] match failed:", caught);
       toast.error("Analysis failed. Please try again.");
     } finally {
+      clearInterval(timer);
       setAnalyzing(false);
     }
   }, [analyzeResumeFn, jobDescription, parsed]);
+
+  const processJdFile = useCallback(async (nextFile: File) => {
+    const lowerName = nextFile.name.toLowerCase();
+    if (!lowerName.endsWith(".pdf") && !lowerName.endsWith(".docx") && !lowerName.endsWith(".txt")) {
+      toast.error("Upload a PDF, DOCX, or TXT job description.");
+      return;
+    }
+    if (nextFile.size > 10 * 1024 * 1024) {
+      toast.error("JD file must be under 10 MB.");
+      return;
+    }
+    setJdLoading(true);
+    setJdFileName(nextFile.name);
+    try {
+      const text = lowerName.endsWith(".txt")
+        ? await nextFile.text()
+        : await extractResumeText(nextFile);
+      setJobDescription(text.trim());
+      toast.success("Job description loaded");
+    } catch (caught) {
+      console.error("[TalentOS Resume Analyzer] JD extraction failed:", caught);
+      toast.error("Could not read that job description file.");
+    } finally {
+      setJdLoading(false);
+    }
+  }, []);
 
   const reportText = useMemo(() => {
     if (!parsed) return "";
