@@ -27,7 +27,6 @@ interface Certification {
 
 const certifications: Certification[] = [
   {
-  {
     id: "google-data-analytics",
     title: "Google Data Analytics Professional Certificate",
     issuer: "Google · Coursera",
