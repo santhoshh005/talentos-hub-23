@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContentRouteImport } from './routes/content'
+import { Route as CertificationsRouteImport } from './routes/certifications'
 import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -30,6 +31,11 @@ const ContentRoute = ContentRouteImport.update({
   path: '/content',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CertificationsRoute = CertificationsRouteImport.update({
+  id: '/certifications',
+  path: '/certifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AiLabRoute = AiLabRouteImport.update({
   id: '/ai-lab',
   path: '/ai-lab',
@@ -44,6 +50,7 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
+  '/certifications': typeof CertificationsRoute
   '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
   '/timeline': typeof TimelineRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
+  '/certifications': typeof CertificationsRoute
   '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
   '/timeline': typeof TimelineRoute
@@ -59,21 +67,42 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
+  '/certifications': typeof CertificationsRoute
   '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
   '/timeline': typeof TimelineRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ai-lab' | '/content' | '/dashboard' | '/timeline'
+  fullPaths:
+    | '/'
+    | '/ai-lab'
+    | '/certifications'
+    | '/content'
+    | '/dashboard'
+    | '/timeline'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ai-lab' | '/content' | '/dashboard' | '/timeline'
-  id: '__root__' | '/' | '/ai-lab' | '/content' | '/dashboard' | '/timeline'
+  to:
+    | '/'
+    | '/ai-lab'
+    | '/certifications'
+    | '/content'
+    | '/dashboard'
+    | '/timeline'
+  id:
+    | '__root__'
+    | '/'
+    | '/ai-lab'
+    | '/certifications'
+    | '/content'
+    | '/dashboard'
+    | '/timeline'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiLabRoute: typeof AiLabRoute
+  CertificationsRoute: typeof CertificationsRoute
   ContentRoute: typeof ContentRoute
   DashboardRoute: typeof DashboardRoute
   TimelineRoute: typeof TimelineRoute
@@ -102,6 +131,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/certifications': {
+      id: '/certifications'
+      path: '/certifications'
+      fullPath: '/certifications'
+      preLoaderRoute: typeof CertificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/ai-lab': {
       id: '/ai-lab'
       path: '/ai-lab'
@@ -122,6 +158,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiLabRoute: AiLabRoute,
+  CertificationsRoute: CertificationsRoute,
   ContentRoute: ContentRoute,
   DashboardRoute: DashboardRoute,
   TimelineRoute: TimelineRoute,
