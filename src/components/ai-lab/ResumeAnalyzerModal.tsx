@@ -211,7 +211,13 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
   const [jobDescription, setJobDescription] = useState("");
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analyzeProgress, setAnalyzeProgress] = useState(0);
+  const [analyzeStatus, setAnalyzeStatus] = useState("");
+  const [jdMode, setJdMode] = useState<"paste" | "upload">("paste");
+  const [jdFileName, setJdFileName] = useState("");
+  const [jdLoading, setJdLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const jdInputRef = useRef<HTMLInputElement>(null);
   const requestIdRef = useRef(0);
   const parseResumeFn = useServerFn(parseResume);
   const analyzeResumeFn = useServerFn(analyzeResumeMatch);
@@ -228,7 +234,13 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     setJobDescription("");
     setAnalysis(null);
     setAnalyzing(false);
+    setAnalyzeProgress(0);
+    setAnalyzeStatus("");
+    setJdMode("paste");
+    setJdFileName("");
+    setJdLoading(false);
     if (inputRef.current) inputRef.current.value = "";
+    if (jdInputRef.current) jdInputRef.current.value = "";
   }, []);
 
   useEffect(() => {
@@ -321,6 +333,25 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       return;
     }
     setAnalyzing(true);
+    setAnalyzeProgress(6);
+    setAnalyzeStatus("Reading job description");
+    const steps = [
+      { at: 22, label: "Matching skills & keywords" },
+      { at: 44, label: "Scoring experience & education" },
+      { at: 66, label: "Generating recruiter insights" },
+      { at: 84, label: "Preparing interview questions" },
+    ];
+    let stepIndex = 0;
+    const timer = setInterval(() => {
+      setAnalyzeProgress((value) => {
+        const next = Math.min(92, value + 4);
+        if (stepIndex < steps.length && next >= steps[stepIndex].at) {
+          setAnalyzeStatus(steps[stepIndex].label);
+          stepIndex += 1;
+        }
+        return next;
+      });
+    }, 220);
     try {
       const result = await analyzeResumeFn({
         data: {
@@ -330,14 +361,43 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
         },
       });
       setAnalysis(result);
+      setAnalyzeProgress(100);
+      setAnalyzeStatus("Analysis ready");
       toast.success("Match analysis complete");
     } catch (caught) {
       console.error("[TalentOS Resume Analyzer] match failed:", caught);
       toast.error("Analysis failed. Please try again.");
     } finally {
+      clearInterval(timer);
       setAnalyzing(false);
     }
   }, [analyzeResumeFn, jobDescription, parsed]);
+
+  const processJdFile = useCallback(async (nextFile: File) => {
+    const lowerName = nextFile.name.toLowerCase();
+    if (!lowerName.endsWith(".pdf") && !lowerName.endsWith(".docx") && !lowerName.endsWith(".txt")) {
+      toast.error("Upload a PDF, DOCX, or TXT job description.");
+      return;
+    }
+    if (nextFile.size > 10 * 1024 * 1024) {
+      toast.error("JD file must be under 10 MB.");
+      return;
+    }
+    setJdLoading(true);
+    setJdFileName(nextFile.name);
+    try {
+      const text = lowerName.endsWith(".txt")
+        ? await nextFile.text()
+        : await extractResumeText(nextFile);
+      setJobDescription(text.trim());
+      toast.success("Job description loaded");
+    } catch (caught) {
+      console.error("[TalentOS Resume Analyzer] JD extraction failed:", caught);
+      toast.error("Could not read that job description file.");
+    } finally {
+      setJdLoading(false);
+    }
+  }, []);
 
   const reportText = useMemo(() => {
     if (!parsed) return "";
@@ -544,19 +604,121 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                       </div>
                       <span className="text-xs text-muted-foreground">{jobDescription.length} characters</span>
                     </div>
-                    <textarea
-                      value={jobDescription}
-                      onChange={(event) => setJobDescription(event.target.value)}
-                      placeholder="Paste the Job Description here to compare it with this exact resume..."
-                      rows={8}
-                      className="w-full resize-y rounded-2xl border border-border bg-background/50 p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30"
-                    />
+                    <div className="mb-3 inline-flex rounded-xl border border-border bg-background/40 p-1 text-xs">
+                      {(["paste", "upload"] as const).map((mode) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setJdMode(mode)}
+                          className={cn(
+                            "rounded-lg px-3 py-1.5 font-medium capitalize transition",
+                            jdMode === mode
+                              ? "bg-gradient-to-r from-primary to-accent text-primary-foreground shadow"
+                              : "text-muted-foreground hover:text-foreground",
+                          )}
+                        >
+                          {mode === "paste" ? "Paste JD" : "Upload JD"}
+                        </button>
+                      ))}
+                    </div>
+                    {jdMode === "paste" ? (
+                      <textarea
+                        value={jobDescription}
+                        onChange={(event) => setJobDescription(event.target.value)}
+                        placeholder="Paste the Job Description here to compare it with this exact resume..."
+                        rows={8}
+                        className="w-full resize-y rounded-2xl border border-border bg-background/50 p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30"
+                      />
+                    ) : (
+                      <div className="space-y-3">
+                        <div
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={(event) => {
+                            event.preventDefault();
+                            const dropped = event.dataTransfer.files?.[0];
+                            if (dropped) void processJdFile(dropped);
+                          }}
+                          className="flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-border bg-background/40 p-6 text-center transition hover:border-accent/50"
+                        >
+                          {jdLoading ? (
+                            <Loader2 className="h-6 w-6 animate-spin text-accent" />
+                          ) : (
+                            <Upload className="h-6 w-6 text-accent" />
+                          )}
+                          <div className="text-sm text-muted-foreground">
+                            {jdFileName ? (
+                              <>Loaded <span className="text-foreground">{jdFileName}</span></>
+                            ) : (
+                              "Drop a PDF, DOCX, or TXT job description here"
+                            )}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => jdInputRef.current?.click()}
+                            className="rounded-xl border-border bg-background/40"
+                          >
+                            <FileText className="h-4 w-4" /> Choose JD file
+                          </Button>
+                          <input
+                            ref={jdInputRef}
+                            type="file"
+                            accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                            className="hidden"
+                            aria-label="Upload job description"
+                            onChange={(event) => {
+                              const selected = event.target.files?.[0];
+                              event.target.value = "";
+                              if (selected) void processJdFile(selected);
+                            }}
+                          />
+                        </div>
+                        {jobDescription && (
+                          <details className="rounded-2xl border border-border bg-background/40 p-3 text-xs text-muted-foreground">
+                            <summary className="cursor-pointer text-foreground">Preview extracted JD text</summary>
+                            <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap leading-5">{jobDescription}</pre>
+                          </details>
+                        )}
+                      </div>
+                    )}
                     <div className="mt-4 flex justify-end">
                       <Button type="button" onClick={runAnalysis} disabled={analyzing} className="rounded-xl bg-gradient-to-r from-primary to-accent px-6 shadow-xl shadow-primary/25">
                         {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                         {analyzing ? "Analyzing…" : "Analyze Match"}
                       </Button>
                     </div>
+                    {analyzing && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-5 rounded-2xl border border-border bg-background/50 p-4"
+                      >
+                        <div className="mb-3 flex items-center gap-3">
+                          <div className="relative h-9 w-9">
+                            <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />
+                            <div className="relative grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-primary to-accent">
+                              <Sparkles className="h-4 w-4 text-primary-foreground" />
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <div className="text-sm font-medium">{analyzeStatus || "Analyzing your match"}</div>
+                            <div className="text-xs text-muted-foreground">TalentOS AI is comparing the resume against the JD…</div>
+                          </div>
+                          <div className="text-xs tabular-nums text-muted-foreground">{Math.round(analyzeProgress)}%</div>
+                        </div>
+                        <ProgressBar value={analyzeProgress} />
+                        <div className="mt-3 flex gap-1.5 overflow-hidden">
+                          {Array.from({ length: 16 }).map((_, i) => (
+                            <motion.span
+                              key={i}
+                              className="h-1 flex-1 rounded-full bg-accent/40"
+                              animate={{ opacity: [0.2, 1, 0.2] }}
+                              transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.06 }}
+                            />
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
                   </GlassCard>
 
                   {analysis && (
