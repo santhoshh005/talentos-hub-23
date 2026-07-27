@@ -15,7 +15,6 @@ import { Route as ContentRouteImport } from './routes/content'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CertificationsRouteImport } from './routes/certifications'
 import { Route as AiLabRouteImport } from './routes/ai-lab'
-import { Route as IndexRouteImport } from './routes/index'
 
 const TimelineRoute = TimelineRouteImport.update({
   id: '/timeline',
@@ -47,14 +46,8 @@ const AiLabRoute = AiLabRouteImport.update({
   path: '/ai-lab',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
@@ -63,7 +56,6 @@ export interface FileRoutesByFullPath {
   '/timeline': typeof TimelineRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
@@ -73,7 +65,6 @@ export interface FileRoutesByTo {
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
@@ -84,7 +75,6 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/ai-lab'
     | '/certifications'
     | '/contact'
@@ -93,7 +83,6 @@ export interface FileRouteTypes {
     | '/timeline'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/ai-lab'
     | '/certifications'
     | '/contact'
@@ -102,7 +91,6 @@ export interface FileRouteTypes {
     | '/timeline'
   id:
     | '__root__'
-    | '/'
     | '/ai-lab'
     | '/certifications'
     | '/contact'
@@ -112,7 +100,6 @@ export interface FileRouteTypes {
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   AiLabRoute: typeof AiLabRoute
   CertificationsRoute: typeof CertificationsRoute
   ContactRoute: typeof ContactRoute
@@ -165,18 +152,10 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiLabRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   AiLabRoute: AiLabRoute,
   CertificationsRoute: CertificationsRoute,
   ContactRoute: ContactRoute,
