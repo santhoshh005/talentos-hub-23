@@ -17,6 +17,7 @@ interface AiLabCard {
   icon: React.ElementType;
   gradient: string;
   glow: string;
+  color: string;
 }
 
 const cards: AiLabCard[] = [
