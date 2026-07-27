@@ -1,6 +1,3 @@
-// Client-side resume text extraction for PDF and DOCX.
-// PDF via pdfjs-dist, DOCX via mammoth. Both bundle in the browser.
-
 export async function extractResumeText(file: File): Promise<string> {
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf")) return extractPdf(file);
@@ -9,36 +6,60 @@ export async function extractResumeText(file: File): Promise<string> {
 }
 
 async function extractPdf(file: File): Promise<string> {
-  const pdfjs = await import("pdfjs-dist");
-  // Use a bundled worker URL so it works in production too.
-  const workerUrl = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
-  (pdfjs as unknown as { GlobalWorkerOptions: { workerSrc: string } }).GlobalWorkerOptions.workerSrc = workerUrl;
+  installPdfPolyfills();
 
-  const buf = await file.arrayBuffer();
-  const doc = await pdfjs.getDocument({ data: buf }).promise;
-  const parts: string[] = [];
+  const pdfjs = await import("pdfjs-dist/legacy/build/pdf.mjs");
+  const workerUrl = (await import("pdfjs-dist/legacy/build/pdf.worker.mjs?url")).default;
+  pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
+
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false, useSystemFonts: true }).promise;
+  const pages: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    // Preserve line breaks so the LLM can see resume structure (sections, bullets).
-    let pageText = "";
-    let lastY: number | null = null;
-    for (const raw of content.items) {
-      const it = raw as { str?: string; hasEOL?: boolean; transform?: number[] };
-      const s = it.str ?? "";
-      const y = it.transform?.[5] ?? null;
-      if (lastY !== null && y !== null && Math.abs(y - lastY) > 2) {
-        pageText += "\n";
-      } else if (pageText && !pageText.endsWith(" ") && !pageText.endsWith("\n")) {
-        pageText += " ";
+    const content = await page.getTextContent({ includeMarkedContent: false });
+    const items = content.items
+      .map((raw) => {
+        const item = raw as { str?: string; hasEOL?: boolean; transform?: number[]; width?: number };
+        return {
+          text: item.str ?? "",
+          x: item.transform?.[4] ?? 0,
+          y: item.transform?.[5] ?? 0,
+          hasEOL: Boolean(item.hasEOL),
+          width: item.width ?? 0,
+        };
+      })
+      .filter((item) => item.text.trim().length > 0)
+      .sort((a, b) => {
+        const yDiff = b.y - a.y;
+        return Math.abs(yDiff) > 2 ? yDiff : a.x - b.x;
+      });
+
+    const lines: string[] = [];
+    let currentLine: Array<{ text: string; x: number; y: number; hasEOL: boolean; width: number }> = [];
+    let currentY: number | null = null;
+    for (const item of items) {
+      const newLine = currentY === null || Math.abs(item.y - currentY) > 2.5;
+      if (newLine && currentLine.length > 0) {
+        lines.push(joinPdfLine(currentLine));
+        currentLine = [];
       }
-      pageText += s;
-      if (it.hasEOL) pageText += "\n";
-      lastY = y;
+      currentLine.push(item);
+      currentY = item.y;
+      if (item.hasEOL) {
+        lines.push(joinPdfLine(currentLine));
+        currentLine = [];
+        currentY = null;
+      }
     }
-    parts.push(pageText);
+    if (currentLine.length > 0) lines.push(joinPdfLine(currentLine));
+    pages.push(lines.filter(Boolean).join("\n"));
   }
-  return normalize(parts.join("\n\n"));
+  const text = normalize(pages.join("\n\n"));
+  if (text.length < 40) {
+    throw new Error("This PDF does not contain readable text. Please upload a text-based PDF or DOCX resume.");
+  }
+  return text;
 }
 
 async function extractDocx(file: File): Promise<string> {
@@ -48,13 +69,43 @@ async function extractDocx(file: File): Promise<string> {
   };
   const buf = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer: buf });
-  return normalize(result.value ?? "");
+  const text = normalize(result.value ?? "");
+  if (text.length < 40) {
+    throw new Error("This DOCX does not contain enough readable resume text.");
+  }
+  return text;
+}
+
+function installPdfPolyfills() {
+  const proto = Uint8Array.prototype as Uint8Array & { toHex?: () => string };
+  if (typeof proto.toHex === "function") return;
+  Object.defineProperty(Uint8Array.prototype, "toHex", {
+    value: function toHex(this: Uint8Array) {
+      return Array.from(this, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    },
+    configurable: true,
+  });
+}
+
+function joinPdfLine(items: Array<{ text: string; x: number; width: number }>): string {
+  const sorted = [...items].sort((a, b) => a.x - b.x);
+  let line = "";
+  let previousRight: number | null = null;
+  for (const item of sorted) {
+    const gap = previousRight === null ? 0 : item.x - previousRight;
+    const separator = line.length === 0 ? "" : gap > 10 ? "  " : " ";
+    line += `${separator}${item.text}`;
+    previousRight = item.x + item.width;
+  }
+  return line.trim();
 }
 
 function normalize(s: string): string {
   return s
     .replace(/\r\n?/g, "\n")
-    .replace(/[ \t]+/g, " ")
+    .replace(/[\u00a0\t]+/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n[ \t]+/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
