@@ -1,5 +1,9 @@
 import { motion } from "framer-motion";
 import { ArrowUpRight, Clock, FileText, Sparkles, Users, TrendingUp, Linkedin } from "lucide-react";
+import resumeTipsCover from "@/assets/recruitment-insights/resume-tips.jpg.asset.json";
+import aiInRecruitmentCover from "@/assets/recruitment-insights/ai-in-recruitment.jpg.asset.json";
+import insideRecruitmentCover from "@/assets/recruitment-insights/inside-recruitment.jpg.asset.json";
+import hiringTrendsCover from "@/assets/recruitment-insights/hiring-trends.jpg.asset.json";
 
 interface InsightPost {
   id: string;
@@ -8,9 +12,9 @@ interface InsightPost {
   excerpt: string;
   readTime: string;
   href: string;
+  coverUrl: string;
+  coverAlt: string;
   icon: React.ElementType;
-  gradient: string;
-  color: string;
   glow: string;
 }
 
@@ -25,9 +29,9 @@ const posts: InsightPost[] = [
       "What top recruiters look for in the first 8 seconds — structure, keywords, and the signal-to-noise ratio that matters most.",
     readTime: "4 min read",
     href: LINKEDIN_PROFILE,
+    coverUrl: resumeTipsCover.url,
+    coverAlt: "Futuristic resume document with glowing blue accents on a dark background",
     icon: FileText,
-    gradient: "from-primary/20 to-accent/20",
-    color: "rgba(37, 99, 235, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(37,99,235,0.35)]",
   },
   {
@@ -38,9 +42,9 @@ const posts: InsightPost[] = [
       "From sourcing to screening — the practical AI workflows that are 10x-ing recruiter productivity without losing the human touch.",
     readTime: "6 min read",
     href: LINKEDIN_PROFILE,
+    coverUrl: aiInRecruitmentCover.url,
+    coverAlt: "AI neural network and recruitment UI panels glowing on a dark background",
     icon: Sparkles,
-    gradient: "from-cyan-500/20 to-emerald-500/20",
-    color: "rgba(56, 189, 248, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(56,189,248,0.35)]",
   },
   {
@@ -48,12 +52,12 @@ const posts: InsightPost[] = [
     category: "Inside Recruitment",
     title: "The Fastest Way to Lose a Recruiter's Attention",
     excerpt:
-      "Inside Recruitment #03 — We don't lose attention because a resume is one or two pages. We lose attention when we can't find anything unique. Tell me what changed because of your work.",
+      "Inside Recruitment — We don't lose attention because a resume is one or two pages. We lose attention when we can't find anything unique. Tell me what changed because of your work.",
     readTime: "5 min read",
-    href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_inside-requirement-03-the-fastest-way-activity-7485931746786643968-T6-S?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
+    href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_insiderecruitment-resumetips-recruitment-activity-7485571441611153408-cVr5?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
+    coverUrl: insideRecruitmentCover.url,
+    coverAlt: "Magnifying glass scanning glowing resume cards on a dark violet background",
     icon: Users,
-    gradient: "from-violet-500/20 to-fuchsia-500/20",
-    color: "rgba(139, 92, 246, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(139,92,246,0.35)]",
   },
   {
@@ -64,9 +68,9 @@ const posts: InsightPost[] = [
       "AI-native teams, skill-first hiring, and the shift toward outcome-based roles — what's shaping the next wave of tech hiring.",
     readTime: "7 min read",
     href: LINKEDIN_PROFILE,
+    coverUrl: hiringTrendsCover.url,
+    coverAlt: "Glowing amber trend charts and analytics on a dark background",
     icon: TrendingUp,
-    gradient: "from-amber-500/20 to-orange-500/20",
-    color: "rgba(251, 191, 36, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(251,191,36,0.35)]",
   },
 ];
@@ -137,23 +141,19 @@ function InsightCard({ post }: { post: InsightPost }) {
       rel="noopener noreferrer"
       className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all duration-300 ease-out hover:-translate-y-2 hover:border-white/[0.14] hover:bg-white/[0.04] ${post.glow}`}
     >
-      {/* Cover image placeholder */}
+      {/* Cover image */}
       <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-white/[0.06]">
-        <div className={`absolute inset-0 bg-gradient-to-br ${post.gradient} opacity-70 transition-opacity duration-500 group-hover:opacity-100`} />
-        <div
-          className="absolute inset-0 opacity-60"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
-            backgroundSize: "24px 24px",
-          }}
+        <img
+          src={post.coverUrl}
+          alt={post.coverAlt}
+          width={1024}
+          height={640}
+          loading="lazy"
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
-        <div
-          className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
-          style={{ background: `radial-gradient(circle, ${post.color} 0%, transparent 70%)` }}
-        />
+        <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] backdrop-blur transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-black/40 backdrop-blur transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
             <Icon className="h-6 w-6 text-white/90" strokeWidth={1.5} />
           </div>
         </div>
