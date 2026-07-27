@@ -1,15 +1,14 @@
 import { motion } from "framer-motion";
 import {
   Award,
-  Shield,
-  Bot,
-  Search,
-  Users,
-  LineChart,
   BadgeCheck,
   ExternalLink,
   Calendar,
 } from "lucide-react";
+import googleDA from "@/assets/certificates/google-data-analytics.jpg.asset.json";
+import naukri from "@/assets/certificates/naukri-maestro.jpg.asset.json";
+import ibmML from "@/assets/certificates/ibm-ml-python.jpg.asset.json";
+import introAI from "@/assets/certificates/intro-to-ai.png.asset.json";
 
 interface Certification {
   id: string;
@@ -18,7 +17,8 @@ interface Certification {
   date: string;
   description: string;
   skills: string[];
-  icon: React.ElementType;
+  image: string;
+  url: string;
   gradient: string;
   color: string;
   glow: string;
@@ -27,77 +27,61 @@ interface Certification {
 
 const certifications: Certification[] = [
   {
-    id: "airecruiter",
-    title: "AI for Recruiters",
-    issuer: "LinkedIn Learning",
-    date: "2025",
-    description: "Mastered practical AI applications for sourcing, screening, and candidate engagement. Covered prompt engineering, LLM use cases, and ethical AI in hiring.",
-    skills: ["Prompt Engineering", "LLM Tools", "AI Sourcing", "Ethical AI"],
-    icon: Bot,
+    id: "google-data-analytics",
+    title: "Google Data Analytics Professional Certificate",
+    issuer: "Google · Coursera",
+    date: "2024",
+    description:
+      "Comprehensive specialization covering data cleaning, analysis, visualization, SQL, R programming, and Tableau — building the analytical foundation behind recruitment intelligence.",
+    skills: ["SQL", "R Programming", "Tableau", "Data Visualization", "Spreadsheets"],
+    image: googleDA.url,
+    url: "https://www.coursera.org/account/accomplishments/specialization/APBHCN2UHB8K",
     gradient: "from-primary/20 to-accent/20",
     color: "rgba(37, 99, 235, 0.4)",
     glow: "shadow-[0_0_60px_-20px_rgba(37,99,235,0.35)]",
     featured: true,
   },
   {
-    id: "boolean",
-    title: "Advanced Boolean Search",
-    issuer: "SourceCon",
+    id: "naukri-maestro",
+    title: "Naukri Maestro Recruiter — Fundamental Level",
+    issuer: "Naukri.com",
     date: "2025",
-    description: "Certified in advanced boolean search, x-ray search, and building complex talent pipelines across GitHub, LinkedIn, and niche platforms.",
-    skills: ["Boolean Logic", "X-Ray Search", "Talent Pipelines", "Niche Sourcing"],
-    icon: Search,
+    description:
+      "Certified on advanced sourcing workflows, candidate engagement, and end-to-end recruiter operations on India's largest hiring platform.",
+    skills: ["Sourcing", "Candidate Engagement", "Pipeline Management", "Naukri RMS"],
+    image: naukri.url,
+    url: "https://disprzcdn.disprz.com/skilltronassetspublic/Content/naukricom1/Files/Certificates/hemanthxevytecom//7ff39d92-a8bc-4fe8-8b65-ba2c4c3c1f81certificate_images/certificate-naukri_maestro_recruitment_program_-_fundamental_level-gaddam_hemanth_kumar.jpg",
     gradient: "from-cyan-500/20 to-emerald-500/20",
     color: "rgba(56, 189, 248, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(56,189,248,0.3)]",
   },
   {
-    id: "technical-recruitment",
-    title: "Technical Recruitment Fundamentals",
-    issuer: "Recruiter.com",
-    date: "2025",
-    description: "Comprehensive training on evaluating software engineers, understanding tech stacks, and partnering with engineering hiring managers.",
-    skills: ["Tech Stack Evaluation", "Interview Coordination", "Hiring Manager Partnership"],
-    icon: Users,
+    id: "ibm-ml-python",
+    title: "Machine Learning with Python",
+    issuer: "IBM · Cognitive Class",
+    date: "2024",
+    description:
+      "Hands-on training in supervised and unsupervised learning, regression, classification, and clustering using Python and scikit-learn.",
+    skills: ["Python", "scikit-learn", "Regression", "Classification", "Clustering"],
+    image: ibmML.url,
+    url: "https://courses.cognitiveclass.ai/certificates/dd38d1f7ec824522a0ef92c7b1e108e5",
     gradient: "from-violet-500/20 to-fuchsia-500/20",
     color: "rgba(139, 92, 246, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(139,92,246,0.3)]",
   },
   {
-    id: "dei",
-    title: "Diversity & Inclusion in Hiring",
-    issuer: "SHRM",
-    date: "2025",
-    description: "Learned frameworks to reduce bias in job descriptions, interviews, and offer processes to build inclusive engineering teams.",
-    skills: ["Unconscious Bias", "Inclusive JDs", "Structured Interviews", "Equity"],
-    icon: Shield,
+    id: "intro-to-ai",
+    title: "Introduction to Artificial Intelligence",
+    issuer: "Simplilearn · SkillUp",
+    date: "2023",
+    description:
+      "Foundational course on AI concepts, machine learning basics, neural networks, and real-world applications powering modern intelligent systems.",
+    skills: ["Artificial Intelligence", "Machine Learning", "Neural Networks", "AI Applications"],
+    image: introAI.url,
+    url: "https://certificates.simplicdn.net/share/4680004.pdf",
     gradient: "from-amber-500/20 to-orange-500/20",
     color: "rgba(251, 191, 36, 0.4)",
     glow: "shadow-[0_0_40px_-12px_rgba(251,191,36,0.3)]",
-  },
-  {
-    id: "analytics",
-    title: "Recruitment Analytics & Metrics",
-    issuer: "Greenhouse",
-    date: "2024",
-    description: "Built dashboards and reporting workflows to track time-to-fill, quality-of-hire, pipeline conversion, and source effectiveness.",
-    skills: ["ATS Reporting", "Time-to-Fill", "Quality-of-Hire", "Pipeline Conversion"],
-    icon: LineChart,
-    gradient: "from-emerald-500/20 to-teal-500/20",
-    color: "rgba(16, 185, 129, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(16,185,129,0.3)]",
-  },
-  {
-    id: "data",
-    title: "Data Analytics for Business",
-    issuer: "Google",
-    date: "2024",
-    description: "Developed data literacy, SQL, spreadsheet modeling, and visualization skills that inform recruiting strategy and talent planning.",
-    skills: ["SQL", "Spreadsheet Modeling", "Data Visualization", "Business Intelligence"],
-    icon: Award,
-    gradient: "from-rose-500/20 to-pink-500/20",
-    color: "rgba(244, 63, 94, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(244,63,94,0.3)]",
   },
 ];
 
@@ -161,15 +145,12 @@ export function CertificationsGrid() {
 }
 
 function CertificationCard({ item, featured = false }: { item: Certification; featured?: boolean }) {
-  const Icon = item.icon;
-
   return (
     <div
       className={`
         group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]
         transition-all duration-300 ease-out
         hover:-translate-y-2 hover:border-white/[0.14] hover:bg-white/[0.04]
-        ${featured ? "p-8 md:p-10" : "p-6"}
         ${item.glow}
       `}
     >
@@ -187,62 +168,65 @@ function CertificationCard({ item, featured = false }: { item: Certification; fe
         style={{ background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)` }}
       />
 
-      <div className={`relative z-10 flex flex-col ${featured ? "md:max-w-2xl" : ""}`}>
-        {/* Top row */}
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-            <Icon className="h-5 w-5 text-white/90" strokeWidth={1.5} />
-          </div>
-          <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+      <div className={`relative z-10 ${featured ? "grid gap-6 md:grid-cols-2 md:gap-8 p-6 md:p-8" : "flex flex-col p-5"}`}>
+        {/* Preview image */}
+        <div className={`relative overflow-hidden rounded-xl border border-white/10 bg-black/30 ${featured ? "aspect-[4/3] md:aspect-auto" : "aspect-[16/10] mb-5"}`}>
+          <img
+            src={item.image}
+            alt={`${item.title} certificate preview`}
+            loading="lazy"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white/90 backdrop-blur">
             <BadgeCheck className="h-3 w-3 text-accent" />
             Verified
           </div>
         </div>
 
-        {/* Title */}
-        <h3 className={`font-semibold tracking-tight text-foreground ${featured ? "text-2xl md:text-3xl" : "text-lg"}`}>
-          {item.title}
-        </h3>
+        {/* Body */}
+        <div className="flex flex-col">
+          <h3 className={`font-semibold tracking-tight text-foreground ${featured ? "text-2xl md:text-3xl" : "text-lg"}`}>
+            {item.title}
+          </h3>
 
-        {/* Issuer & date */}
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1.5">
-            <Award className="h-3.5 w-3.5" />
-            {item.issuer}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" />
-            {item.date}
-          </span>
-        </div>
-
-        {/* Description */}
-        <p className={`mt-4 leading-relaxed text-muted-foreground ${featured ? "text-base md:text-lg" : "text-sm"}`}>
-          {item.description}
-        </p>
-
-        {/* Skills */}
-        <div className="mt-5 flex flex-wrap gap-2">
-          {item.skills.map((skill) => (
-            <span
-              key={skill}
-              className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
-            >
-              {skill}
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1.5">
+              <Award className="h-3.5 w-3.5" />
+              {item.issuer}
             </span>
-          ))}
-        </div>
+            <span className="flex items-center gap-1.5">
+              <Calendar className="h-3.5 w-3.5" />
+              {item.date}
+            </span>
+          </div>
 
-        {/* CTA */}
-        <div className="mt-6">
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-2.5 text-sm font-medium text-muted-transition transition-colors duration-300 hover:bg-white/[0.06] hover:text-foreground disabled:cursor-not-allowed"
-          >
-            View Credential
-            <ExternalLink className="h-3.5 w-3.5" />
-          </button>
+          <p className={`mt-4 leading-relaxed text-muted-foreground ${featured ? "text-base" : "text-sm"}`}>
+            {item.description}
+          </p>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {item.skills.map((skill) => (
+              <span
+                key={skill}
+                className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground"
+              >
+                {skill}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-6">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-gradient-to-r from-primary/20 to-accent/20 px-4 py-2.5 text-sm font-medium text-foreground transition-all duration-300 hover:border-white/20 hover:from-primary/30 hover:to-accent/30"
+            >
+              View Certificate
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+          </div>
         </div>
       </div>
     </div>
