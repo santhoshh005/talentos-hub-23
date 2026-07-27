@@ -30,7 +30,12 @@ import {
   GitCompareArrows,
 } from "lucide-react";
 import { toast } from "sonner";
-import { analyzeResumeMatch, type ResumeAnalysis } from "@/lib/resume-analyzer.functions";
+import {
+  analyzeResumeMatch,
+  parseResume,
+  type ResumeAnalysis,
+} from "@/lib/resume-analyzer.functions";
+import { extractResumeText } from "@/lib/resume-extract";
 import { cn } from "@/lib/utils";
 
 type ParsedResume = {
@@ -47,34 +52,6 @@ type ParsedResume = {
   technologies: string[];
   rawText: string;
 };
-
-const mockParsed = (fileName: string): ParsedResume => ({
-  name: "Aarav Mehta",
-  email: "aarav.mehta@example.com",
-  phone: "+91 98765 43210",
-  location: "Bengaluru, India",
-  experience: "6 years",
-  currentCompany: "Nimbus Labs",
-  skills: [
-    "React",
-    "TypeScript",
-    "Node.js",
-    "GraphQL",
-    "AWS",
-    "Docker",
-    "PostgreSQL",
-    "Redis",
-  ],
-  education: "B.Tech, Computer Science — IIT Hyderabad",
-  projects: [
-    "Realtime collaboration engine (WebRTC + CRDT)",
-    "AI-assisted code review bot (LLM + AST diffing)",
-    "Multi-tenant billing platform (Stripe + Postgres RLS)",
-  ],
-  certifications: ["AWS Solutions Architect Associate", "MongoDB Developer"],
-  technologies: ["Next.js", "tRPC", "Kafka", "Terraform (learning)"],
-  rawText: `Resume of Aarav Mehta (${fileName}). 6 years experience as full-stack engineer. Currently at Nimbus Labs. Skills: React, TypeScript, Node.js, GraphQL, AWS, Docker, PostgreSQL, Redis. Built realtime collaboration engine, AI code review bot, multi-tenant billing. Education: B.Tech CS IIT Hyderabad.`,
-});
 
 type Step = "upload" | "parsing" | "workspace";
 
