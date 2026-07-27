@@ -12,6 +12,7 @@ import {
   Lock,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { ResumeAnalyzerModal } from "./ResumeAnalyzerModal";
 
 type TabId =
@@ -89,7 +90,7 @@ const tabs: {
 export function AiLabWorkspace() {
   const [active, setActive] = useState<TabId>("resume-analyzer");
   const [analyzerOpen, setAnalyzerOpen] = useState(false);
-  const current = tabs.find((t) => t.id === active)!;
+  const current = tabs.find((t) => t.id === active) ?? tabs[0];
 
   return (
     <div className="relative">
@@ -192,22 +193,23 @@ export function AiLabWorkspace() {
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   {current.status === "live" ? (
-                    <button
+                    <Button
                       type="button"
                       onClick={() => setAnalyzerOpen(true)}
-                      className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-medium text-white shadow-[0_20px_60px_-20px] shadow-primary/70 transition-all hover:scale-[1.02] hover:shadow-[0_25px_70px_-15px]"
+                      className="group rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02]"
                     >
                       <Sparkles className="h-4 w-4" /> Launch {current.label}
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                    </button>
+                    </Button>
                   ) : (
-                    <button
+                    <Button
                       type="button"
                       disabled
-                      className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-5 py-2.5 text-sm font-medium text-muted-foreground"
+                      variant="outline"
+                      className="rounded-lg border-border bg-card/40 px-5 py-2.5 text-muted-foreground"
                     >
                       <Lock className="h-4 w-4" /> Coming Soon
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
