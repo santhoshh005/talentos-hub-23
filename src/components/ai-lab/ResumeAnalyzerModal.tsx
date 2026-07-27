@@ -294,6 +294,8 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     }
     setFile(f);
     setUploadProgress(0);
+    setParsed(null);
+    setAnalysis(null);
 
     let cancelled = false;
     const iv = setInterval(() => {
@@ -313,13 +315,33 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
         clearInterval(iv);
         setUploadProgress(100);
         setStep("parsing");
-        const structured = await parseFn({ data: { resumeText: rawText } });
+        let structured;
+        try {
+          structured = await parseFn({ data: { resumeText: rawText } });
+        } catch (parseErr) {
+          console.error("[ResumeAnalyzer] parseFn failed:", parseErr);
+          toast.error("AI parsing failed — showing extracted text only.");
+          structured = {
+            name: "",
+            email: "",
+            phone: "",
+            location: "",
+            experience: "",
+            currentCompany: "",
+            skills: [],
+            education: "",
+            projects: [],
+            certifications: [],
+            technologies: [],
+          };
+        }
         if (cancelled) return;
         setParsed({ ...structured, rawText });
         setStep("workspace");
       } catch (err) {
         clearInterval(iv);
         if (cancelled) return;
+        console.error("[ResumeAnalyzer] extract failed:", err);
         toast.error(err instanceof Error ? err.message : "Failed to read resume.");
         setFile(null);
         setUploadProgress(0);
@@ -516,6 +538,8 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                       className="hidden"
                       onChange={(e) => {
                         const f = e.target.files?.[0];
+                        // Reset value so re-selecting the same file re-triggers onChange.
+                        e.target.value = "";
                         if (f) handleFile(f);
                       }}
                     />

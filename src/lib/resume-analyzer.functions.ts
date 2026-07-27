@@ -259,8 +259,8 @@ ${data.resumeText.slice(0, 24000)}
       });
       const parsed = tryParse(text);
       if (parsed) return { ...parsed, email: parsed.email || fallback.email, phone: parsed.phone || fallback.phone };
-    } catch {
-      /* fall through */
+    } catch (err) {
+      console.error("[parseResume] primary path failed:", err);
     }
 
     // Secondary path: structured output with Zod schema.
@@ -273,6 +273,7 @@ ${data.resumeText.slice(0, 24000)}
       });
       return { ...output, email: output.email || fallback.email, phone: output.phone || fallback.phone };
     } catch (err) {
+      console.error("[parseResume] secondary path failed:", err);
       if (NoObjectGeneratedError.isInstance(err)) {
         const parsed = tryParse(err.text ?? "");
         if (parsed) return parsed;
