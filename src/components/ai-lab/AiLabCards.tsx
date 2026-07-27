@@ -61,7 +61,7 @@ const cards: AiLabCard[] = [
     title: "Interview Question Generator",
     subtitle: "Smart Interviews",
     description: "Generate role-specific technical and behavioral interview questions.",
-    icon: MessageSquareQuestion,
+    icon: MessageSquareQuoteIcon,
     gradient: "from-rose-500/20 to-pink-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(244,63,94,0.5)]",
   },
