@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Sparkles, Github, Linkedin, Twitter, Mail } from "lucide-react";
+import { Sparkles, Linkedin, Instagram, Mail } from "lucide-react";
 
 const columns = [
   {
@@ -43,15 +43,16 @@ export function Footer() {
             </p>
             <div className="mt-5 flex items-center gap-2">
               {[
-                { icon: Github, href: "#", label: "GitHub" },
+                { icon: Mail, href: "mailto:hemanthhemu1104@gmail.com", label: "Email" },
                 { icon: Linkedin, href: "https://www.linkedin.com/in/hemanth-kumar-235078270", label: "LinkedIn" },
-                { icon: Twitter, href: "#", label: "Twitter" },
-                { icon: Mail, href: "/contact", label: "Email" },
+                { icon: Instagram, href: "https://www.instagram.com/heyyy.m_ant/", label: "Instagram" },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
                   href={href}
                   aria-label={label}
+                  target={href.startsWith("http") ? "_blank" : undefined}
+                  rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
                   className="grid h-9 w-9 place-items-center rounded-lg border border-white/10 bg-white/[0.02] text-muted-foreground transition-all hover:text-foreground hover:border-white/20 hover:bg-white/[0.05]"
                 >
                   <Icon className="h-4 w-4" />
