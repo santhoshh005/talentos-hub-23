@@ -108,25 +108,19 @@ export function Navbar() {
               className="lg:hidden mt-2 glass-panel rounded-2xl p-2"
             >
               <ul className="flex flex-col">
-                {links.map((l) => {
-                  const active =
-                    l.to === "/" ? pathname === "/" : pathname.startsWith(l.to);
-                  return (
-                    <li key={l.to}>
-                      <Link
-                        to={l.to}
-                        className={cn(
-                          "block rounded-lg px-3 py-2 text-sm",
-                          active
-                            ? "bg-white/5 text-foreground"
-                            : "text-muted-foreground hover:text-foreground hover:bg-white/5",
-                        )}
-                      >
-                        {l.label}
-                      </Link>
-                    </li>
-                  );
-                })}
+                {links.map((l) => (
+                  <li key={l.to}>
+                    <Link
+                      to={l.to}
+                      className="block rounded-lg px-3 py-2 text-sm"
+                      activeProps={{ className: "bg-white/5 text-foreground" }}
+                      inactiveProps={{ className: "text-muted-foreground hover:text-foreground hover:bg-white/5" }}
+                      activeOptions={{ exact: l.to === "/" }}
+                    >
+                      {l.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </motion.div>
           )}
