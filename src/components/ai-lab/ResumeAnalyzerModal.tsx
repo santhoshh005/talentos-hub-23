@@ -30,7 +30,12 @@ import {
   GitCompareArrows,
 } from "lucide-react";
 import { toast } from "sonner";
-import { analyzeResumeMatch, type ResumeAnalysis } from "@/lib/resume-analyzer.functions";
+import {
+  analyzeResumeMatch,
+  parseResume,
+  type ResumeAnalysis,
+} from "@/lib/resume-analyzer.functions";
+import { extractResumeText } from "@/lib/resume-extract";
 import { cn } from "@/lib/utils";
 
 type ParsedResume = {
@@ -47,34 +52,6 @@ type ParsedResume = {
   technologies: string[];
   rawText: string;
 };
-
-const mockParsed = (fileName: string): ParsedResume => ({
-  name: "Aarav Mehta",
-  email: "aarav.mehta@example.com",
-  phone: "+91 98765 43210",
-  location: "Bengaluru, India",
-  experience: "6 years",
-  currentCompany: "Nimbus Labs",
-  skills: [
-    "React",
-    "TypeScript",
-    "Node.js",
-    "GraphQL",
-    "AWS",
-    "Docker",
-    "PostgreSQL",
-    "Redis",
-  ],
-  education: "B.Tech, Computer Science — IIT Hyderabad",
-  projects: [
-    "Realtime collaboration engine (WebRTC + CRDT)",
-    "AI-assisted code review bot (LLM + AST diffing)",
-    "Multi-tenant billing platform (Stripe + Postgres RLS)",
-  ],
-  certifications: ["AWS Solutions Architect Associate", "MongoDB Developer"],
-  technologies: ["Next.js", "tRPC", "Kafka", "Terraform (learning)"],
-  rawText: `Resume of Aarav Mehta (${fileName}). 6 years experience as full-stack engineer. Currently at Nimbus Labs. Skills: React, TypeScript, Node.js, GraphQL, AWS, Docker, PostgreSQL, Redis. Built realtime collaboration engine, AI code review bot, multi-tenant billing. Education: B.Tech CS IIT Hyderabad.`,
-});
 
 type Step = "upload" | "parsing" | "workspace";
 
@@ -289,6 +266,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
   const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const analyze = useServerFn(analyzeResumeMatch);
+  const parseFn = useServerFn(parseResume);
 
   const reset = useCallback(() => {
     setStep("upload");
@@ -316,24 +294,44 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     }
     setFile(f);
     setUploadProgress(0);
+
+    let cancelled = false;
     const iv = setInterval(() => {
       setUploadProgress((p) => {
-        const next = p + Math.random() * 18 + 6;
-        if (next >= 100) {
-          clearInterval(iv);
-          setTimeout(() => {
-            setStep("parsing");
-            setTimeout(() => {
-              setParsed(mockParsed(f.name));
-              setStep("workspace");
-            }, 1400);
-          }, 300);
-          return 100;
-        }
+        const next = Math.min(95, p + Math.random() * 14 + 6);
         return next;
       });
     }, 140);
-  }, []);
+
+    (async () => {
+      try {
+        const rawText = await extractResumeText(f);
+        if (cancelled) return;
+        if (rawText.trim().length < 40) {
+          throw new Error("Could not read text from this file. It may be a scanned image PDF.");
+        }
+        clearInterval(iv);
+        setUploadProgress(100);
+        setStep("parsing");
+        const structured = await parseFn({ data: { resumeText: rawText } });
+        if (cancelled) return;
+        setParsed({ ...structured, rawText });
+        setStep("workspace");
+      } catch (err) {
+        clearInterval(iv);
+        if (cancelled) return;
+        toast.error(err instanceof Error ? err.message : "Failed to read resume.");
+        setFile(null);
+        setUploadProgress(0);
+        setStep("upload");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      clearInterval(iv);
+    };
+  }, [parseFn]);
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {

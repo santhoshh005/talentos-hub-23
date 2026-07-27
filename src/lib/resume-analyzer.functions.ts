@@ -9,6 +9,26 @@ const InputSchema = z.object({
   candidateName: z.string().optional(),
 });
 
+const ParseInputSchema = z.object({
+  resumeText: z.string().min(20),
+});
+
+const ParsedResumeSchema = z.object({
+  name: z.string(),
+  email: z.string(),
+  phone: z.string(),
+  location: z.string(),
+  experience: z.string(),
+  currentCompany: z.string(),
+  skills: z.array(z.string()),
+  education: z.string(),
+  projects: z.array(z.string()),
+  certifications: z.array(z.string()),
+  technologies: z.array(z.string()),
+});
+
+export type ParsedResumeData = z.infer<typeof ParsedResumeSchema>;
+
 const AnalysisSchema = z.object({
   overallScore: z.number(),
   verdict: z.string(),
@@ -144,3 +164,68 @@ ${data.jobDescription.slice(0, 4000)}`;
       return mockAnalysis();
     }
   });
+
+export const parseResume = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => ParseInputSchema.parse(data))
+  .handler(async ({ data }): Promise<ParsedResumeData> => {
+    const key = process.env.LOVABLE_API_KEY;
+    const fallback: ParsedResumeData = {
+      name: "",
+      email: extractEmail(data.resumeText),
+      phone: extractPhone(data.resumeText),
+      location: "",
+      experience: "",
+      currentCompany: "",
+      skills: [],
+      education: "",
+      projects: [],
+      certifications: [],
+      technologies: [],
+    };
+    if (!key) return fallback;
+
+    const gateway = createLovableGateway(key);
+    const model = gateway("google/gemini-3.6-flash");
+
+    const prompt = `You are an expert resume parser. Extract structured fields from the resume text below. Return ONLY facts present in the text — do not invent anything. If a field is not present, return an empty string or empty array.
+
+Rules:
+- name: candidate's full name as written.
+- email / phone: exact values from the resume.
+- location: city, country (or as stated).
+- experience: total years like "6 years" if computable; otherwise "".
+- currentCompany: most recent employer.
+- skills: soft/technical skill keywords, deduped, max 25.
+- education: highest degree + institution on one line.
+- projects: up to 8 short project titles or one-line summaries.
+- certifications: up to 10, verbatim names.
+- technologies: tools/frameworks/languages/platforms, deduped, max 25.
+
+RESUME TEXT:
+${data.resumeText.slice(0, 16000)}`;
+
+    try {
+      const { output } = await generateText({
+        model,
+        output: Output.object({ schema: ParsedResumeSchema }),
+        prompt,
+      });
+      return output;
+    } catch (err) {
+      if (NoObjectGeneratedError.isInstance(err)) {
+        try {
+          return ParsedResumeSchema.parse(JSON.parse(err.text ?? "{}"));
+        } catch {
+          return fallback;
+        }
+      }
+      return fallback;
+    }
+  });
+
+function extractEmail(t: string): string {
+  return t.match(/[\w.+-]+@[\w-]+\.[\w.-]+/)?.[0] ?? "";
+}
+function extractPhone(t: string): string {
+  return t.match(/(\+?\d[\d\s().-]{8,}\d)/)?.[0]?.trim() ?? "";
+}
