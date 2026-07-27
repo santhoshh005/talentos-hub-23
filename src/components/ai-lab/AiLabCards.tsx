@@ -140,7 +140,7 @@ export function AiLabCards() {
             <div
               className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-60"
               style={{
-                background: `radial-gradient(circle, ${card.glow.includes("blue") ? "rgba(37,99,235,0.4)" : card.glow.includes("cyan") ? "rgba(56,189,248,0.4)" : card.glow.includes("violet") ? "rgba(139,92,246,0.4)" : card.glow.includes("amber") ? "rgba(251,191,36,0.4)" : card.glow.includes("rose") ? "rgba(244,63,94,0.4)" : "rgba(16,185,129,0.4)"} 0%, transparent 70%)`,
+                background: `radial-gradient(circle, ${card.color} 0%, transparent 70%)`,
               }}
             />
 
