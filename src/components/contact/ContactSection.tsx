@@ -212,6 +212,24 @@ export function ContactSection() {
             <span>Typical response: 24 hours</span>
           </div>
         </motion.div>
+
+        {/* LinkedIn CTA */}
+        <motion.a
+          variants={itemVariants}
+          href="https://www.linkedin.com/in/hemanth-kumar-235078270"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group mt-6 flex items-center gap-4 overflow-hidden rounded-xl border border-[#0A66C2]/30 bg-[#0A66C2]/10 p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#0A66C2]/50 hover:bg-[#0A66C2]/15"
+        >
+          <div className="relative z-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-[#0A66C2]/30 bg-[#0A66C2]/20 transition-transform duration-300 group-hover:scale-110">
+            <Linkedin className="h-5 w-5 text-[#38BDF8]" strokeWidth={1.5} />
+          </div>
+          <div className="relative z-10 flex-1">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Let's connect</p>
+            <p className="text-sm font-medium text-foreground">Connect on LinkedIn</p>
+          </div>
+          <ArrowUpRight className="relative z-10 h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+        </motion.a>
       </motion.div>
 
       {/* Right: Contact form */}
