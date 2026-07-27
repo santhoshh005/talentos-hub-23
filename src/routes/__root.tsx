@@ -80,14 +80,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "TalentOS — AI-Powered Recruitment Platform" },
+      { name: "description", content: "TalentOS is an AI-powered recruitment platform by Hemanth Kumar — modern recruiter workflows, intelligent sourcing, and tooling to hire faster." },
+      { name: "author", content: "Hemanth Kumar" },
+      { property: "og:title", content: "TalentOS — AI-Powered Recruitment Platform" },
+      { property: "og:description", content: "AI-powered recruitment platform by Hemanth Kumar." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       {
