@@ -1,14 +1,8 @@
-# Welcome to your Lovable project
+# TalentOS
 
-This project was built with [Lovable](https://lovable.dev).
+TalentOS is an AI-powered recruitment platform that helps recruiters generate job descriptions, analyze resumes, create Boolean searches, estimate salaries, and streamline hiring with AI.
 
-## Build with Lovable
-
-Open your project in the [Lovable editor](https://lovable.dev) and keep building.
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: connect the project to GitHub and every change made in Lovable is committed straight to your repository.
-- **Full ownership**: this code is yours. Push to your repository and your changes sync back into Lovable, ready for your next prompt.
+Designed & built by Hemanth Kumar.
 
 ## Development
 
