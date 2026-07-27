@@ -195,10 +195,98 @@ function ChartCard({
   );
 }
 
+/* ---------- Filter Chip ---------- */
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1 text-xs font-medium transition-all",
+        active
+          ? "border-accent/50 bg-accent/15 text-accent shadow-[0_0_20px_-6px] shadow-accent/60"
+          : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground",
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 /* ---------- Section ---------- */
 export function DashboardSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+
+  const [range, setRange] = useState<RangeKey>(8);
+  const [techs, setTechs] = useState<Set<Tech>>(() => new Set(ALL_TECHS));
+  const [sources, setSources] = useState<Set<Source>>(() => new Set(ALL_SOURCES));
+
+  const toggle = <T,>(set: Set<T>, val: T, setter: (s: Set<T>) => void) => {
+    const next = new Set(set);
+    if (next.has(val)) {
+      if (next.size > 1) next.delete(val);
+    } else next.add(val);
+    setter(next);
+  };
+
+  const resetFilters = () => {
+    setRange(8);
+    setTechs(new Set(ALL_TECHS));
+    setSources(new Set(ALL_SOURCES));
+  };
+
+  const {
+    filteredTech,
+    filteredSources,
+    filteredTrend,
+    filteredFunnel,
+    kpiValues,
+    isFiltered,
+  } = useMemo(() => {
+    const filteredTech = techData.filter((t) => techs.has(t.name));
+    const rawSources = sourcesData.filter((s) => sources.has(s.name));
+    const sourcesTotal = rawSources.reduce((sum, s) => sum + s.value, 0) || 1;
+    const filteredSources = rawSources.map((s) => ({
+      ...s,
+      value: Math.round((s.value / sourcesTotal) * 100),
+    }));
+    const filteredTrend = trendData.slice(-range);
+
+    const techShare =
+      techData.reduce((s, t) => s + (techs.has(t.name) ? t.value : 0), 0) /
+      techData.reduce((s, t) => s + t.value, 0);
+    const sourceShare =
+      sourcesData.reduce((s, x) => s + (sources.has(x.name) ? x.value : 0), 0) /
+      sourcesData.reduce((s, x) => s + x.value, 0);
+    const rangeShare = range / trendData.length;
+    const combined = techShare * sourceShare * rangeShare;
+
+    const filteredFunnel = funnelData.map((f) => ({
+      ...f,
+      count: Math.max(1, Math.round(f.count * combined)),
+    }));
+
+    const kpiValues: Record<string, number> = {
+      positions: Math.max(1, Math.round(12 * combined)),
+      candidates: Math.max(1, Math.round(100 * combined)),
+      tech: techs.size,
+      offer: Math.max(60, Math.min(99, Math.round(95 - (1 - techShare) * 10 - (1 - sourceShare) * 6))),
+    };
+
+    const isFiltered =
+      range !== 8 || techs.size !== ALL_TECHS.length || sources.size !== ALL_SOURCES.length;
+
+    return { filteredTech, filteredSources, filteredTrend, filteredFunnel, kpiValues, isFiltered };
+  }, [range, techs, sources]);
 
   return (
     <section ref={ref} className="relative py-16 sm:py-20 md:py-28">
@@ -226,10 +314,110 @@ export function DashboardSection() {
           </p>
         </motion.div>
 
+        {/* Filter bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={inView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.6, delay: 0.1, ease }}
+          className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-5"
+        >
+          <div className="grid gap-4 lg:grid-cols-[auto_1fr_1fr_auto] lg:items-start">
+            {/* Date range */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <CalendarRange className="h-3.5 w-3.5 text-accent" />
+                Date Range
+              </div>
+              <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.03] p-0.5">
+                {RANGES.map((r) => (
+                  <button
+                    key={r.key}
+                    type="button"
+                    onClick={() => setRange(r.key)}
+                    className={cn(
+                      "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                      range === r.key
+                        ? "bg-gradient-to-r from-primary to-accent text-white"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Technologies */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <Cpu className="h-3.5 w-3.5 text-accent" />
+                Technologies
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ALL_TECHS.map((t) => (
+                  <Chip
+                    key={t}
+                    active={techs.has(t)}
+                    onClick={() => toggle(techs, t, setTechs)}
+                  >
+                    {t}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            {/* Sources */}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                <Filter className="h-3.5 w-3.5 text-accent" />
+                Sources
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {ALL_SOURCES.map((s) => (
+                  <Chip
+                    key={s}
+                    active={sources.has(s)}
+                    onClick={() => toggle(sources, s, setSources)}
+                  >
+                    {s}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            {/* Reset */}
+            <div className="flex items-end justify-end lg:h-full">
+              <button
+                type="button"
+                onClick={resetFilters}
+                disabled={!isFiltered}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium transition-colors",
+                  isFiltered
+                    ? "text-foreground hover:bg-white/[0.06]"
+                    : "cursor-not-allowed text-muted-foreground/60",
+                )}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
         {/* KPIs */}
-        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {kpis.map((k, i) => (
-            <KpiCard key={k.label} {...k} index={i} inView={inView} />
+        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          {kpiMeta.map((k, i) => (
+            <KpiCard
+              key={k.key}
+              value={kpiValues[k.key]}
+              suffix={k.suffix}
+              label={k.label}
+              Icon={k.Icon}
+              tint={k.tint}
+              index={i}
+              inView={inView}
+            />
           ))}
         </div>
 
@@ -243,7 +431,7 @@ export function DashboardSection() {
             delay={0.15}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={techData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <BarChart data={filteredTech} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="techBar" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.95} />
@@ -267,7 +455,7 @@ export function DashboardSection() {
             delay={0.25}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={funnelData} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+              <BarChart layout="vertical" data={filteredFunnel} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
                 <defs>
                   <linearGradient id="funnelBar" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
@@ -294,7 +482,7 @@ export function DashboardSection() {
               <PieChart>
                 <Tooltip contentStyle={tooltipStyle} />
                 <Pie
-                  data={sourcesData}
+                  data={filteredSources}
                   dataKey="value"
                   nameKey="name"
                   innerRadius={55}
@@ -303,14 +491,14 @@ export function DashboardSection() {
                   stroke="rgba(2,6,23,0.6)"
                   animationDuration={1400}
                 >
-                  {sourcesData.map((_, i) => (
+                  {filteredSources.map((_, i) => (
                     <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                   ))}
                 </Pie>
               </PieChart>
             </ResponsiveContainer>
             <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              {sourcesData.map((s, i) => (
+              {filteredSources.map((s, i) => (
                 <div key={s.name} className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
@@ -330,7 +518,7 @@ export function DashboardSection() {
             delay={0.45}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={trendData} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+              <AreaChart data={filteredTrend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
                 <defs>
                   <linearGradient id="pipelineArea" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.55} />
