@@ -29,6 +29,7 @@ const cards: AiLabCard[] = [
     icon: FileSearch,
     gradient: "from-blue-500/20 to-cyan-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(37,99,235,0.5)]",
+    color: "rgba(37,99,235,0.4)",
   },
   {
     id: "jd-generator",
@@ -38,6 +39,7 @@ const cards: AiLabCard[] = [
     icon: FileText,
     gradient: "from-cyan-500/20 to-emerald-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(56,189,248,0.5)]",
+    color: "rgba(56,189,248,0.4)",
   },
   {
     id: "boolean-search",
@@ -47,6 +49,7 @@ const cards: AiLabCard[] = [
     icon: SearchCode,
     gradient: "from-violet-500/20 to-fuchsia-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(139,92,246,0.5)]",
+    color: "rgba(139,92,246,0.4)",
   },
   {
     id: "candidate-match",
@@ -56,6 +59,7 @@ const cards: AiLabCard[] = [
     icon: BarChart3,
     gradient: "from-amber-500/20 to-orange-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(251,191,36,0.5)]",
+    color: "rgba(251,191,36,0.4)",
   },
   {
     id: "interview-generator",
@@ -65,6 +69,7 @@ const cards: AiLabCard[] = [
     icon: MessageSquareQuoteIcon,
     gradient: "from-rose-500/20 to-pink-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(244,63,94,0.5)]",
+    color: "rgba(244,63,94,0.4)",
   },
   {
     id: "salary-estimator",
@@ -74,6 +79,7 @@ const cards: AiLabCard[] = [
     icon: Coins,
     gradient: "from-emerald-500/20 to-teal-500/20",
     glow: "group-hover:shadow-[0_0_40px_-12px_rgba(16,185,129,0.5)]",
+    color: "rgba(16,185,129,0.4)",
   },
 ];
 
