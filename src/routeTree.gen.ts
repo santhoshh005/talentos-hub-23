@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as ContentRouteImport } from './routes/content'
 import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -22,6 +23,11 @@ const TimelineRoute = TimelineRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentRoute = ContentRouteImport.update({
+  id: '/content',
+  path: '/content',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiLabRoute = AiLabRouteImport.update({
@@ -38,12 +44,14 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
+  '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
   '/timeline': typeof TimelineRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
+  '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
   '/timeline': typeof TimelineRoute
 }
@@ -51,20 +59,22 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai-lab': typeof AiLabRoute
+  '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
   '/timeline': typeof TimelineRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/ai-lab' | '/dashboard' | '/timeline'
+  fullPaths: '/' | '/ai-lab' | '/content' | '/dashboard' | '/timeline'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/ai-lab' | '/dashboard' | '/timeline'
-  id: '__root__' | '/' | '/ai-lab' | '/dashboard' | '/timeline'
+  to: '/' | '/ai-lab' | '/content' | '/dashboard' | '/timeline'
+  id: '__root__' | '/' | '/ai-lab' | '/content' | '/dashboard' | '/timeline'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiLabRoute: typeof AiLabRoute
+  ContentRoute: typeof ContentRoute
   DashboardRoute: typeof DashboardRoute
   TimelineRoute: typeof TimelineRoute
 }
@@ -83,6 +93,13 @@ declare module '@tanstack/react-router' {
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content': {
+      id: '/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-lab': {
@@ -105,6 +122,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiLabRoute: AiLabRoute,
+  ContentRoute: ContentRoute,
   DashboardRoute: DashboardRoute,
   TimelineRoute: TimelineRoute,
 }
