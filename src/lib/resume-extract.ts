@@ -29,7 +29,10 @@ async function extractPdf(file: File): Promise<string> {
 }
 
 async function extractDocx(file: File): Promise<string> {
-  const mammoth = await import("mammoth/mammoth.browser");
+  // @ts-expect-error - browser build has no types
+  const mammoth = (await import("mammoth/mammoth.browser")) as {
+    extractRawText: (o: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
+  };
   const buf = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer: buf });
   return normalize(result.value ?? "");
