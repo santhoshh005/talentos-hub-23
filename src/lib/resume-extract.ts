@@ -13,7 +13,7 @@ async function extractPdf(file: File): Promise<string> {
   pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const doc = await pdfjs.getDocument({ data: bytes, isEvalSupported: false, useSystemFonts: true }).promise;
+  const doc = await pdfjs.getDocument({ data: bytes, useSystemFonts: true }).promise;
   const pages: string[] = [];
   for (let i = 1; i <= doc.numPages; i++) {
     const page = await doc.getPage(i);
