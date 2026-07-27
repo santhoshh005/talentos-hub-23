@@ -35,7 +35,8 @@ const contactLinks = [
     value: CONTACT_EMAIL,
     href: `mailto:${CONTACT_EMAIL}`,
     icon: Mail,
-    color: "rgba(37, 99, 235, 0.4)",
+    color: "rgba(37, 99, 235, 0.45)",
+    iconTint: "text-[#60A5FA]",
   },
   {
     id: "linkedin",
@@ -43,7 +44,8 @@ const contactLinks = [
     value: "Connect with me",
     href: "https://www.linkedin.com/in/hemanth-kumar-235078270",
     icon: Linkedin,
-    color: "rgba(56, 189, 248, 0.4)",
+    color: "rgba(56, 189, 248, 0.45)",
+    iconTint: "text-[#38BDF8]",
   },
   {
     id: "instagram",
@@ -51,7 +53,17 @@ const contactLinks = [
     value: "@heyyy.m_ant",
     href: "https://www.instagram.com/heyyy.m_ant/",
     icon: Instagram,
-    color: "rgba(244, 63, 94, 0.4)",
+    color: "rgba(244, 63, 94, 0.45)",
+    iconTint: "text-[#FB7185]",
+  },
+  {
+    id: "location",
+    label: "Location",
+    value: "India · Remote",
+    href: "https://www.google.com/maps/place/India",
+    icon: MapPin,
+    color: "rgba(45, 212, 191, 0.45)",
+    iconTint: "text-[#5EEAD4]",
   },
 ];
 
@@ -136,7 +148,15 @@ export function ContactSection() {
   };
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-8 lg:grid-cols-2 lg:gap-12">
+    <div className="relative mx-auto max-w-6xl px-4 pb-8">
+      {/* Blue glowing background */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -left-32 top-10 h-[420px] w-[420px] rounded-full bg-[#2563EB]/25 blur-[120px] animate-pulse" style={{ animationDuration: "6s" }} />
+        <div className="absolute -right-24 top-40 h-[380px] w-[380px] rounded-full bg-[#38BDF8]/20 blur-[110px] animate-pulse" style={{ animationDuration: "8s" }} />
+        <div className="absolute left-1/2 bottom-0 h-[300px] w-[600px] -translate-x-1/2 rounded-full bg-[#1D4ED8]/20 blur-[130px]" />
+      </div>
+
+      <div className="grid gap-10 lg:grid-cols-2 lg:gap-12">
       {/* Left: Contact info */}
       <motion.div
         variants={containerVariants}
@@ -155,18 +175,20 @@ export function ContactSection() {
         </motion.div>
 
         {/* Contact links */}
-        <div className="space-y-3">
-          {contactLinks.map((link) => {
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {contactLinks.map((link, i) => {
             const Icon = link.icon;
+            const isExternal = link.id !== "email";
             return (
               <motion.a
                 key={link.id}
                 variants={itemVariants}
                 href={link.href}
-                target={link.id === "email" ? undefined : "_blank"}
-                rel={link.id === "email" ? undefined : "noopener noreferrer"}
-                className="group relative flex items-center gap-4 overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 transition-all duration-300 hover:-translate-y-0.5 hover:border-white/[0.14] hover:bg-white/[0.04]"
-                style={{ boxShadow: "0 0 0 0 transparent" }}
+                target={isExternal ? "_blank" : undefined}
+                rel={isExternal ? "noopener noreferrer" : undefined}
+                whileHover={{ y: -3 }}
+                transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                className="group relative flex items-center gap-4 overflow-hidden rounded-xl border border-white/[0.08] bg-white/[0.02] p-4 backdrop-blur-xl transition-colors duration-300 hover:border-white/[0.18] hover:bg-white/[0.05]"
               >
                 <div
                   className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 group-hover:opacity-100"
@@ -174,9 +196,19 @@ export function ContactSection() {
                     background: `radial-gradient(circle at 0% 50%, ${link.color} 0%, transparent 60%)`,
                   }}
                 />
-                <div className="relative z-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] transition-transform duration-300 group-hover:scale-110">
-                  <Icon className="h-5 w-5 text-white/90" strokeWidth={1.5} />
-                </div>
+                <motion.div
+                  className="relative z-10 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05]"
+                  animate={{ y: [0, -3, 0] }}
+                  transition={{ duration: 3 + i * 0.4, repeat: Infinity, ease: "easeInOut" }}
+                  whileHover={{ scale: 1.15, rotate: -6 }}
+                >
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 rounded-xl opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100"
+                    style={{ background: link.color }}
+                  />
+                  <Icon className={`relative h-5 w-5 ${link.iconTint}`} strokeWidth={1.6} />
+                </motion.div>
                 <div className="relative z-10 flex-1">
                   <p className="text-xs uppercase tracking-wider text-muted-foreground">
                     {link.label}
@@ -192,7 +224,7 @@ export function ContactSection() {
         {/* Availability card */}
         <motion.div
           variants={itemVariants}
-          className="mt-6 rounded-xl border border-white/[0.08] bg-white/[0.02] p-5"
+          className="mt-6 rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 backdrop-blur-xl"
         >
           <div className="flex items-center gap-3">
             <div className="relative flex h-3 w-3">
@@ -236,10 +268,11 @@ export function ContactSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-50px" }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 md:p-8"
+        className="relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 backdrop-blur-xl md:p-8"
       >
         {/* Radial glow */}
-        <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-[#2563EB]/25 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[#38BDF8]/15 blur-3xl" />
 
         {isSuccess ? (
           <div className="relative z-10 flex flex-col items-center justify-center py-12 text-center">
@@ -355,6 +388,7 @@ export function ContactSection() {
           </form>
         )}
       </motion.div>
+      </div>
     </div>
   );
 }
