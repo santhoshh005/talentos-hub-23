@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/layout/PageShell";
+import { CertificationsGrid } from "@/components/certifications/CertificationsGrid";
 
 export const Route = createFileRoute("/certifications")({
   head: () => ({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/certifications")({
       eyebrow="Certifications"
       title={<>Credentials & <span className="text-gradient">expertise</span></>}
       description="Verified certifications across AI, sourcing, and recruitment operations."
-    />
+    >
+      <CertificationsGrid />
+    </PageShell>
   ),
 });

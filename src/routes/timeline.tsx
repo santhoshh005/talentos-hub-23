@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/layout/PageShell";
+import { CareerTimeline } from "@/components/timeline/CareerTimeline";
 
 export const Route = createFileRoute("/timeline")({
   head: () => ({
@@ -15,6 +16,8 @@ export const Route = createFileRoute("/timeline")({
       eyebrow="Timeline"
       title={<>A journey through <span className="text-gradient">technical recruiting</span></>}
       description="Milestones, roles, and impact across years of specialised hiring."
-    />
+    >
+      <CareerTimeline />
+    </PageShell>
   ),
 });
