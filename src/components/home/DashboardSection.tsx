@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
 import {
   Area,
@@ -21,17 +21,21 @@ import {
   Target,
   TrendingUp,
   Activity,
+  CalendarRange,
+  Filter,
+  RotateCcw,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ---------- KPI ---------- */
-const kpis = [
-  { value: 12, suffix: "+", label: "Positions Closed", Icon: Briefcase, tint: "from-primary/30 to-transparent" },
-  { value: 100, suffix: "+", label: "Candidates Screened", Icon: Users, tint: "from-accent/30 to-transparent" },
-  { value: 20, suffix: "+", label: "Technologies Hired", Icon: Cpu, tint: "from-primary/30 to-transparent" },
-  { value: 95, suffix: "%", label: "Offer Success", Icon: Target, tint: "from-accent/30 to-transparent" },
-];
+const kpiMeta = [
+  { key: "positions", base: 12, suffix: "+", label: "Positions Closed", Icon: Briefcase, tint: "from-primary/30 to-transparent", scale: true },
+  { key: "candidates", base: 100, suffix: "+", label: "Candidates Screened", Icon: Users, tint: "from-accent/30 to-transparent", scale: true },
+  { key: "tech", base: 20, suffix: "+", label: "Technologies Hired", Icon: Cpu, tint: "from-primary/30 to-transparent", scale: false },
+  { key: "offer", base: 95, suffix: "%", label: "Offer Success", Icon: Target, tint: "from-accent/30 to-transparent", scale: false },
+] as const;
 
 function useCountUp(target: number, active: boolean, duration = 1400) {
   const [n, setN] = useState(0);
