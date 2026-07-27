@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { AiLabHero } from "@/components/ai-lab/AiLabHero";
-import { AiLabCards } from "@/components/ai-lab/AiLabCards";
+import { AiLabWorkspace } from "@/components/ai-lab/AiLabWorkspace";
 
 export const Route = createFileRoute("/ai-lab")({
   head: () => ({
@@ -16,7 +16,7 @@ export const Route = createFileRoute("/ai-lab")({
     <AppLayout>
       <AiLabHero />
       <section className="mx-auto max-w-7xl px-4 pb-24 pt-6">
-        <AiLabCards />
+        <AiLabWorkspace />
       </section>
     </AppLayout>
   ),
