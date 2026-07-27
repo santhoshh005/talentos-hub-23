@@ -1,102 +1,73 @@
-import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, FileText, PlayCircle, Clock, ArrowRight, Sparkles, Filter } from "lucide-react";
+import { motion } from "framer-motion";
+import { ArrowUpRight, Clock, FileText, Sparkles, Users, TrendingUp, Linkedin } from "lucide-react";
 
-type ContentCategory = "All" | "Article" | "Playbook" | "Video";
-
-interface ContentItem {
+interface InsightPost {
   id: string;
-  category: Exclude<ContentCategory, "All">;
+  category: string;
   title: string;
-  description: string;
+  excerpt: string;
   readTime: string;
+  href: string;
   icon: React.ElementType;
   gradient: string;
   color: string;
   glow: string;
-  featured?: boolean;
 }
 
-const categories: ContentCategory[] = ["All", "Article", "Playbook", "Video"];
+const LINKEDIN_PROFILE = "https://www.linkedin.com/in/hemanth-kumar-235078270";
 
-const contentItems: ContentItem[] = [
+const posts: InsightPost[] = [
   {
-    id: "featured",
-    category: "Playbook",
-    title: "The AI Recruiter's Playbook",
-    description: "A complete guide to integrating AI into your recruiting workflow — from sourcing to offer. Learn how to write better JDs, build Boolean strings, and screen candidates with AI without losing the human touch.",
-    readTime: "18 min read",
-    icon: Sparkles,
+    id: "resume-tips",
+    category: "Resume Tips",
+    title: "The Resume Patterns That Actually Get Shortlisted",
+    excerpt:
+      "What top recruiters look for in the first 8 seconds — structure, keywords, and the signal-to-noise ratio that matters most.",
+    readTime: "4 min read",
+    href: LINKEDIN_PROFILE,
+    icon: FileText,
     gradient: "from-primary/20 to-accent/20",
     color: "rgba(37, 99, 235, 0.4)",
-    glow: "shadow-[0_0_60px_-20px_rgba(37,99,235,0.35)]",
-    featured: true,
+    glow: "shadow-[0_0_40px_-12px_rgba(37,99,235,0.35)]",
   },
   {
-    id: "boolean-strings",
-    category: "Article",
-    title: "Boolean Search for Technical Roles",
-    description: "How to build precise boolean strings for GitHub, LinkedIn, and niche sourcing channels.",
+    id: "ai-in-recruitment",
+    category: "AI in Recruitment",
+    title: "How AI Is Rewriting the Recruiter Playbook",
+    excerpt:
+      "From sourcing to screening — the practical AI workflows that are 10x-ing recruiter productivity without losing the human touch.",
     readTime: "6 min read",
-    icon: FileText,
+    href: LINKEDIN_PROFILE,
+    icon: Sparkles,
     gradient: "from-cyan-500/20 to-emerald-500/20",
     color: "rgba(56, 189, 248, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(56,189,248,0.3)]",
+    glow: "shadow-[0_0_40px_-12px_rgba(56,189,248,0.35)]",
   },
   {
-    id: "resume-ai",
-    category: "Article",
-    title: "Resume Screening with AI",
-    description: "Use AI to extract skills, detect gaps, and score candidates objectively.",
+    id: "inside-recruitment",
+    category: "Inside Recruitment",
+    title: "The Fastest Way to Lose a Recruiter's Attention",
+    excerpt:
+      "Inside Recruitment #03 — We don't lose attention because a resume is one or two pages. We lose attention when we can't find anything unique. Tell me what changed because of your work.",
     readTime: "5 min read",
-    icon: FileText,
+    href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_inside-requirement-03-the-fastest-way-activity-7485931746786643968-T6-S?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
+    icon: Users,
     gradient: "from-violet-500/20 to-fuchsia-500/20",
     color: "rgba(139, 92, 246, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(139,92,246,0.3)]",
+    glow: "shadow-[0_0_40px_-12px_rgba(139,92,246,0.35)]",
   },
   {
-    id: "interview-playbook",
-    category: "Playbook",
-    title: "Technical Interview Playbook",
-    description: "Role-specific question banks and evaluation rubrics for frontend, backend, and AI engineers.",
-    readTime: "12 min read",
-    icon: BookOpen,
+    id: "hiring-trends",
+    category: "Hiring Trends",
+    title: "2026 Hiring Trends Every Tech Recruiter Should Watch",
+    excerpt:
+      "AI-native teams, skill-first hiring, and the shift toward outcome-based roles — what's shaping the next wave of tech hiring.",
+    readTime: "7 min read",
+    href: LINKEDIN_PROFILE,
+    icon: TrendingUp,
     gradient: "from-amber-500/20 to-orange-500/20",
     color: "rgba(251, 191, 36, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(251,191,36,0.3)]",
-  },
-  {
-    id: "salary-negotiation",
-    category: "Video",
-    title: "Salary Negotiation for Recruiters",
-    description: "A 10-minute walkthrough on market benchmarking, offer positioning, and closing candidates.",
-    readTime: "10 min watch",
-    icon: PlayCircle,
-    gradient: "from-rose-500/20 to-pink-500/20",
-    color: "rgba(244, 63, 94, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(244,63,94,0.3)]",
-  },
-  {
-    id: "sourcing-tips",
-    category: "Video",
-    title: "Sourcing Passive Engineers",
-    description: "Strategies and outreach templates to engage high-demand technical talent.",
-    readTime: "8 min watch",
-    icon: PlayCircle,
-    gradient: "from-emerald-500/20 to-teal-500/20",
-    color: "rgba(16, 185, 129, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(16,185,129,0.3)]",
-  },
-  {
-    id: "jd-generator",
-    category: "Article",
-    title: "Writing JDs That Convert",
-    description: "Why most job descriptions fail, and how to write ones that attract senior engineers.",
-    readTime: "7 min read",
-    icon: FileText,
-    gradient: "from-blue-500/20 to-indigo-500/20",
-    color: "rgba(99, 102, 241, 0.4)",
-    glow: "shadow-[0_0_40px_-12px_rgba(99,102,241,0.3)]",
+    glow: "shadow-[0_0_40px_-12px_rgba(251,191,36,0.35)]",
   },
 ];
 
@@ -104,10 +75,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
   },
 };
 
@@ -116,161 +84,102 @@ const itemVariants = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: {
-      duration: 0.5,
-      ease: [0.22, 1, 0.36, 1] as const,
-    },
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] as const },
   },
 };
 
 export function ContentLibrary() {
-  const [activeCategory, setActiveCategory] = useState<ContentCategory>("All");
-
-  const featured = contentItems.find((item) => item.featured);
-  const filtered = contentItems.filter(
-    (item) => activeCategory === "All" || item.category === activeCategory
-  );
-  const nonFeatured = filtered.filter((item) => !item.featured);
-
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-8">
-      {/* Filter bar */}
-      <div className="mb-10 flex flex-wrap items-center gap-2">
-        <div className="mr-2 flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
-          <Filter className="h-3.5 w-3.5" />
-          Filter
-        </div>
-        {categories.map((category) => (
-          <button
-            key={category}
-            onClick={() => setActiveCategory(category)}
-            className={`
-              rounded-full border px-3.5 py-1.5 text-sm font-medium transition-all duration-300
-              ${
-                activeCategory === category
-                  ? "border-primary/50 bg-primary/10 text-foreground shadow-[0_0_20px_-8px_rgba(37,99,235,0.4)]"
-                  : "border-white/10 bg-white/[0.03] text-muted-foreground hover:bg-white/[0.06] hover:text-foreground"
-              }
-            `}
-          >
-            {category}
-          </button>
-        ))}
-      </div>
+    <section className="relative pb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-80px" }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-12 max-w-2xl"
+      >
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-xs uppercase tracking-widest text-muted-foreground">
+          <Linkedin className="h-3.5 w-3.5 text-accent" />
+          Recruitment Insights
+        </span>
+        <h2 className="mt-5 text-3xl font-semibold tracking-tight md:text-4xl">
+          Fresh thinking from the{" "}
+          <span className="text-gradient">recruiting frontlines</span>
+        </h2>
+        <p className="mt-3 text-base text-muted-foreground md:text-lg">
+          Highlights from my LinkedIn — click any card to read the full post.
+        </p>
+      </motion.div>
 
-      {/* Featured content */}
-      <AnimatePresence mode="wait">
-        {featured && (activeCategory === "All" || activeCategory === featured.category) && (
-          <motion.div
-            key={`featured-${activeCategory}`}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="mb-10"
-          >
-            <ContentCard item={featured} featured />
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Content grid */}
       <motion.div
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "-50px" }}
-        key={activeCategory}
-        className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+        className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"
       >
-        <AnimatePresence mode="popLayout">
-          {nonFeatured.map((item) => (
-            <motion.div key={item.id} variants={itemVariants} layout>
-              <ContentCard item={item} />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        {posts.map((post) => (
+          <motion.div key={post.id} variants={itemVariants}>
+            <InsightCard post={post} />
+          </motion.div>
+        ))}
       </motion.div>
-
-      {nonFeatured.length === 0 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="py-20 text-center text-muted-foreground"
-        >
-          No content found in this category.
-        </motion.div>
-      )}
-    </div>
+    </section>
   );
 }
 
-function ContentCard({ item, featured = false }: { item: ContentItem; featured?: boolean }) {
-  const Icon = item.icon;
-
+function InsightCard({ post }: { post: InsightPost }) {
+  const Icon = post.icon;
   return (
-    <div
-      className={`
-        group relative overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02]
-        transition-all duration-300 ease-out
-        hover:-translate-y-2 hover:border-white/[0.14] hover:bg-white/[0.04]
-        ${featured ? "p-8 md:p-10" : "p-6"}
-        ${item.glow}
-      `}
+    <a
+      href={post.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all duration-300 ease-out hover:-translate-y-2 hover:border-white/[0.14] hover:bg-white/[0.04] ${post.glow}`}
     >
-      {/* Animated gradient background */}
-      <div
-        className={`
-          absolute inset-0 bg-gradient-to-br ${item.gradient}
-          opacity-0 transition-opacity duration-500 group-hover:opacity-100
-        `}
-      />
-
-      {/* Radial glow on hover */}
-      <div
-        className="pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-60"
-        style={{ background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)` }}
-      />
-
-      <div className={`relative z-10 flex flex-col ${featured ? "md:max-w-2xl" : ""}`}>
-        {/* Top row */}
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div
-            className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3"
-          >
-            <Icon className="h-5 w-5 text-white/90" strokeWidth={1.5} />
+      {/* Cover image placeholder */}
+      <div className="relative aspect-[16/10] w-full overflow-hidden border-b border-white/[0.06]">
+        <div className={`absolute inset-0 bg-gradient-to-br ${post.gradient} opacity-70 transition-opacity duration-500 group-hover:opacity-100`} />
+        <div
+          className="absolute inset-0 opacity-60"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div
+          className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-80"
+          style={{ background: `radial-gradient(circle, ${post.color} 0%, transparent 70%)` }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.06] backdrop-blur transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3">
+            <Icon className="h-6 w-6 text-white/90" strokeWidth={1.5} />
           </div>
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-            {item.category}
-          </span>
         </div>
+        <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/40 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-white/90 backdrop-blur">
+          {post.category}
+        </span>
+      </div>
 
-        {/* Title */}
-        <h3 className={`font-semibold tracking-tight text-foreground ${featured ? "text-2xl md:text-3xl" : "text-lg"}`}>
-          {item.title}
+      <div className="relative z-10 flex flex-1 flex-col p-5">
+        <h3 className="text-base font-semibold tracking-tight text-foreground transition-colors group-hover:text-white">
+          {post.title}
         </h3>
-
-        {/* Description */}
-        <p className={`mt-3 leading-relaxed text-muted-foreground ${featured ? "text-base md:text-lg" : "text-sm"}`}>
-          {item.description}
+        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">
+          {post.excerpt}
         </p>
-
-        {/* Footer */}
-        <div className="mt-6 flex items-center justify-between gap-4">
+        <div className="mt-5 flex items-center justify-between pt-3">
           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3.5 w-3.5" />
-            {item.readTime}
+            {post.readTime}
           </div>
-          <button
-            type="button"
-            disabled
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors duration-300 hover:bg-white/[0.06] hover:text-foreground disabled:cursor-not-allowed"
-          >
-            {item.category === "Video" ? "Watch" : "Read"}
-            <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </button>
+          <span className="inline-flex items-center gap-1 text-xs font-medium text-accent transition-transform duration-300 group-hover:translate-x-0.5">
+            Read on LinkedIn
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
         </div>
       </div>
-    </div>
+    </a>
   );
 }
