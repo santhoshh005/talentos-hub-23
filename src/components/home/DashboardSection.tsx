@@ -74,7 +74,7 @@ function KpiCard({
       initial={{ opacity: 0, y: 24 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.6, delay: index * 0.08, ease }}
-      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl"
+      className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-5"
     >
       <div className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br ${tint} blur-2xl`} />
       <div className="relative flex items-center justify-between">
@@ -83,11 +83,11 @@ function KpiCard({
         </div>
         <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Live</span>
       </div>
-      <div className="relative mt-6 flex items-baseline gap-1">
-        <span className="text-5xl font-semibold tracking-tight text-gradient">{n}</span>
-        <span className="text-2xl font-semibold text-accent">{suffix}</span>
+      <div className="relative mt-5 flex items-baseline gap-1 sm:mt-6">
+        <span className="text-4xl font-semibold tracking-tight text-gradient sm:text-5xl">{n}</span>
+        <span className="text-xl font-semibold text-accent sm:text-2xl">{suffix}</span>
       </div>
-      <p className="relative mt-1 text-sm text-muted-foreground">{label}</p>
+      <p className="relative mt-1 text-xs text-muted-foreground sm:text-sm">{label}</p>
     </motion.div>
   );
 }
@@ -157,24 +157,24 @@ function ChartCard({
       initial={{ opacity: 0, y: 30 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.7, delay, ease }}
-      className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-5 backdrop-blur-xl"
+      className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-5"
     >
       <div className="pointer-events-none absolute inset-x-0 -top-24 h-48 bg-gradient-to-b from-primary/10 to-transparent blur-2xl" />
-      <div className="relative flex items-start justify-between">
-        <div>
+      <div className="relative flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <div className="rounded-md border border-white/10 bg-white/[0.04] p-1.5">
+            <div className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] p-1.5">
               <Icon className="h-3.5 w-3.5 text-accent" />
             </div>
-            <h3 className="text-sm font-medium text-foreground">{title}</h3>
+            <h3 className="truncate text-sm font-medium text-foreground">{title}</h3>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
         </div>
-        <span className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
           Mock
         </span>
       </div>
-      <div className="relative mt-4 h-64">{children}</div>
+      <div className="relative mt-4 h-56 w-full sm:h-64 md:h-72">{children}</div>
     </motion.div>
   );
 }
@@ -185,12 +185,12 @@ export function DashboardSection() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
 
   return (
-    <section ref={ref} className="relative py-28">
+    <section ref={ref} className="relative py-16 sm:py-20 md:py-28">
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute left-1/2 top-1/3 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-primary/10 blur-[140px]" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -201,24 +201,24 @@ export function DashboardSection() {
             <Activity className="h-3.5 w-3.5 text-accent" />
             Recruitment Intelligence
           </span>
-          <h2 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
+          <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
             <span className="text-gradient">Recruitment Intelligence Dashboard</span>
           </h2>
-          <p className="mt-4 text-base text-muted-foreground md:text-lg">
+          <p className="mt-4 text-sm text-muted-foreground sm:text-base md:text-lg">
             A live-feeling view of the hiring engine — pipeline health, sourcing mix,
             and momentum across roles and technologies.
           </p>
         </motion.div>
 
         {/* KPIs */}
-        <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {kpis.map((k, i) => (
             <KpiCard key={k.label} {...k} index={i} inView={inView} />
           ))}
         </div>
 
         {/* Charts */}
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-2">
           <ChartCard
             title="Technology Distribution"
             subtitle="Hires by primary technology stack"
