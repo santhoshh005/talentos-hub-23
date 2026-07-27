@@ -5,9 +5,9 @@ import {
   ExternalLink,
   Calendar,
 } from "lucide-react";
-import googleDA from "@/assets/certificates/google-data-analytics.jpg.asset.json";
+import googleDA from "@/assets/certificates/google-data-analytics.png.asset.json";
 import naukri from "@/assets/certificates/naukri-maestro.jpg.asset.json";
-import ibmML from "@/assets/certificates/ibm-ml-python.jpg.asset.json";
+import ibmML from "@/assets/certificates/ibm-ml-python.png.asset.json";
 import introAI from "@/assets/certificates/intro-to-ai.png.asset.json";
 
 interface Certification {
