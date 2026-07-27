@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { PageShell } from "@/components/layout/PageShell";
+import { AppLayout } from "@/components/layout/AppLayout";
+import { AiLabHero } from "@/components/ai-lab/AiLabHero";
 import { AiLabCards } from "@/components/ai-lab/AiLabCards";
 
 export const Route = createFileRoute("/ai-lab")({
@@ -12,12 +13,11 @@ export const Route = createFileRoute("/ai-lab")({
     ],
   }),
   component: () => (
-    <PageShell
-      eyebrow="AI Lab"
-      title={<>Experiments in <span className="text-gradient">applied AI</span></>}
-      description="A sandbox of AI-powered tools shaping the future of technical recruiting."
-    >
-      <AiLabCards />
-    </PageShell>
+    <AppLayout>
+      <AiLabHero />
+      <section className="mx-auto max-w-7xl px-4 pb-24 pt-6">
+        <AiLabCards />
+      </section>
+    </AppLayout>
   ),
 });
