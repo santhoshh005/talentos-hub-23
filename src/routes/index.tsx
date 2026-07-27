@@ -4,6 +4,7 @@ import { ArrowRight, Sparkles, PlayCircle, ChevronDown } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { HeroBackground } from "@/components/home/HeroBackground";
 import { FloatingCards } from "@/components/home/FloatingCards";
+import { DashboardSection } from "@/components/home/DashboardSection";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -154,6 +155,7 @@ function Index() {
       </section>
 
       <div id="next" />
+      <DashboardSection />
     </AppLayout>
   );
 }
