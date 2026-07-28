@@ -5,7 +5,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { RecruiterReport } from "@/components/report/RecruiterReport";
 import { Button } from "@/components/ui/button";
 import { clearResult, useLastReport } from "@/lib/report-store";
-import { downloadRecruiterReportPdf } from "@/lib/recruiter-report-pdf";
+import { downloadRecruiterReportSnapshot } from "@/lib/recruiter-report-pdf";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -34,9 +34,9 @@ function ReportPage() {
     }
     try {
       setDownloading(true);
-      // Yield so the button state updates before the sync PDF work runs.
+      // Yield so the button state updates before capture begins.
       await new Promise((r) => setTimeout(r, 20));
-      downloadRecruiterReportPdf(result);
+      await downloadRecruiterReportSnapshot(result);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to generate PDF.");
     } finally {
