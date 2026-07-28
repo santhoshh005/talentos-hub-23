@@ -2,7 +2,7 @@ import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { extractCandidateRecord } from "@/lib/candidate-extract.functions";
 import {
@@ -103,11 +103,16 @@ export function CandidateWorkspace() {
             className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]"
           >
             <div className="min-w-0 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold tracking-tight">Editable candidate record</h2>
-                <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
-                  <RotateCcw className="h-4 w-4" /> Start over
-                </Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+                    <Upload className="h-4 w-4" /> Upload another
+                  </Button>
+                  <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+                    <RotateCcw className="h-4 w-4" /> Start over
+                  </Button>
+                </div>
               </div>
               <CandidateRecordEditor record={record} update={update} />
             </div>
