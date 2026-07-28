@@ -1,128 +1,68 @@
+## Candidate Workspace — Extraction, Skeletons, NA, Rearrange
 
-# TalentOS Pivot — Recruiter Workspace + Candidate Workspace
+Four scoped fixes. No changes to Resume Intelligence pipeline.
 
-Product evolution, not a rewrite. Turn `/ai-lab` into `/workspace` (Recruiter Workspace), promote a new **Candidate Workspace** flow to flagship, and keep the existing Resume Intelligence pipeline intact under `/workspace/intelligence`.
+### 1. Deterministic parser + LLM merge (fixes "not extracting")
 
-## 1. Routes & Navigation
+Add `src/lib/candidate-parse.ts` — pure browser-safe regex parser that pulls fields directly from resume text:
+- Email: RFC-ish regex
+- Mobile: intl + Indian formats, strip separators
+- LinkedIn / GitHub / Portfolio: URL sniff by host
+- Full name: first non-empty line heuristic (title case, ≤4 words, no digits/@)
+- Current company + designation: scan "Experience" section, first entry with "Present/Current"
+- Previous employment: date-range block splitter
+- Total experience: "X years" / "X.Y yrs" pattern, else compute from earliest date
+- Education: degree keywords (B.E, B.Tech, MBA, M.Sc…) + institution line
+- Certifications: bullet lines under "Certifications" heading
+- Skills: comma/pipe split under "Skills / Technical Skills / Tools" heading (sanitized via existing `token-sanitizer`)
+- CTC, Notice period, Location: labeled-line regex ("Notice Period:", "CTC:", "Location:")
+- PAN / Passport: format regex
 
-New route files (each with own `head()` metadata + JSON-LD-free minimal SEO):
-- `src/routes/workspace.tsx` — layout route, renders header + sub-nav + `<Outlet />`. Default redirects to `/workspace/candidate`.
-- `src/routes/workspace.index.tsx` — redirects to `/workspace/candidate` via `beforeLoad` throwing `redirect({ to: "/workspace/candidate" })`.
-- `src/routes/workspace.candidate.tsx` — Candidate Workspace (primary).
-- `src/routes/workspace.intelligence.tsx` — hosts existing `ResumeAnalyzerModal` flow inline (no modal-only entry).
-- `src/routes/workspace.jd.tsx`, `workspace.boolean.tsx`, `workspace.interview.tsx` — "Coming soon" placeholders reusing existing tab visuals.
-- `src/routes/workspace.templates.tsx` — Client Templates manager.
-- `src/routes/ai-lab.tsx` — replaced with a redirect stub (`beforeLoad → redirect("/workspace")`) so old links keep working.
+Update `runExtractCandidate` in `src/lib/candidate-extract.server.ts` to accept an optional `deterministicSeed: Partial<CandidateRecord>` and **merge with LLM output field-by-field** (LLM wins only when non-empty; deterministic fills blanks). Also strengthen prompt to instruct verbatim copy for contact/company/CTC.
 
-Nav updates in `Navbar.tsx`, `Footer.tsx`, homepage hero (`src/routes/index.tsx`), and any button copy: **AI Lab → Recruiter Workspace**. Metadata/titles/descriptions updated in each new route's `head()`.
+In `CandidateWorkspace.onExtracted`, run `parseCandidateText(resumeText)` first, pass seed to server fn, and use it as an immediate optimistic record so the snapshot never appears empty even if the LLM returns blanks.
 
-Sub-navigation inside `/workspace` uses a glass tab strip that links between the six sub-routes, active state via `<Link activeProps>`.
+### 2. NA fallback for missing values
 
-## 2. Candidate Workspace flow
+Add `src/lib/candidate-display.ts` with `display(value) => value?.trim() || "NA"`. Update `CandidateSnapshot.tsx`, `CandidateCompleteness.tsx`, and `ExportPreview.tsx` to render "NA" for empty scalar fields (arrays render as "NA" chip when empty). Export logic still writes `""` unless the template's default value is set — recruiter-visible "NA" only in UI/preview.
 
-Directory `src/components/workspace/candidate/` with small composable pieces:
+### 3. Skeletons while extracting
 
-- `CandidateUpload.tsx` — drag & drop + browse (PDF/DOCX), single file. Reuses `extractResumeText` from `src/lib/resume-extract.ts`.
-- `CandidateExtractionProgress.tsx` — animated stepper while extraction runs.
-- `CandidateSnapshot.tsx` — post-extract summary card (name, headline designation, years, current company, top 4 skills) + "Continue Editing" button.
-- `CandidateRecordEditor.tsx` — orchestrator that composes the sections below (no giant form).
-- Section components (each ~<150 LOC):
-  - `CandidateIdentity.tsx`
-  - `CandidateContact.tsx`
-  - `CandidateCurrentEmployment.tsx`
-  - `CandidatePreviousEmployment.tsx` (array; add/remove/reorder/duplicate via dnd-kit)
-  - `CandidateExperience.tsx`
-  - `CandidateSkills.tsx` (primary + secondary chips; add/remove/reorder)
-  - `CandidateEducation.tsx` (array)
-  - `CandidateCertifications.tsx` (array)
-  - `CandidateCompensation.tsx`
-  - `CandidateDocuments.tsx` (PAN, Passport, Visa)
-  - `CandidateNotes.tsx` — dedicated recruiter notes (multi-line, exported)
-- `CandidateCompleteness.tsx` — computes % complete and lists missing key fields.
-- `TemplateSelector.tsx` — pick from Recent / Favorites / All templates; link to Templates manager.
-- `ExportPreview.tsx` — spreadsheet-style grid (glass table) built from `CandidateRecord × ClientTemplate`. Edit cells, add/remove/reorder columns, rename labels inline.
-- `ExportActions.tsx` — Export `.xlsx` and `.csv`; filename `candidate-{lastName}-{templateSlug}-{yyyyMMdd}.{ext}`.
+- Replace the current `CandidateExtractionProgress` overlay with a two-column skeleton mock of the eventual editor + snapshot using existing `Shimmer`/`Skeletons.tsx` primitives (new `CandidateWorkspaceSkeleton.tsx`).
+- Show it during `phase === "extracting"` so recruiters see the shape of the workspace immediately.
+- Add lightweight skeleton for `ExportPreview` while template/record settle.
 
-State lives in a `useCandidateRecord` hook (React state, no global store needed). Extraction/edit state resets per upload.
+### 4. Excel preview after extraction + column rearrangement
 
-## 3. Candidate extraction (server)
+- Move `ExportPreview` into `phase === "snapshot"` as well as `edit`, so it appears the moment extraction completes (below the snapshot card).
+- Add a **Column Order** panel inside `ExportPreview` (or new `ExportColumnRearranger.tsx`) using `@dnd-kit/sortable` (already installed):
+  - Lists the currently visible template columns (Name, Phone, Email, …)
+  - Drag handles to reorder
+  - Toggle visibility per column
+  - "Reset to template" button
+  - Order is local to this export (does not mutate the saved template) — held in `CandidateWorkspace` state as `columnOverride: string[] | null`
+- `ExportPreview` and the xlsx/csv exporter both consume the override when present.
 
-- `src/lib/candidate-schemas.ts` — Zod `CandidateRecordSchema` covering every field in the brief; all optional/defaulted so missing values become `""` / `[]` and never crash.
-- `src/lib/candidate-extract.server.ts` — thin wrapper around existing `ai-gateway.server.ts`, structured-output prompt returning `CandidateRecord`. Retry once, fall back to partial record.
-- `src/lib/candidate-extract.functions.ts` — `extractCandidateRecord = createServerFn({ method: "POST" }).inputValidator(...).handler(...)`.
-- Called from `CandidateWorkspace` via `useServerFn`.
+### 5. Small correctness fixes
 
-Reuses text extraction (`resume-extract.ts`) and AI Gateway — no duplication of pipeline logic.
+- `CandidateUpload` calls `onExtracted(text, file.name)`; `CandidateWorkspace` currently ignores fileName. Thread it through so export filename can use candidate last name **or** fall back to uploaded filename stem.
+- Guard `extractCandidateRecord` handler: if resumeText < 20 chars, return deterministic seed directly (skip LLM) to avoid the current Zod min-length crash surface.
 
-## 4. Client Templates (localStorage now, Cloud-ready)
-
-Directory `src/lib/templates/`:
-
-- `template-types.ts` — `ClientTemplate`, `TemplateColumn`, `ExportSettings`, `TemplateSummary`.
-- `template-repository.ts` — `TemplateRepository` interface: `list`, `get`, `create`, `update`, `duplicate`, `delete`, `toggleFavorite`, `markRecent`, `listRecent`, `listFavorites`.
-- `local-template-repository.ts` — `localStorage` implementation (`talentos:templates:v1`, `talentos:templates:recent:v1`). UI never touches localStorage directly.
-- `seed-templates.ts` — Templates A / B / C seeded on first load if store empty.
-- `use-templates.ts` — React hook exposing repo + reactive state (via `useSyncExternalStore`).
-- Swapping to Cloud later = replace one file.
-
-Templates manager UI (`/workspace/templates`):
-- List with Recent, Favorites, All tabs.
-- Create / Edit / Duplicate / Delete / Favorite.
-- `TemplateEditor.tsx` — column list with dnd-kit drag-reorder, hide toggle, custom label, default value, per-template notes, export settings (sheet name).
-- "Import from existing Excel" panel:
-  - `src/lib/templates/excel-import.ts` — `parseTemplateHeaders(file)` reads row 1 via `xlsx`.
-  - `suggestFieldMapping(headers)` — small keyword table for now; leaves unknown headers unmapped.
-  - Recruiter manually confirms mapping → saves as new template.
-  - Architecture ready for future LLM auto-mapping.
-
-## 5. Export
-
-- `src/lib/candidate-export.ts` — builds a single-row worksheet from `CandidateRecord` + `ClientTemplate`, respecting column order, custom labels, defaults, hidden columns. Notes column is included when present in template.
-- Uses SheetJS (`xlsx`) for both `.xlsx` and `.csv`. Architected to accept `CandidateRecord[]` in future for bulk.
-
-## 6. Resume Intelligence tab (unchanged)
-
-- `src/routes/workspace.intelligence.tsx` mounts the existing analyzer flow — either lifts `ResumeAnalyzerModal` internals into an inline component or opens it automatically. Pipeline, scoring, evidence, `RecruiterReport`, PDF export stay exactly as-is; only container + labels change.
-- No changes under `src/lib/pipeline.server.ts`, `scoring-engine.ts`, `evidence-engine.ts`, `recruiter-report-pdf.ts`.
-
-## 7. Placeholder tabs
-
-`/workspace/jd`, `/workspace/boolean`, `/workspace/interview` render a shared `ComingSoonPanel` (reuses existing hero styling + icons already defined in `AiLabWorkspace.tsx`).
-
-## 8. Design
-
-- Dark, glass, spreadsheet-inspired. Reuses existing tokens (`bg-white/[0.02]`, `border-white/10`, primary/accent gradient).
-- Sub-nav = pill tabs w/ layoutId slide.
-- Export preview = compact zebra-striped glass table.
-- Fully responsive (stacked sections on mobile, two-column on ≥md, three-column on ≥xl).
-
-## 9. Dependencies
-
-Add:
-- `xlsx` (SheetJS) — Excel/CSV read+write.
-- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` — column + array reordering.
-
-## 10. Non-goals (architected, not built)
-
-- Bulk resume upload (repository + schema accept arrays; UI stub only).
-- Cloud template sync (repo swap).
-- AI header auto-mapping (`suggestFieldMapping` hook point).
-- Candidate history, ATS integration, shared team templates.
-
-## Files summary
+### Files
 
 **Add**
-- Routes: `workspace.tsx`, `workspace.index.tsx`, `workspace.candidate.tsx`, `workspace.intelligence.tsx`, `workspace.jd.tsx`, `workspace.boolean.tsx`, `workspace.interview.tsx`, `workspace.templates.tsx`.
-- `src/components/workspace/` (WorkspaceLayout, SubNav, ComingSoonPanel) + `candidate/*` (all section + flow components) + `templates/*` (Manager, Editor, ExcelImport).
-- `src/lib/candidate-schemas.ts`, `candidate-extract.server.ts`, `candidate-extract.functions.ts`, `candidate-export.ts`.
-- `src/lib/templates/*` (types, repository, local impl, excel-import, seed, hook).
+- `src/lib/candidate-parse.ts`
+- `src/lib/candidate-display.ts`
+- `src/components/workspace/candidate/CandidateWorkspaceSkeleton.tsx`
+- `src/components/workspace/candidate/ExportColumnRearranger.tsx`
 
 **Modify**
-- `src/routes/ai-lab.tsx` → redirect stub.
-- `src/routes/index.tsx` hero CTA copy.
-- `src/components/layout/Navbar.tsx`, `Footer.tsx` — rename AI Lab → Recruiter Workspace, point to `/workspace`.
-- `src/components/loader/*` copy references (if any).
-- `README.md` positioning line.
+- `src/lib/candidate-extract.server.ts` (seed merge + stronger prompt)
+- `src/lib/candidate-extract.functions.ts` (accept optional seed)
+- `src/lib/candidate-export.ts` (respect columnOverride)
+- `src/components/workspace/candidate/CandidateWorkspace.tsx` (seed, phase wiring, skeleton, preview in snapshot, column override state)
+- `src/components/workspace/candidate/CandidateSnapshot.tsx` (NA)
+- `src/components/workspace/candidate/CandidateCompleteness.tsx` (NA)
+- `src/components/workspace/candidate/ExportPreview.tsx` (NA, columnOverride, rearranger)
 
-**Untouched**
-- `pipeline.server.ts`, `scoring-engine.ts`, `evidence-engine.ts`, `matching-engine.ts`, `semantic-match.server.ts`, `llm-extract.server.ts`, `recruiter-report-pdf.ts`, `resume-analyzer.*`, existing `RecruiterReport.tsx`. Composed, not rewritten.
+**Untouched:** Resume Intelligence pipeline, templates repository, all other routes.
