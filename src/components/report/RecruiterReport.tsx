@@ -281,12 +281,12 @@ function MetaStat({ icon: Icon, label, value }: { icon: React.ElementType; label
   );
 }
 
-function ScoreRing({ value, tone }: { value: number; tone: Recommendation["tone"] }) {
+function ScoreRing({ value, tone }: { value: number; tone: Tone }) {
   const size = 92;
   const stroke = 8;
   const r = (size - stroke) / 2;
   const c = 2 * Math.PI * r;
-  const strokeColors: Record<Recommendation["tone"], string> = {
+  const strokeColors: Record<Tone, string> = {
     emerald: "#34d399", sky: "#38bdf8", amber: "#fbbf24", rose: "#fb7185",
   };
   return (
@@ -308,7 +308,7 @@ function ScoreRing({ value, tone }: { value: number; tone: Recommendation["tone"
   );
 }
 
-function SkillColumn({ title, icon: Icon, tone, count, children }: { title: string; icon: React.ElementType; tone: Recommendation["tone"]; count: number; children: React.ReactNode }) {
+function SkillColumn({ title, icon: Icon, tone, count, children }: { title: string; icon: React.ElementType; tone: Tone; count: number; children: React.ReactNode }) {
   const t = toneStyles[tone];
   return (
     <GlassCard className="p-5">
@@ -326,7 +326,7 @@ function SkillColumn({ title, icon: Icon, tone, count, children }: { title: stri
   );
 }
 
-function SkillChip({ label, tone, tooltip, delay }: { label: string; tone: Recommendation["tone"]; tooltip?: string; delay: number }) {
+function SkillChip({ label, tone, tooltip, delay }: { label: string; tone: Tone; tooltip?: string; delay: number }) {
   const t = toneStyles[tone];
   return (
     <motion.span
@@ -413,6 +413,26 @@ function EvidenceStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-lg border border-white/5 bg-white/[0.02] p-3">
       <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
       <div className="mt-1 font-medium">{value}</div>
+    </div>
+  );
+}
+
+function InsightList({ title, icon: Icon, tone, items }: { title: string; icon: React.ElementType; tone: Tone; items: string[] }) {
+  const t = toneStyles[tone];
+  return (
+    <div className={cn("rounded-xl border p-4", t.badge)}>
+      <div className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <Icon className="h-4 w-4" />
+        {title}
+      </div>
+      <ul className="space-y-2 text-sm">
+        {items.map((item, i) => (
+          <li key={i} className="flex gap-2 text-foreground/90">
+            <span className={cn("mt-1.5 h-1.5 w-1.5 flex-shrink-0 rounded-full", t.dot)} />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
