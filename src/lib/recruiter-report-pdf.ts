@@ -67,19 +67,20 @@ function recommendationFor(pct: number) {
 
 function drawHeader(pdf: jsPDF, candidate: string) {
   setFill(pdf, COLOR.ink);
-  pdf.rect(0, 0, PAGE.w, 14, "F");
+  pdf.rect(0, 0, PAGE.w, 12, "F");
   setFill(pdf, COLOR.accent);
-  pdf.circle(PAGE.margin + 3, 7, 2.2, "F");
+  pdf.circle(PAGE.margin + 3, 6, 1.8, "F");
   setText(pdf, COLOR.white);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(10);
-  pdf.text("TalentOS", PAGE.margin + 8, 8.4);
+  pdf.setFontSize(9);
+  pdf.text("TalentOS", PAGE.margin + 7, 7.6);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
+  pdf.setFontSize(7);
   setText(pdf, COLOR.muted);
-  pdf.text("Recruiter Intelligence Report", PAGE.margin + 28, 8.4);
+  pdf.text("Recruiter Intelligence Report", PAGE.margin + 25, 7.6);
   setText(pdf, COLOR.white);
-  pdf.text(candidate, PAGE.w - PAGE.margin, 8.4, { align: "right" });
+  pdf.setFontSize(8);
+  pdf.text(candidate, PAGE.w - PAGE.margin, 7.6, { align: "right" });
 }
 
 function drawFooters(pdf: jsPDF, timestamp: string) {
