@@ -465,27 +465,35 @@ function findKnownTerms(text: string, terms: string[]): string[] {
 
 function mergeParsedResume(aiValue: unknown, local: ParsedResumeData, resumeText: string): ParsedResumeData {
   const source = typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
-  const scalar = (key: keyof Omit<ParsedResumeData, "skills" | "projects" | "certifications" | "technologies">) => {
+  const looseScalarKeys = new Set(["experience", "relevantExperience", "noticePeriod", "currentDesignation"]);
+  const scalar = (key: string, fallback: string): string => {
     const value = cleanString(source[key]);
-    if (!value) return local[key];
-    if (key === "experience") return value;
-    return appearsInText(resumeText, value) ? value : local[key];
+    if (!value) return fallback;
+    if (looseScalarKeys.has(key)) return value;
+    return appearsInText(resumeText, value) ? value : fallback || value;
   };
-  const list = (key: "skills" | "projects" | "certifications" | "technologies") =>
-    unique([...local[key], ...toStringArray(source[key]).filter((item) => appearsInText(resumeText, item))]).slice(0, key === "projects" ? 12 : 40);
+  const list = (key: string, fallback: string[], limit: number): string[] =>
+    unique([...fallback, ...toStringArray(source[key])]).slice(0, limit);
 
   return ParsedResumeSchema.parse({
-    name: scalar("name"),
-    email: scalar("email") || local.email,
-    phone: scalar("phone") || local.phone,
-    location: scalar("location"),
-    experience: scalar("experience"),
-    currentCompany: scalar("currentCompany"),
-    skills: list("skills"),
-    education: scalar("education"),
-    projects: list("projects"),
-    certifications: list("certifications"),
-    technologies: list("technologies"),
+    name: scalar("name", local.name),
+    email: scalar("email", local.email) || local.email,
+    phone: scalar("phone", local.phone) || local.phone,
+    location: scalar("location", local.location),
+    experience: scalar("experience", local.experience),
+    currentCompany: scalar("currentCompany", local.currentCompany),
+    skills: list("skills", local.skills, 60),
+    education: scalar("education", local.education),
+    projects: list("projects", local.projects, 15),
+    certifications: list("certifications", local.certifications, 20),
+    technologies: list("technologies", local.technologies, 60),
+    currentDesignation: scalar("currentDesignation", local.currentDesignation ?? ""),
+    relevantExperience: scalar("relevantExperience", local.relevantExperience ?? ""),
+    employmentHistory: list("employmentHistory", local.employmentHistory ?? [], 15),
+    educationHistory: list("educationHistory", local.educationHistory ?? [], 10),
+    tools: list("tools", local.tools ?? [], 40),
+    languages: list("languages", local.languages ?? [], 12),
+    noticePeriod: scalar("noticePeriod", local.noticePeriod ?? ""),
   });
 }
 
