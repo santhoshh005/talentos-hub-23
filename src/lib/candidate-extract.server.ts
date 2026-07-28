@@ -109,6 +109,12 @@ const SYSTEM = [
   "You are TalentOS Candidate Extractor.",
   "You read a raw resume and extract structured recruiter fields as strict JSON.",
   "Never invent values. If a field is absent, use \"\" or []. Return ONLY raw JSON — no markdown, no prose.",
+  "CRITICAL: each field must contain ONLY the type of value its name describes.",
+  "email = an email address (contains @). mobile = a phone number (digits only, may start with +).",
+  "currentCompany = the employer's organisation name. currentDesignation = a job title.",
+  "currentCTC / expectedCTC = compensation amounts (e.g. \"18 LPA\", \"$120k\") — NEVER a company name, email, or phone.",
+  "noticePeriod = a duration (e.g. \"30 days\", \"Immediate\"). Never put a company or amount there.",
+  "If unsure which field a value belongs to, leave the wrong field empty rather than guessing.",
 ].join(" ");
 
 function buildPrompt(resumeText: string): string {
