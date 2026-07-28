@@ -480,10 +480,14 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   if (!result.ok) {
     throw new Error("No report available to export.");
   }
-  const { resume, jobDescription, matching, evidence, metadata } = result;
-  const matchPct = Math.round(
+  const { resume, jobDescription, matching, evidence, metadata, scoring, intelligence } = result;
+  // Use the same score the on-page report shows (scoring engine),
+  // falling back to the raw similarity ratio only for legacy results.
+  const matchPct = scoring?.matchPercentage ?? Math.round(
     (matching.similarity.matchedRequiredSkills / (matching.similarity.totalRequiredSkills || 1)) * 100,
   );
+  const domain = intelligence?.inferredDomain || jobDescription.domain;
+  const seniority = intelligence?.inferredSeniority || jobDescription.seniorityLevel;
   const generatedAt = new Date().toLocaleString();
   const analysisId = `TOS-${new Date(metadata.startedAt).getTime().toString(36).toUpperCase()}`;
 
@@ -494,28 +498,23 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   coverPage(c, {
     candidate: resume.name,
     role: jobDescription.jobTitle,
-    domain: jobDescription.domain,
+    domain,
     matchPct,
     analysisId,
     generatedAt,
+    skillCoverage: scoring?.skillCoverage,
+    evidenceScore: scoring?.evidenceScore,
+    seniority,
   });
 
   // Executive Summary
-  const summaryText =
+  const summaryText = intelligence?.summary ??
     `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany} with ${resume.experience} of overall experience. ` +
-    `The candidate matches ${matching.similarity.matchedRequiredSkills} of ${matching.similarity.totalRequiredSkills} required skills for the ${jobDescription.jobTitle} role in ${jobDescription.domain}. ` +
-    `Recommendation: ${recommendationFor(matchPct).label}.`;
-  const highlights = [
-    `Overall Match Score: ${matchPct}%`,
-    `Matching Skills: ${matching.matchingSkills.length}`,
-    `Missing Skills: ${matching.missingSkills.length}`,
-    `Additional Skills: ${matching.additionalSkills.length}`,
-    `Seniority: ${jobDescription.seniorityLevel}`,
-  ];
-  executiveSummaryPage(c, summaryText, highlights);
+    `The candidate matches ${matching.similarity.matchedRequiredSkills} of ${matching.similarity.totalRequiredSkills} required skills for the ${jobDescription.jobTitle} role in ${domain}.`;
+  executiveSummaryPage(c, summaryText, intelligence?.strengths ?? [], intelligence?.risks ?? []);
 
+  skillAnalysisPage(c, matching, intelligence?.missingByCategory);
   candidateProfilePage(c, resume);
-  skillAnalysisPage(c, matching);
   evidenceAnalysisPage(c, evidence);
   pipelineTransparencyPage(c, metadata);
 
