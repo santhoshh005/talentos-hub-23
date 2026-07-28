@@ -78,7 +78,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
   const tone = toneStyles[rec.tone];
 
   return (
-    <div className="space-y-10">
+    <div id="recruiter-report-root" className="space-y-10">
       {/* Header */}
       <motion.div initial="hidden" animate="show" variants={fadeUp}>
         <GlassCard className="p-6 md:p-8">
