@@ -67,19 +67,20 @@ function recommendationFor(pct: number) {
 
 function drawHeader(pdf: jsPDF, candidate: string) {
   setFill(pdf, COLOR.ink);
-  pdf.rect(0, 0, PAGE.w, 14, "F");
+  pdf.rect(0, 0, PAGE.w, 12, "F");
   setFill(pdf, COLOR.accent);
-  pdf.circle(PAGE.margin + 3, 7, 2.2, "F");
+  pdf.circle(PAGE.margin + 3, 6, 1.8, "F");
   setText(pdf, COLOR.white);
   pdf.setFont("helvetica", "bold");
-  pdf.setFontSize(10);
-  pdf.text("TalentOS", PAGE.margin + 8, 8.4);
+  pdf.setFontSize(9);
+  pdf.text("TalentOS", PAGE.margin + 7, 7.6);
   pdf.setFont("helvetica", "normal");
-  pdf.setFontSize(8);
+  pdf.setFontSize(7);
   setText(pdf, COLOR.muted);
-  pdf.text("Recruiter Intelligence Report", PAGE.margin + 28, 8.4);
+  pdf.text("Recruiter Intelligence Report", PAGE.margin + 25, 7.6);
   setText(pdf, COLOR.white);
-  pdf.text(candidate, PAGE.w - PAGE.margin, 8.4, { align: "right" });
+  pdf.setFontSize(8);
+  pdf.text(candidate, PAGE.w - PAGE.margin, 7.6, { align: "right" });
 }
 
 function drawFooters(pdf: jsPDF, timestamp: string) {
@@ -224,9 +225,13 @@ function skillTable(c: Ctx, title: string, items: string[], tone: string) {
 
 function coverPage(
   c: Ctx,
-  meta: { candidate: string; role: string; domain: string; matchPct: number; analysisId: string; generatedAt: string },
+  meta: {
+    candidate: string; role: string; domain: string; matchPct: number;
+    analysisId: string; generatedAt: string;
+    skillCoverage?: number; evidenceScore?: number; seniority?: string;
+  },
 ) {
-  const { candidate, role, domain, matchPct, analysisId, generatedAt } = meta;
+  const { candidate, role, domain, matchPct, analysisId, generatedAt, skillCoverage, evidenceScore, seniority } = meta;
   c.y = 40;
   // Brand logo mark
   setFill(c.pdf, COLOR.primary);
@@ -258,7 +263,7 @@ function coverPage(
 
   setText(c.pdf, COLOR.sub);
   c.pdf.setFont("helvetica", "normal");
-  c.pdf.setFontSize(12);
+  c.pdf.setFontSize(10);
   c.pdf.text(`${role}  •  ${domain}`, PAGE.margin, c.y + 6);
   c.y += 16;
 
@@ -314,6 +319,9 @@ function coverPage(
   c.pdf.text(`Overall Match Score: ${matchPct}%`, rx, ry + 20);
   c.pdf.text(`Detected Role: ${role}`, rx, ry + 26);
   c.pdf.text(`Detected Domain: ${domain}`, rx, ry + 32);
+  if (typeof skillCoverage === "number") {
+    c.pdf.text(`Skill Coverage: ${skillCoverage}%    Evidence: ${evidenceScore ?? 0}%`, rx, ry + 38);
+  }
 
   c.y += cardH + 10;
 
@@ -321,27 +329,38 @@ function coverPage(
   keyValueGrid(c, [
     ["Generated", generatedAt],
     ["Analysis ID", analysisId],
+    ["Seniority", seniority || "—"],
+    ["Role", role],
   ]);
 }
 
-function executiveSummaryPage(c: Ctx, text: string, followUps: string[]) {
+function executiveSummaryPage(c: Ctx, text: string, strengths: string[], risks: string[]) {
   newPage(c);
   sectionTitle(c, "Section 1", "Executive Summary");
-  paragraph(c, text, 11, COLOR.ink);
+  paragraph(c, text, 10, COLOR.ink);
   c.y += 4;
-  if (followUps.length) {
+  if (strengths.length) {
     setText(c.pdf, COLOR.muted);
     c.pdf.setFont("helvetica", "bold");
-    c.pdf.setFontSize(9);
-    c.pdf.text("KEY HIGHLIGHTS", PAGE.margin, c.y);
+    c.pdf.setFontSize(8);
+    c.pdf.text("STRENGTHS", PAGE.margin, c.y);
     c.y += 5;
-    bullets(c, followUps);
+    bullets(c, strengths);
+  }
+  if (risks.length) {
+    c.y += 2;
+    setText(c.pdf, COLOR.muted);
+    c.pdf.setFont("helvetica", "bold");
+    c.pdf.setFontSize(8);
+    c.pdf.text("RISKS", PAGE.margin, c.y);
+    c.y += 5;
+    bullets(c, risks);
   }
 }
 
 function candidateProfilePage(c: Ctx, resume: any) {
   newPage(c);
-  sectionTitle(c, "Section 2", "Candidate Profile");
+  sectionTitle(c, "Section 3", "Candidate Profile");
   keyValueGrid(c, [
     ["Email", resume.email],
     ["Phone", resume.phone],
@@ -380,11 +399,27 @@ function candidateProfilePage(c: Ctx, resume: any) {
   bullets(c, resume.projects);
 }
 
-function skillAnalysisPage(c: Ctx, matching: any) {
+function skillAnalysisPage(
+  c: Ctx,
+  matching: any,
+  missingByCategory?: { category: string; skills: string[] }[],
+) {
   newPage(c);
-  sectionTitle(c, "Section 3", "Skill Analysis");
+  sectionTitle(c, "Section 2", "Skill Analysis");
   skillTable(c, "Matching Skills", matching.matchingSkills.map((m: any) => m.skill), COLOR.good);
-  skillTable(c, "Missing Skills", matching.missingSkills, COLOR.bad);
+  if (missingByCategory && missingByCategory.length) {
+    ensure(c, 14);
+    setText(c.pdf, COLOR.ink);
+    c.pdf.setFont("helvetica", "bold");
+    c.pdf.setFontSize(11);
+    c.pdf.text(`Missing Skills  (${matching.missingSkills.length})`, PAGE.margin, c.y);
+    c.y += 4;
+    for (const group of missingByCategory) {
+      skillTable(c, group.category, group.skills, COLOR.bad);
+    }
+  } else {
+    skillTable(c, "Missing Skills", matching.missingSkills, COLOR.bad);
+  }
   skillTable(c, "Additional Skills", matching.additionalSkills, COLOR.accent);
 }
 
@@ -405,7 +440,7 @@ function evidenceAnalysisPage(c: Ctx, evidence: any[]) {
     theme: "striped",
     margin: { left: PAGE.margin, right: PAGE.margin },
     headStyles: { fillColor: rgb(COLOR.ink), textColor: rgb(COLOR.white), fontStyle: "bold", fontSize: 9 },
-    styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5, textColor: rgb(COLOR.ink), overflow: "linebreak" },
+    styles: { font: "helvetica", fontSize: 8.5, cellPadding: 2, textColor: rgb(COLOR.ink), overflow: "linebreak" },
     alternateRowStyles: { fillColor: rgb(COLOR.soft) },
     columnStyles: {
       0: { cellWidth: 45, fontStyle: "bold" },
@@ -479,10 +514,14 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   if (!result.ok) {
     throw new Error("No report available to export.");
   }
-  const { resume, jobDescription, matching, evidence, metadata } = result;
-  const matchPct = Math.round(
+  const { resume, jobDescription, matching, evidence, metadata, scoring, intelligence } = result;
+  // Use the same score the on-page report shows (scoring engine),
+  // falling back to the raw similarity ratio only for legacy results.
+  const matchPct = scoring?.matchPercentage ?? Math.round(
     (matching.similarity.matchedRequiredSkills / (matching.similarity.totalRequiredSkills || 1)) * 100,
   );
+  const domain = intelligence?.inferredDomain || jobDescription.domain;
+  const seniority = intelligence?.inferredSeniority || jobDescription.seniorityLevel;
   const generatedAt = new Date().toLocaleString();
   const analysisId = `TOS-${new Date(metadata.startedAt).getTime().toString(36).toUpperCase()}`;
 
@@ -493,28 +532,23 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   coverPage(c, {
     candidate: resume.name,
     role: jobDescription.jobTitle,
-    domain: jobDescription.domain,
+    domain,
     matchPct,
     analysisId,
     generatedAt,
+    skillCoverage: scoring?.skillCoverage,
+    evidenceScore: scoring?.evidenceScore,
+    seniority,
   });
 
   // Executive Summary
-  const summaryText =
+  const summaryText = intelligence?.summary ??
     `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany} with ${resume.experience} of overall experience. ` +
-    `The candidate matches ${matching.similarity.matchedRequiredSkills} of ${matching.similarity.totalRequiredSkills} required skills for the ${jobDescription.jobTitle} role in ${jobDescription.domain}. ` +
-    `Recommendation: ${recommendationFor(matchPct).label}.`;
-  const highlights = [
-    `Overall Match Score: ${matchPct}%`,
-    `Matching Skills: ${matching.matchingSkills.length}`,
-    `Missing Skills: ${matching.missingSkills.length}`,
-    `Additional Skills: ${matching.additionalSkills.length}`,
-    `Seniority: ${jobDescription.seniorityLevel}`,
-  ];
-  executiveSummaryPage(c, summaryText, highlights);
+    `The candidate matches ${matching.similarity.matchedRequiredSkills} of ${matching.similarity.totalRequiredSkills} required skills for the ${jobDescription.jobTitle} role in ${domain}.`;
+  executiveSummaryPage(c, summaryText, intelligence?.strengths ?? [], intelligence?.risks ?? []);
 
+  skillAnalysisPage(c, matching, intelligence?.missingByCategory);
   candidateProfilePage(c, resume);
-  skillAnalysisPage(c, matching);
   evidenceAnalysisPage(c, evidence);
   pipelineTransparencyPage(c, metadata);
 
