@@ -15,6 +15,7 @@
 
 import type { NormalizedSkill } from "./skill-normalizer";
 import { normalizeSkill } from "./skill-normalizer";
+import { extractYearsFromExperience } from "./token-sanitizer";
 
 export type EvidenceSource =
   | "Professional Summary"
@@ -81,6 +82,9 @@ export function buildEvidence(input: EvidenceEngineInput): SkillEvidence[] {
   const resume = (input.resume ?? {}) as Record<string, unknown>;
   const sections = collectSectionTexts(resume);
   const employmentEntries = collectStrings(resume["employmentHistory"] ?? resume["experience"]);
+  const totalCandidateYears = extractYearsFromExperience(
+    typeof resume["experience"] === "string" ? (resume["experience"] as string) : "",
+  );
 
   const seen = new Set<string>();
   const results: SkillEvidence[] = [];
@@ -104,7 +108,18 @@ export function buildEvidence(input: EvidenceEngineInput): SkillEvidence[] {
       }
     }
 
-    const yearsReferenced = computeYearsReferenced(employmentEntries, skill);
+    let yearsReferenced = computeYearsReferenced(employmentEntries, skill);
+    // Fallback: if the skill is clearly evidenced (Skills / Technical Skills /
+    // Projects / Employment) but no dated employment entry mentioned it by
+    // name, attribute a conservative share of the candidate's total tenure
+    // so downstream summaries stop reporting 0 years for real skills.
+    if (yearsReferenced === 0 && totalCandidateYears > 0 && foundIn.length > 0) {
+      const tenureBearing = foundIn.some((s) =>
+        s === "Employment History" || s === "Projects" ||
+        s === "Technical Skills" || s === "Skills" || s === "Core Competencies",
+      );
+      if (tenureBearing) yearsReferenced = Math.round(totalCandidateYears * 0.6 * 10) / 10;
+    }
     const evidenceStrength = scoreEvidence(foundIn, occurrenceCount, yearsReferenced);
 
     results.push({
