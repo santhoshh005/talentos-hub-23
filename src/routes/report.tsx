@@ -57,11 +57,11 @@ function ReportPage() {
           </div>
           <h3 className="text-lg font-semibold">No report yet</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start from the AI Lab — upload a resume and paste a job description to run the TalentOS Resume Intelligence Pipeline.
+            Start from Resume Intelligence — upload a resume and paste a job description to run the TalentOS Resume Intelligence Pipeline.
           </p>
           <div className="mt-6">
-            <Button onClick={() => navigate({ to: "/ai-lab" })} className="gap-2">
-              <Sparkles className="h-4 w-4" /> Open AI Lab
+            <Button onClick={() => navigate({ to: "/workspace/intelligence" })} className="gap-2">
+              <Sparkles className="h-4 w-4" /> Open Resume Intelligence
             </Button>
           </div>
         </div>

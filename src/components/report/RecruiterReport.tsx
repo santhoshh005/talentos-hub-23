@@ -68,7 +68,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
         <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-400" />
         <p className="font-medium">This report was generated before the latest engines shipped.</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Please re-run the Resume Analyzer from the AI Lab to regenerate the report.
+          Please re-run the Resume Intelligence tool to regenerate the report.
         </p>
       </GlassCard>
     );
