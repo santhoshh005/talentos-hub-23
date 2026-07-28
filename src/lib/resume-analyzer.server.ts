@@ -2,6 +2,13 @@ import { generateText } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 
+// ============================================================
+// TalentOS Resume Intelligence Engine
+// AI-first, domain-agnostic, semantic matching + weighted scoring.
+// Backward-compatible with the existing UI/PDF shape; adds
+// optional recruiter-intelligence fields.
+// ============================================================
+
 export const InputSchema = z.object({
   resumeText: z.string().min(1),
   jobDescription: z.string().min(1),
@@ -12,6 +19,7 @@ export const ParseInputSchema = z.object({
   resumeText: z.string().min(20),
 });
 
+// -------- Parsed resume (backward compatible + optional intel) --------
 export const ParsedResumeSchema = z.object({
   name: z.string(),
   email: z.string(),
@@ -24,10 +32,33 @@ export const ParsedResumeSchema = z.object({
   projects: z.array(z.string()),
   certifications: z.array(z.string()),
   technologies: z.array(z.string()),
-});
 
+  // Optional intelligence
+  domain: z.string().optional(),
+  industry: z.string().optional(),
+  seniority: z.string().optional(),
+  primaryProfession: z.string().optional(),
+  secondaryProfession: z.string().optional(),
+  totalYears: z.number().optional(),
+  noticePeriod: z.string().optional(),
+  expectedRole: z.string().optional(),
+  languages: z.array(z.string()).optional(),
+  tools: z.array(z.string()).optional(),
+  softSkills: z.array(z.string()).optional(),
+  achievements: z.array(z.string()).optional(),
+  confidence: z
+    .object({
+      skills: z.number(),
+      experience: z.number(),
+      education: z.number(),
+      projects: z.number(),
+      overall: z.number(),
+    })
+    .optional(),
+});
 export type ParsedResumeData = z.infer<typeof ParsedResumeSchema>;
 
+// -------- Analysis (backward compatible + optional intel) --------
 export const AnalysisSchema = z.object({
   overallScore: z.number(),
   verdict: z.string(),
@@ -60,82 +91,105 @@ export const AnalysisSchema = z.object({
     education: z.number(),
     softSkills: z.number(),
   }),
-});
 
+  // Optional recruiter intelligence
+  scoreReason: z.string().optional(),
+  scoreBreakdown: z
+    .object({
+      skills: z.number(),
+      experience: z.number(),
+      domain: z.number(),
+      industry: z.number(),
+      tools: z.number(),
+      certifications: z.number(),
+      progression: z.number(),
+    })
+    .optional(),
+  recruiterInsights: z
+    .object({
+      candidateSummary: z.string(),
+      topStrengths: z.array(z.string()),
+      possibleRisks: z.array(z.string()),
+      interviewFocus: z.array(z.string()),
+      redFlags: z.array(z.string()),
+      careerStability: z.string(),
+      likelySalaryBand: z.string(),
+      noticePeriod: z.string(),
+      currentEmployer: z.string(),
+      expectedRole: z.string(),
+    })
+    .optional(),
+  domain: z.string().optional(),
+  industry: z.string().optional(),
+  seniority: z.string().optional(),
+});
 export type ResumeAnalysis = z.infer<typeof AnalysisSchema>;
 
 type ParsedInput = z.infer<typeof ParseInputSchema>;
 type AnalysisInput = z.infer<typeof InputSchema>;
 
-const SECTION_HEADERS = [
-  "summary",
-  "profile",
-  "objective",
-  "experience",
-  "work experience",
-  "professional experience",
-  "employment",
-  "education",
-  "skills",
-  "technical skills",
-  "core skills",
-  "tools",
-  "technologies",
-  "projects",
-  "certifications",
-  "certificates",
-  "achievements",
-  "awards",
-];
+// ============================================================
+// Skill normalization (aliases only — no hardcoded tech list)
+// ============================================================
+const ALIAS_MAP: Record<string, string> = {
+  js: "JavaScript", javascript: "JavaScript",
+  ts: "TypeScript", typescript: "TypeScript",
+  "node.js": "Node.js", nodejs: "Node.js", "node js": "Node.js", node: "Node.js",
+  reactjs: "React", "react.js": "React", react: "React",
+  nextjs: "Next.js", "next.js": "Next.js",
+  "ms excel": "Excel", "microsoft excel": "Excel", excel: "Excel",
+  "azure devops": "Azure DevOps", ado: "Azure DevOps", "azure devops (ado)": "Azure DevOps",
+  "spring boot": "Spring Boot", springboot: "Spring Boot",
+  "rest api": "REST APIs", "rest apis": "REST APIs", "restful apis": "REST APIs", "restful api": "REST APIs",
+  ml: "Machine Learning", "machine learning": "Machine Learning",
+  ai: "Artificial Intelligence",
+  nlp: "Natural Language Processing",
+  "gcp": "Google Cloud", "google cloud platform": "Google Cloud",
+  aws: "AWS", "amazon web services": "AWS",
+  k8s: "Kubernetes", kubernetes: "Kubernetes",
+  "ta": "Talent Acquisition", "talent acquisition": "Talent Acquisition",
+  "hr recruitment": "Talent Acquisition", recruiting: "Recruitment", hiring: "Recruitment",
+  sourcing: "Sourcing", "candidate search": "Sourcing",
+  "power bi": "Power BI", powerbi: "Power BI",
+};
 
-const KNOWN_TECHNOLOGIES = [
-  "JavaScript",
-  "TypeScript",
-  "React",
-  "Next.js",
-  "Node.js",
-  "Express",
-  "Python",
-  "Java",
-  "C",
-  "C++",
-  "C#",
-  "SQL",
-  "MySQL",
-  "PostgreSQL",
-  "MongoDB",
-  "AWS",
-  "Azure",
-  "GCP",
-  "Docker",
-  "Kubernetes",
-  "Git",
-  "Linux",
-  "HTML",
-  "CSS",
-  "Tailwind",
-  "Machine Learning",
-  "Deep Learning",
-  "NLP",
-  "TensorFlow",
-  "PyTorch",
-  "Pandas",
-  "NumPy",
-  "Scikit-learn",
-  "Power BI",
-  "Tableau",
-  "Excel",
-  "Data Analytics",
-  "Artificial Intelligence",
-  "REST API",
-  "GraphQL",
-];
+function normalizeSkill(raw: string): string {
+  const s = raw.replace(/\s+/g, " ").trim();
+  if (!s) return s;
+  const key = s.toLowerCase();
+  if (ALIAS_MAP[key]) return ALIAS_MAP[key];
+  // title-case fallback for lowercase words, preserve acronyms
+  if (/^[A-Z0-9+.#/-]+$/.test(s)) return s;
+  return s
+    .split(/\s+/)
+    .map((w) => (w.length <= 3 ? w.toUpperCase() === w ? w : w[0].toUpperCase() + w.slice(1) : w[0].toUpperCase() + w.slice(1)))
+    .join(" ");
+}
 
+function normalizeList(arr: unknown, cap = 40): string[] {
+  const list = Array.isArray(arr) ? arr : [];
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of list) {
+    const s = typeof item === "string" ? normalizeSkill(item) : "";
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+    if (out.length >= cap) break;
+  }
+  return out;
+}
+
+// ============================================================
+// Public API
+// ============================================================
 export async function runParseResume(data: ParsedInput): Promise<ParsedResumeData> {
   const resumeText = normalizeText(data.resumeText);
-  const local = parseResumeLocally(resumeText);
   const key = process.env.LOVABLE_API_KEY;
-  if (!key) return local;
+  const fallback = deterministicParse(resumeText);
+  if (!key) return fallback;
 
   try {
     const gateway = createLovableAiGatewayProvider(key);
@@ -146,33 +200,46 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
         {
           role: "system",
           content:
-            "You are a deterministic resume parser. Extract only text explicitly present in the resume. Never invent, infer, reuse sample data, or add placeholders. Return only valid JSON.",
+            "You are the TalentOS Resume Intelligence Engine. You read resumes across ALL industries (tech, finance, HR, mechanical, healthcare, sales, leadership, freshers, etc.). You extract structured facts ONLY from the resume text. Never invent data. Never use placeholder or sample values. Return valid JSON only, no markdown fences.",
         },
         {
           role: "user",
-          content: `Return one JSON object with exactly these keys: name, email, phone, location, experience, currentCompany, skills, education, projects, certifications, technologies.
+          content: `Extract the following JSON. Use "" for unknown strings, [] for unknown lists, and 0 for unknown numbers. Do NOT hardcode tech skills — extract what the resume actually says (any industry).
 
-Rules:
-- Copy values exactly from the resume when possible.
-- Empty unknown scalar fields must be "".
-- Empty unknown list fields must be [].
-- List entries must be exact skills/projects/certifications/technologies found in the resume.
-- Do not include markdown fences.
+{
+  "name": "", "email": "", "phone": "", "location": "",
+  "experience": "e.g. '5+ years' from resume",
+  "totalYears": 0,
+  "currentCompany": "", "expectedRole": "", "noticePeriod": "",
+  "domain": "e.g. Software Engineering, Finance, HR, Mechanical…",
+  "industry": "e.g. BFSI, Healthcare, SaaS, Manufacturing…",
+  "seniority": "Fresher | Junior | Mid | Senior | Lead | Manager | Director | Executive",
+  "primaryProfession": "", "secondaryProfession": "",
+  "skills": [], "tools": [], "technologies": [], "languages": [], "softSkills": [],
+  "education": "one-line summary of highest education",
+  "projects": ["short project descriptors"],
+  "certifications": [],
+  "achievements": [],
+  "confidence": { "skills": 0-100, "experience": 0-100, "education": 0-100, "projects": 0-100, "overall": 0-100 }
+}
+
+Normalize skill names (e.g. "JS" -> "JavaScript", "NodeJS" -> "Node.js", "ADO" -> "Azure DevOps"). Deduplicate.
 
 RESUME TEXT:
 ${resumeText.slice(0, 28000)}`,
         },
       ],
     });
-    return mergeParsedResume(parseJsonObject(text), local, resumeText);
-  } catch (error) {
-    console.error("[TalentOS resume parser] AI extraction failed; using deterministic extraction.", error);
-    return local;
+    const ai = parseJsonObject(text) as Record<string, unknown>;
+    return mergeParsed(ai, fallback);
+  } catch (err) {
+    console.error("[TalentOS] AI parse failed; falling back to deterministic.", err);
+    return fallback;
   }
 }
 
 export async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysis> {
-  const local = createLocalAnalysis(data.resumeText, data.jobDescription, data.candidateName);
+  const local = deterministicAnalysis(data.resumeText, data.jobDescription, data.candidateName);
   const key = process.env.LOVABLE_API_KEY;
   if (!key) return local;
 
@@ -185,14 +252,47 @@ export async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<Resume
         {
           role: "system",
           content:
-            "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Never use mock data. Return only valid JSON matching the requested keys.",
+            "You are the TalentOS Resume Intelligence Engine — reasoning like a senior recruiter with 20 years of experience across ALL industries (not a keyword matcher). Use semantic understanding: 'REST APIs' matches 'API Development'; 'Candidate Screening' matches 'Recruiting/Sourcing'; 'React' == 'ReactJS'. Return valid JSON only. No markdown fences. Never invent facts.",
         },
         {
           role: "user",
-          content: `Return JSON with these keys:
-overallScore number 0-100, verdict string, scores { technicalSkills, experience, education, communication, cultureFit }, matchingSkills string[], additionalSkills string[], missingSkills string[], summary string, strengths string[], weaknesses string[], resumeImprovements string[], hiringRecommendation string, interviewQuestions { technical string[], hr string[], scenario string[] }, scorecard { overallResumeQuality, atsCompatibility, keywordOptimization, formatting, experienceQuality, education, softSkills }.
+          content: `Compare RESUME vs JOB DESCRIPTION and return JSON with EXACT keys below.
 
-Keep arrays to 3-7 items and base every item on the supplied resume/JD.
+Scoring — return each category 0-100, judged semantically (not keyword overlap):
+- skills, experience, domain, industry, tools, certifications, progression
+
+Also return legacy scores (0-100): technicalSkills, experience, education, communication, cultureFit
+And scorecard (0-100): overallResumeQuality, atsCompatibility, keywordOptimization, formatting, experienceQuality, education, softSkills
+
+matchingSkills: normalized skills present in BOTH resume and JD (semantic match allowed).
+missingSkills: JD-required skills NOT in resume.
+additionalSkills: valuable resume skills not asked by JD.
+Deduplicate. Normalize (JS->JavaScript, NodeJS->Node.js, ADO->Azure DevOps, MS Excel->Excel).
+
+scoreReason: 1-2 sentence explanation (e.g. "Excellent domain fit. Strong technical alignment. Missing only Kubernetes.").
+
+recruiterInsights: {
+  candidateSummary, topStrengths[], possibleRisks[], interviewFocus[], redFlags[],
+  careerStability, likelySalaryBand, noticePeriod, currentEmployer, expectedRole
+}
+
+Also: domain, industry, seniority.
+
+Full JSON keys:
+{
+  "domain":"", "industry":"", "seniority":"",
+  "scoreBreakdown": {"skills":0,"experience":0,"domain":0,"industry":0,"tools":0,"certifications":0,"progression":0},
+  "scoreReason": "",
+  "scores": {"technicalSkills":0,"experience":0,"education":0,"communication":0,"cultureFit":0},
+  "matchingSkills": [], "additionalSkills": [], "missingSkills": [],
+  "summary": "", "strengths": [], "weaknesses": [], "resumeImprovements": [],
+  "hiringRecommendation": "",
+  "interviewQuestions": {"technical":[], "hr":[], "scenario":[]},
+  "scorecard": {"overallResumeQuality":0,"atsCompatibility":0,"keywordOptimization":0,"formatting":0,"experienceQuality":0,"education":0,"softSkills":0},
+  "recruiterInsights": {"candidateSummary":"","topStrengths":[],"possibleRisks":[],"interviewFocus":[],"redFlags":[],"careerStability":"","likelySalaryBand":"","noticePeriod":"","currentEmployer":"","expectedRole":""}
+}
+
+Keep each array to 3-8 focused items.
 
 RESUME:
 ${data.resumeText.slice(0, 18000)}
@@ -202,322 +302,245 @@ ${data.jobDescription.slice(0, 8000)}`,
         },
       ],
     });
-    return normalizeAnalysis(parseJsonObject(text), local);
-  } catch (error) {
-    console.error("[TalentOS resume analyzer] AI matching failed; using deterministic text match.", error);
+    const ai = parseJsonObject(text) as Record<string, unknown>;
+    return finalizeAnalysis(ai, local, data.candidateName);
+  } catch (err) {
+    console.error("[TalentOS] AI analysis failed; falling back to deterministic.", err);
     return local;
   }
 }
 
-function parseResumeLocally(rawText: string): ParsedResumeData {
-  const text = normalizeText(rawText);
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
-  const email = extractEmail(text);
-  const phone = extractPhone(text);
-  const skillsFromSection = splitList(sectionText(lines, ["skills", "technical skills", "core skills", "tools", "technologies"], 28));
-  const technologies = unique([...skillsFromSection, ...findKnownTerms(text, KNOWN_TECHNOLOGIES)]).slice(0, 40);
-  const projects = extractSectionItems(lines, ["projects", "academic projects", "personal projects"], 16).slice(0, 12);
-  const certifications = extractSectionItems(lines, ["certifications", "certificates", "licenses"], 16).slice(0, 18);
-  const educationLines = extractSectionItems(lines, ["education", "academic qualification", "academics"], 8);
-  const experienceLines = extractSectionItems(lines, ["experience", "work experience", "professional experience", "employment"], 12);
+// ============================================================
+// Weighted score computation (35/20/15/10/10/5/5)
+// ============================================================
+function computeWeightedScore(b: {
+  skills: number; experience: number; domain: number; industry: number;
+  tools: number; certifications: number; progression: number;
+}): number {
+  const raw =
+    b.skills * 0.35 +
+    b.experience * 0.20 +
+    b.domain * 0.15 +
+    b.industry * 0.10 +
+    b.tools * 0.10 +
+    b.certifications * 0.05 +
+    b.progression * 0.05;
+  return clampScore(raw);
+}
+
+function verdictFromScore(score: number): string {
+  if (score >= 85) return "Strong Match";
+  if (score >= 70) return "Good Match";
+  if (score >= 55) return "Potential Match";
+  return "Needs Review";
+}
+
+// ============================================================
+// Merge / finalize
+// ============================================================
+function mergeParsed(ai: Record<string, unknown>, fb: ParsedResumeData): ParsedResumeData {
+  const str = (k: string, f = "") => (typeof ai[k] === "string" && (ai[k] as string).trim() ? (ai[k] as string).trim() : f);
+  const num = (k: string, f = 0) => (typeof ai[k] === "number" && Number.isFinite(ai[k]) ? (ai[k] as number) : f);
+  const conf = ai.confidence as Record<string, unknown> | undefined;
 
   return ParsedResumeSchema.parse({
-    name: extractName(lines, email, phone),
-    email,
-    phone,
-    location: extractLocation(lines, email, phone),
-    experience: extractExperience(text, experienceLines),
-    currentCompany: extractCurrentCompany(experienceLines),
-    skills: unique(skillsFromSection).slice(0, 40),
-    education: educationLines.slice(0, 3).join(" | "),
-    projects,
-    certifications,
-    technologies,
+    name: str("name", fb.name) || "Not Found",
+    email: str("email", fb.email) || "Not Found",
+    phone: str("phone", fb.phone) || "Not Found",
+    location: str("location", fb.location) || "Not Found",
+    experience: str("experience", fb.experience) || "Not Found",
+    currentCompany: str("currentCompany", fb.currentCompany) || "Not Found",
+    education: str("education", fb.education) || "Not Found",
+    skills: normalizeList(ai.skills ?? fb.skills, 40),
+    projects: normalizeList(ai.projects ?? fb.projects, 12),
+    certifications: normalizeList(ai.certifications ?? fb.certifications, 18),
+    technologies: normalizeList(ai.technologies ?? fb.technologies, 40),
+    tools: normalizeList(ai.tools, 40),
+    languages: normalizeList(ai.languages, 20),
+    softSkills: normalizeList(ai.softSkills, 20),
+    achievements: normalizeList(ai.achievements, 12),
+    domain: str("domain") || undefined,
+    industry: str("industry") || undefined,
+    seniority: str("seniority") || undefined,
+    primaryProfession: str("primaryProfession") || undefined,
+    secondaryProfession: str("secondaryProfession") || undefined,
+    totalYears: num("totalYears") || undefined,
+    noticePeriod: str("noticePeriod") || undefined,
+    expectedRole: str("expectedRole") || undefined,
+    confidence: conf
+      ? {
+          skills: clampScore(numberOr(conf.skills, 85)),
+          experience: clampScore(numberOr(conf.experience, 85)),
+          education: clampScore(numberOr(conf.education, 90)),
+          projects: clampScore(numberOr(conf.projects, 80)),
+          overall: clampScore(numberOr(conf.overall, 85)),
+        }
+      : undefined,
   });
 }
 
-function normalizeText(text: string): string {
-  return text
-    .replace(/\r\n?/g, "\n")
-    .replace(/[\u00a0\t]+/g, " ")
-    .replace(/[ ]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
+function finalizeAnalysis(ai: Record<string, unknown>, fb: ResumeAnalysis, candidateName?: string): ResumeAnalysis {
+  const scoresObj = (ai.scores as Record<string, unknown>) ?? {};
+  const cardObj = (ai.scorecard as Record<string, unknown>) ?? {};
+  const qObj = (ai.interviewQuestions as Record<string, unknown>) ?? {};
+  const brkObj = (ai.scoreBreakdown as Record<string, unknown>) ?? {};
+  const insObj = (ai.recruiterInsights as Record<string, unknown>) ?? {};
 
-function extractName(lines: string[], email: string, phone: string): string {
-  const blocked = [email.toLowerCase(), phone.toLowerCase()].filter(Boolean);
-  return (
-    lines.slice(0, 10).find((line) => {
-      const lower = line.toLowerCase();
-      if (blocked.some((value) => lower.includes(value))) return false;
-      if (/resume|curriculum|vitae|email|phone|linkedin|github|portfolio|http|www\./i.test(line)) return false;
-      if (line.length < 3 || line.length > 70) return false;
-      return /[a-z]/i.test(line) && !/[{}<>]/.test(line);
-    }) ?? ""
-  );
-}
-
-function extractLocation(lines: string[], email: string, phone: string): string {
-  const contactLines = lines.slice(0, 12).filter((line) => !line.includes(email) && !line.includes(phone));
-  return contactLines.find((line) => /\b(india|usa|remote|hyderabad|bengaluru|bangalore|chennai|pune|mumbai|delhi|kolkata|vijayawada|andhra|telangana)\b/i.test(line)) ?? "";
-}
-
-function extractEmail(text: string): string {
-  return text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/)?.[0] ?? "";
-}
-
-function extractPhone(text: string): string {
-  return text.match(/(?:\+?\d[\d\s().-]{8,}\d)/)?.[0]?.trim() ?? "";
-}
-
-function extractExperience(text: string, experienceLines: string[]): string {
-  const direct = text.match(/\b\d+(?:\.\d+)?\+?\s*(?:years?|yrs?)\b(?:\s+of\s+experience)?/i)?.[0];
-  if (direct) return direct;
-  return experienceLines.find((line) => /\b\d+(?:\.\d+)?\+?\s*(?:years?|yrs?)\b/i.test(line)) ?? "";
-}
-
-function extractCurrentCompany(experienceLines: string[]): string {
-  const companyLine = experienceLines.find((line) => /\b(?:at|@|company|technologies|software|solutions|systems|labs|pvt|ltd|inc)\b/i.test(line));
-  if (!companyLine) return "";
-  const atMatch = companyLine.match(/(?:at|@)\s+(.+)$/i)?.[1]?.trim();
-  return (atMatch ?? companyLine).replace(/^[-•]\s*/, "").slice(0, 90);
-}
-
-function sectionText(lines: string[], headers: string[], limit: number): string {
-  return extractSectionItems(lines, headers, limit).join("\n");
-}
-
-function extractSectionItems(lines: string[], headers: string[], limit: number): string[] {
-  const start = lines.findIndex((line) => headers.some((header) => isHeader(line, header)));
-  if (start === -1) return [];
-  const items: string[] = [];
-  for (const line of lines.slice(start + 1)) {
-    if (items.length >= limit) break;
-    if (isAnySectionHeader(line) && items.length > 0) break;
-    const cleaned = cleanItem(line);
-    if (cleaned) items.push(cleaned);
-  }
-  return items;
-}
-
-function isHeader(line: string, header: string): boolean {
-  const cleaned = line.toLowerCase().replace(/[:\-–—]/g, "").trim();
-  return cleaned === header || cleaned.startsWith(`${header} `);
-}
-
-function isAnySectionHeader(line: string): boolean {
-  const cleaned = line.toLowerCase().replace(/[:\-–—]/g, "").trim();
-  return SECTION_HEADERS.some((header) => cleaned === header);
-}
-
-function cleanItem(value: string): string {
-  return value.replace(/^[•·▪●○\-*]+\s*/, "").replace(/\s+/g, " ").trim();
-}
-
-function splitList(text: string): string[] {
-  return unique(
-    text
-      .split(/[,;|•·▪●○\n]/)
-      .map(cleanItem)
-      .filter((item) => item.length >= 2 && item.length <= 60),
-  );
-}
-
-function findKnownTerms(text: string, terms: string[]): string[] {
-  return terms.filter((term) => new RegExp(`(^|[^a-z0-9+#.])${escapeRegExp(term)}([^a-z0-9+#.]|$)`, "i").test(text));
-}
-
-function mergeParsedResume(aiValue: unknown, local: ParsedResumeData, resumeText: string): ParsedResumeData {
-  const source = typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
-  const scalar = (key: keyof Omit<ParsedResumeData, "skills" | "projects" | "certifications" | "technologies">) => {
-    const value = cleanString(source[key]);
-    if (!value) return local[key];
-    if (key === "experience") return value;
-    return appearsInText(resumeText, value) ? value : local[key];
+  const breakdown = {
+    skills: clampScore(numberOr(brkObj.skills, numberOr(scoresObj.technicalSkills, 60))),
+    experience: clampScore(numberOr(brkObj.experience, numberOr(scoresObj.experience, 60))),
+    domain: clampScore(numberOr(brkObj.domain, 60)),
+    industry: clampScore(numberOr(brkObj.industry, 60)),
+    tools: clampScore(numberOr(brkObj.tools, numberOr(scoresObj.technicalSkills, 55))),
+    certifications: clampScore(numberOr(brkObj.certifications, 50)),
+    progression: clampScore(numberOr(brkObj.progression, 60)),
   };
-  const list = (key: "skills" | "projects" | "certifications" | "technologies") =>
-    unique([...local[key], ...toStringArray(source[key]).filter((item) => appearsInText(resumeText, item))]).slice(0, key === "projects" ? 12 : 40);
+  const overall = computeWeightedScore(breakdown);
+
+  const matching = normalizeList(ai.matchingSkills, 20);
+  const missing = normalizeList(ai.missingSkills, 20);
+  // Additional = resume signals not in matching
+  const additionalRaw = normalizeList(ai.additionalSkills, 30);
+  const matchKeys = new Set(matching.map((s) => s.toLowerCase()));
+  const additional = additionalRaw.filter((s) => !matchKeys.has(s.toLowerCase())).slice(0, 20);
+
+  const candidate = candidateName || "Candidate";
+
+  return AnalysisSchema.parse({
+    overallScore: overall,
+    verdict: verdictFromScore(overall),
+    scores: {
+      technicalSkills: breakdown.skills,
+      experience: breakdown.experience,
+      education: clampScore(numberOr(scoresObj.education, 70)),
+      communication: clampScore(numberOr(scoresObj.communication, 70)),
+      cultureFit: clampScore(numberOr(scoresObj.cultureFit, breakdown.domain)),
+    },
+    matchingSkills: matching,
+    additionalSkills: additional,
+    missingSkills: missing,
+    summary: cleanString(ai.summary) || `${candidate}: ${verdictFromScore(overall)} against the JD.`,
+    strengths: toStringArray(ai.strengths, fb.strengths),
+    weaknesses: toStringArray(ai.weaknesses, fb.weaknesses),
+    resumeImprovements: toStringArray(ai.resumeImprovements, fb.resumeImprovements),
+    hiringRecommendation: cleanString(ai.hiringRecommendation) || fb.hiringRecommendation,
+    interviewQuestions: {
+      technical: toStringArray(qObj.technical, fb.interviewQuestions.technical),
+      hr: toStringArray(qObj.hr, fb.interviewQuestions.hr),
+      scenario: toStringArray(qObj.scenario, fb.interviewQuestions.scenario),
+    },
+    scorecard: {
+      overallResumeQuality: clampScore(numberOr(cardObj.overallResumeQuality, 70)),
+      atsCompatibility: clampScore(numberOr(cardObj.atsCompatibility, 70)),
+      keywordOptimization: clampScore(numberOr(cardObj.keywordOptimization, breakdown.skills)),
+      formatting: clampScore(numberOr(cardObj.formatting, 70)),
+      experienceQuality: clampScore(numberOr(cardObj.experienceQuality, breakdown.experience)),
+      education: clampScore(numberOr(cardObj.education, 70)),
+      softSkills: clampScore(numberOr(cardObj.softSkills, 70)),
+    },
+    scoreReason: cleanString(ai.scoreReason) || undefined,
+    scoreBreakdown: breakdown,
+    recruiterInsights: {
+      candidateSummary: cleanString(insObj.candidateSummary) || cleanString(ai.summary) || "",
+      topStrengths: toStringArray(insObj.topStrengths, []),
+      possibleRisks: toStringArray(insObj.possibleRisks, []),
+      interviewFocus: toStringArray(insObj.interviewFocus, []),
+      redFlags: toStringArray(insObj.redFlags, []),
+      careerStability: cleanString(insObj.careerStability) || "Not Found",
+      likelySalaryBand: cleanString(insObj.likelySalaryBand) || "Not Found",
+      noticePeriod: cleanString(insObj.noticePeriod) || "Not Found",
+      currentEmployer: cleanString(insObj.currentEmployer) || "Not Found",
+      expectedRole: cleanString(insObj.expectedRole) || "Not Found",
+    },
+    domain: cleanString(ai.domain) || undefined,
+    industry: cleanString(ai.industry) || undefined,
+    seniority: cleanString(ai.seniority) || undefined,
+  });
+}
+
+// ============================================================
+// Deterministic fallback (never hardcoded to tech domain)
+// ============================================================
+function deterministicParse(text: string): ParsedResumeData {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const email = text.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/)?.[0] ?? "";
+  const phone = text.match(/(?:\+?\d[\d\s().-]{8,}\d)/)?.[0]?.trim() ?? "";
+  const yearsMatch = text.match(/\b(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs?)\b/i);
+  const experience = yearsMatch?.[0] ?? "";
+  const totalYears = yearsMatch ? Number(yearsMatch[1]) : 0;
+
+  const name = lines.slice(0, 8).find((l) => l.length >= 3 && l.length <= 60 && /[a-z]/i.test(l) && !l.includes("@") && !/\d{5,}/.test(l)) ?? "";
 
   return ParsedResumeSchema.parse({
-    name: scalar("name"),
-    email: scalar("email") || local.email,
-    phone: scalar("phone") || local.phone,
-    location: scalar("location"),
-    experience: scalar("experience"),
-    currentCompany: scalar("currentCompany"),
-    skills: list("skills"),
-    education: scalar("education"),
-    projects: list("projects"),
-    certifications: list("certifications"),
-    technologies: list("technologies"),
+    name: name || "Not Found",
+    email: email || "Not Found",
+    phone: phone || "Not Found",
+    location: "Not Found",
+    experience: experience || "Not Found",
+    currentCompany: "Not Found",
+    skills: [],
+    education: "Not Found",
+    projects: [],
+    certifications: [],
+    technologies: [],
+    tools: [],
+    languages: [],
+    softSkills: [],
+    achievements: [],
+    totalYears: totalYears || undefined,
   });
 }
 
-function createLocalAnalysis(resumeText: string, jobDescription: string, candidateName?: string): ResumeAnalysis {
-  const resume = normalizeText(resumeText);
-  const jd = normalizeText(jobDescription);
-  const parsed = parseResumeLocally(resume);
-  const jdTerms = unique([...findKnownTerms(jd, KNOWN_TECHNOLOGIES), ...importantWords(jd)]).slice(0, 30);
-  const resumeTerms = unique([...parsed.skills, ...parsed.technologies, ...findKnownTerms(resume, KNOWN_TECHNOLOGIES)]);
-  const matchingSkills = jdTerms.filter((term) => appearsInList(resumeTerms, term)).slice(0, 10);
-  const missingSkills = jdTerms.filter((term) => !appearsInList(resumeTerms, term)).slice(0, 8);
-  const additionalSkills = resumeTerms.filter((term) => !appearsInList(matchingSkills, term)).slice(0, 10);
-  const matchRatio = jdTerms.length === 0 ? 0.55 : matchingSkills.length / jdTerms.length;
-  const resumeCompleteness = [parsed.email, parsed.phone, parsed.education, parsed.experience, parsed.name].filter(Boolean).length / 5;
-  const overallScore = clampScore(42 + matchRatio * 44 + resumeCompleteness * 14);
-  const candidate = candidateName || parsed.name || "This candidate";
-
+function deterministicAnalysis(resumeText: string, jd: string, candidateName?: string): ResumeAnalysis {
+  const breakdown = { skills: 55, experience: 55, domain: 55, industry: 55, tools: 50, certifications: 45, progression: 55 };
+  const overall = computeWeightedScore(breakdown);
+  const candidate = candidateName || "Candidate";
   return AnalysisSchema.parse({
-    overallScore,
-    verdict: overallScore >= 80 ? "Strong Match" : overallScore >= 62 ? "Potential Match" : "Needs Review",
-    scores: {
-      technicalSkills: clampScore(35 + matchRatio * 60),
-      experience: clampScore(parsed.experience ? 74 : 58),
-      education: clampScore(parsed.education ? 78 : 55),
-      communication: clampScore(resume.length > 1800 ? 76 : 64),
-      cultureFit: clampScore(62 + matchRatio * 24),
-    },
-    matchingSkills,
-    additionalSkills,
-    missingSkills,
-    summary: `${candidate} matches ${matchingSkills.length} visible JD signals. Review missing keywords and validate experience depth in interview.`,
-    strengths: [
-      matchingSkills.length > 0 ? `Relevant skills found: ${matchingSkills.slice(0, 4).join(", ")}.` : "Resume text was extracted successfully for review.",
-      parsed.education ? `Education signal found: ${parsed.education}.` : "Profile can be reviewed against the JD text directly.",
-      parsed.projects.length > 0 ? "Project details are present in the resume." : "Candidate details are available from the uploaded resume text.",
-    ],
-    weaknesses: missingSkills.length > 0 ? missingSkills.slice(0, 3).map((skill) => `${skill} is requested in the JD but not clearly visible in the resume.`) : ["No major missing JD keywords were detected by deterministic matching."],
-    resumeImprovements: [
-      "Add measurable impact for each role or project.",
-      missingSkills.length > 0 ? `If accurate, add evidence for: ${missingSkills.slice(0, 3).join(", ")}.` : "Keep key skills grouped for ATS readability.",
-      "Keep contact details, skills, education, and experience clearly labeled.",
-    ],
-    hiringRecommendation: overallScore >= 75 ? "Proceed to recruiter screen and validate depth on matched skills." : "Review manually before shortlisting; focus on missing JD requirements.",
+    overallScore: overall,
+    verdict: verdictFromScore(overall),
+    scores: { technicalSkills: 55, experience: 55, education: 60, communication: 65, cultureFit: 55 },
+    matchingSkills: [],
+    additionalSkills: [],
+    missingSkills: [],
+    summary: `${candidate}: AI unavailable — deterministic fallback. Enable AI for full recruiter intelligence.`,
+    strengths: ["Resume text extracted successfully."],
+    weaknesses: ["Detailed AI matching unavailable."],
+    resumeImprovements: ["Ensure clear section headings for skills, experience, and education."],
+    hiringRecommendation: "Review manually before shortlisting.",
     interviewQuestions: {
-      technical: (matchingSkills.length > 0 ? matchingSkills : jdTerms.slice(0, 3)).slice(0, 3).map((skill) => `Walk me through your strongest hands-on work with ${skill}.`),
-      hr: ["What type of role are you targeting next?", "Describe a recent challenge and how you handled it.", "What motivates you when working with a new team?"],
-      scenario: missingSkills.slice(0, 3).map((skill) => `The role needs ${skill}. How would you ramp up or prove readiness quickly?`),
+      technical: ["Walk me through your most impactful project."],
+      hr: ["What type of role are you targeting next?"],
+      scenario: ["How would you approach ramping up in a new role?"],
     },
     scorecard: {
-      overallResumeQuality: clampScore(55 + resumeCompleteness * 35),
-      atsCompatibility: clampScore(50 + parsed.skills.length * 2 + (parsed.email ? 8 : 0) + (parsed.phone ? 8 : 0)),
-      keywordOptimization: clampScore(35 + matchRatio * 60),
-      formatting: clampScore(resume.split("\n").length > 8 ? 78 : 62),
-      experienceQuality: clampScore(parsed.experience ? 76 : 56),
-      education: clampScore(parsed.education ? 78 : 55),
-      softSkills: clampScore(64 + matchRatio * 18),
+      overallResumeQuality: 65, atsCompatibility: 65, keywordOptimization: 55,
+      formatting: 65, experienceQuality: 60, education: 60, softSkills: 65,
     },
+    scoreBreakdown: breakdown,
+    scoreReason: "AI unavailable — using deterministic baseline.",
   });
 }
 
-function normalizeAnalysis(value: unknown, fallback: ResumeAnalysis): ResumeAnalysis {
-  const source = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-  const scores = typeof source.scores === "object" && source.scores !== null ? (source.scores as Record<string, unknown>) : {};
-  const scorecard = typeof source.scorecard === "object" && source.scorecard !== null ? (source.scorecard as Record<string, unknown>) : {};
-  const questions = typeof source.interviewQuestions === "object" && source.interviewQuestions !== null ? (source.interviewQuestions as Record<string, unknown>) : {};
-  return AnalysisSchema.parse({
-    overallScore: clampScore(numberOr(source.overallScore, fallback.overallScore)),
-    verdict: cleanString(source.verdict) || fallback.verdict,
-    scores: {
-      technicalSkills: clampScore(numberOr(scores.technicalSkills, fallback.scores.technicalSkills)),
-      experience: clampScore(numberOr(scores.experience, fallback.scores.experience)),
-      education: clampScore(numberOr(scores.education, fallback.scores.education)),
-      communication: clampScore(numberOr(scores.communication, fallback.scores.communication)),
-      cultureFit: clampScore(numberOr(scores.cultureFit, fallback.scores.cultureFit)),
-    },
-    matchingSkills: toStringArray(source.matchingSkills, fallback.matchingSkills),
-    additionalSkills: toStringArray(source.additionalSkills, fallback.additionalSkills),
-    missingSkills: toStringArray(source.missingSkills, fallback.missingSkills),
-    summary: cleanString(source.summary) || fallback.summary,
-    strengths: toStringArray(source.strengths, fallback.strengths),
-    weaknesses: toStringArray(source.weaknesses, fallback.weaknesses),
-    resumeImprovements: toStringArray(source.resumeImprovements, fallback.resumeImprovements),
-    hiringRecommendation: cleanString(source.hiringRecommendation) || fallback.hiringRecommendation,
-    interviewQuestions: {
-      technical: toStringArray(questions.technical, fallback.interviewQuestions.technical),
-      hr: toStringArray(questions.hr, fallback.interviewQuestions.hr),
-      scenario: toStringArray(questions.scenario, fallback.interviewQuestions.scenario),
-    },
-    scorecard: {
-      overallResumeQuality: clampScore(numberOr(scorecard.overallResumeQuality, fallback.scorecard.overallResumeQuality)),
-      atsCompatibility: clampScore(numberOr(scorecard.atsCompatibility, fallback.scorecard.atsCompatibility)),
-      keywordOptimization: clampScore(numberOr(scorecard.keywordOptimization, fallback.scorecard.keywordOptimization)),
-      formatting: clampScore(numberOr(scorecard.formatting, fallback.scorecard.formatting)),
-      experienceQuality: clampScore(numberOr(scorecard.experienceQuality, fallback.scorecard.experienceQuality)),
-      education: clampScore(numberOr(scorecard.education, fallback.scorecard.education)),
-      softSkills: clampScore(numberOr(scorecard.softSkills, fallback.scorecard.softSkills)),
-    },
-  });
+// ============================================================
+// Utils
+// ============================================================
+function normalizeText(t: string): string {
+  return t.replace(/\r\n?/g, "\n").replace(/[\u00a0\t]+/g, " ").replace(/[ ]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
 }
-
 function parseJsonObject(text: string): unknown {
   const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return {};
-  try {
-    return JSON.parse(cleaned.slice(start, end + 1));
-  } catch {
-    return {};
+  try { return JSON.parse(cleaned.slice(start, end + 1)); } catch { return {}; }
+}
+function cleanString(v: unknown): string { return typeof v === "string" ? v.replace(/\s+/g, " ").trim() : ""; }
+function toStringArray(v: unknown, fallback: string[] = []): string[] {
+  if (Array.isArray(v)) {
+    const out = v.map(cleanString).filter(Boolean);
+    return out.length ? Array.from(new Set(out)) : fallback;
   }
-}
-
-function importantWords(text: string): string[] {
-  const stop = new Set(["and", "the", "with", "for", "from", "that", "this", "will", "must", "have", "your", "role", "work", "team", "skills", "experience", "years", "candidate", "knowledge"]);
-  return unique(
-    text
-      .split(/[^a-zA-Z0-9+#.]+/)
-      .map((word) => word.trim())
-      .filter((word) => word.length > 3 && !stop.has(word.toLowerCase())),
-  ).slice(0, 16);
-}
-
-function appearsInList(list: string[], term: string): boolean {
-  const needle = simplify(term);
-  return list.some((item) => simplify(item) === needle || simplify(item).includes(needle) || needle.includes(simplify(item)));
-}
-
-function appearsInText(text: string, value: string): boolean {
-  const cleanValue = simplify(value);
-  if (!cleanValue) return false;
-  return simplify(text).includes(cleanValue);
-}
-
-function simplify(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").trim();
-}
-
-function cleanString(value: unknown): string {
-  return typeof value === "string" ? value.replace(/\s+/g, " ").trim() : "";
-}
-
-function toStringArray(value: unknown, fallback: string[] = []): string[] {
-  if (Array.isArray(value)) return unique(value.map(cleanString).filter(Boolean));
-  if (typeof value === "string") return splitList(value);
   return fallback;
 }
-
-function unique(values: string[]): string[] {
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const value of values.map(cleanItem).filter(Boolean)) {
-    const key = simplify(value);
-    if (!key || seen.has(key)) continue;
-    seen.add(key);
-    result.push(value);
-  }
-  return result;
-}
-
-function numberOr(value: unknown, fallback: number): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function clampScore(value: number): number {
-  return Math.max(0, Math.min(100, Math.round(value)));
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+function numberOr(v: unknown, f: number): number { return typeof v === "number" && Number.isFinite(v) ? v : f; }
+function clampScore(v: number): number { return Math.max(0, Math.min(100, Math.round(v))); }
