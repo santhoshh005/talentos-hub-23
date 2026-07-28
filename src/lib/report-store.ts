@@ -5,7 +5,9 @@ import type { PipelineResult } from "./pipeline.functions";
 // Resume Analyzer modal to the /report page. Mirrored into sessionStorage
 // so a refresh on /report keeps the report visible during the session.
 
-const STORAGE_KEY = "talentos:last-report";
+// Bump when the PipelineResult shape changes so stale sessionStorage entries
+// from older builds are discarded instead of crashing the report page.
+const STORAGE_KEY = "talentos:last-report:v2";
 
 let current: PipelineResult | null = null;
 const listeners = new Set<() => void>();
