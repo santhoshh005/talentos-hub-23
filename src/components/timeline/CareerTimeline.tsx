@@ -202,45 +202,77 @@ export function CareerTimeline() {
                   isLeft ? "end" : "start"
                 }`}
               >
-                <div
-                  className={`group relative max-w-lg rounded-2xl border border-white/[0.08] bg-white/[0.02] p-6 transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:bg-white/[0.04] md:w-[calc(50%-3rem)] ${
-                    isLeft ? "md:mr-auto md:text-right" : "md:ml-auto md:text-left"
-                  }`}
-                >
-                  {/* Radial glow on hover */}
-                  <div
-                    className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-50"
-                    style={{ background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)` }}
-                  />
-
-                  <div className={`relative z-10 flex flex-col ${isLeft ? "md:items-end" : "md:items-start"}`}>
-                    {/* Icon */}
-                    <div
-                      className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] transition-transform duration-300 group-hover:scale-110"
-                      style={{ boxShadow: `0 0 20px -4px ${item.color.replace(")", "/ 0.3)")}` }}
+                {(() => {
+                  const CardTag: React.ElementType = item.href ? "a" : "div";
+                  const linkProps = item.href
+                    ? { href: item.href, target: "_blank", rel: "noopener noreferrer" }
+                    : {};
+                  return (
+                    <CardTag
+                      {...linkProps}
+                      className={`group relative block max-w-lg overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:w-[calc(50%-3rem)] ${
+                        isLeft ? "md:mr-auto md:text-right" : "md:ml-auto md:text-left"
+                      } ${item.href ? "cursor-pointer" : ""}`}
+                      style={item.href ? ({ ["--tw-ring-color" as string]: item.color } as React.CSSProperties) : undefined}
                     >
-                      <Icon className="h-5 w-5 text-white/90" strokeWidth={1.5} />
-                    </div>
+                      {/* Radial hover glow */}
+                      <div
+                        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-50"
+                        style={{ background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)` }}
+                      />
 
-                    {/* Period */}
-                    <span className="mb-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                      {item.period}
-                    </span>
+                      {/* Logo header strip */}
+                      {item.logo ? (
+                        <div
+                          className="relative flex h-24 w-full items-center justify-center overflow-hidden border-b border-white/[0.06] bg-white/[0.03]"
+                          style={{
+                            backgroundImage: `radial-gradient(ellipse at center, ${item.color.replace(")", "/ 0.18)")} 0%, transparent 70%)`,
+                          }}
+                        >
+                          <img
+                            src={item.logo}
+                            alt={`${item.company} logo`}
+                            loading="lazy"
+                            className="relative z-10 max-h-14 w-auto max-w-[70%] object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.35)] transition-transform duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                      ) : null}
 
-                    {/* Role */}
-                    <h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
-                      {item.role}
-                    </h3>
+                      <div className={`relative z-10 flex flex-col p-6 ${isLeft ? "md:items-end" : "md:items-start"}`}>
+                        {/* Icon chip (only when no logo header) */}
+                        {!item.logo && (
+                          <div
+                            className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] transition-transform duration-300 group-hover:scale-110"
+                            style={{ boxShadow: `0 0 20px -4px ${item.color.replace(")", "/ 0.3)")}` }}
+                          >
+                            <Icon className="h-5 w-5 text-white/90" strokeWidth={1.5} />
+                          </div>
+                        )}
 
-                    {/* Company */}
-                    <p className="text-sm font-medium text-accent">{item.company}</p>
+                        {/* Period */}
+                        <span className="mb-1 inline-flex w-fit items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                          {item.period}
+                        </span>
 
-                    {/* Description */}
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
+                        {/* Role */}
+                        <h3 className={`mt-2 inline-flex items-center gap-1.5 text-lg font-semibold tracking-tight text-foreground ${isLeft ? "md:flex-row-reverse" : ""}`}>
+                          {item.role}
+                          {item.href ? (
+                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" strokeWidth={2} />
+                          ) : null}
+                        </h3>
+
+                        {/* Company */}
+                        <p className="text-sm font-medium text-accent">{item.company}</p>
+
+                        {/* Description */}
+                        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                          {item.description}
+                        </p>
+                      </div>
+                    </CardTag>
+                  );
+                })()}
               </div>
 
               {/* Downward connector to next item */}
