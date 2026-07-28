@@ -1,10 +1,12 @@
 import type { ClientTemplate } from "./template-types";
 import type { CreateTemplateInput, TemplateRepository } from "./template-repository";
 import { seedTemplates } from "./seed-templates";
+import { countMismatches } from "./column-diagnostics";
 
 const STORE_KEY = "talentos:templates:v1";
 const RECENT_KEY = "talentos:templates:recent:v1";
 const RECENT_LIMIT = 8;
+const MIGRATION_KEY = "talentos:templates:mismatch-migration:v1";
 
 function uid(): string {
   return `tpl_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
@@ -27,6 +29,19 @@ function readAll(): ClientTemplate[] {
   localStorage.setItem(STORE_KEY, JSON.stringify(seeded));
   return seeded;
 }
+
+function runMismatchMigrationOnce(): void {
+  if (typeof window === "undefined") return;
+  if (localStorage.getItem(MIGRATION_KEY)) return;
+  const stored = safeParse<ClientTemplate[] | null>(localStorage.getItem(STORE_KEY), null);
+  if (stored && stored.length > 0) {
+    const next = stored.map((t) => ({ ...t, needsReview: countMismatches(t.columns) > 0 }));
+    localStorage.setItem(STORE_KEY, JSON.stringify(next));
+  }
+  localStorage.setItem(MIGRATION_KEY, "1");
+}
+
+runMismatchMigrationOnce();
 
 function writeAll(items: ClientTemplate[]): void {
   if (typeof window === "undefined") return;
