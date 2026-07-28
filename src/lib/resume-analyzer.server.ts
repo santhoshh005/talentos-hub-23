@@ -78,21 +78,63 @@ const SECTION_HEADERS = [
   "summary",
   "profile",
   "objective",
+  "professional summary",
+  "career summary",
+  "career objective",
+  "about me",
   "experience",
   "work experience",
   "professional experience",
+  "industry experience",
+  "industrial experience",
+  "career history",
+  "work history",
+  "employment history",
   "employment",
   "education",
+  "academic background",
+  "academic qualifications",
+  "qualifications",
+  "educational qualifications",
   "skills",
   "technical skills",
   "core skills",
+  "core competencies",
+  "competencies",
+  "key skills",
+  "professional skills",
+  "functional skills",
+  "areas of expertise",
+  "expertise",
+  "domain expertise",
+  "specializations",
+  "proficiencies",
+  "technical proficiencies",
   "tools",
+  "tools & technologies",
+  "tools and technologies",
+  "software",
+  "platforms",
   "technologies",
   "projects",
+  "key projects",
+  "major projects",
+  "academic projects",
+  "personal projects",
+  "assignments",
   "certifications",
   "certificates",
+  "licenses",
+  "trainings",
   "achievements",
+  "accomplishments",
   "awards",
+  "publications",
+  "languages",
+  "languages known",
+  "hobbies",
+  "interests",
+  "references",
 ];
 
 const KNOWN_TECHNOLOGIES = [
@@ -142,7 +184,7 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
   const resumeText = normalizeText(data.resumeText);
   const local = parseResumeLocally(resumeText);
   const key = process.env.LOVABLE_API_KEY;
-  if (!key) return local;
+  if (!key) return finalizeNotFound(local);
 
   try {
     const gateway = createLovableAiGatewayProvider(key);
@@ -152,30 +194,80 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
       messages: [
         {
           role: "system",
-          content:
-            "You are a deterministic resume parser. Extract only text explicitly present in the resume. Never invent, infer, reuse sample data, or add placeholders. Return only valid JSON.",
+          content: [
+            "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
+            "IT, Talent Acquisition, HR, Finance, Banking, Accounting, Sales, Marketing, Healthcare, Pharma,",
+            "Manufacturing, Mechanical / Civil / Electrical / Electronics / Embedded / Automotive / Aerospace",
+            "engineering, Legal, Operations, Customer Support, Freshers, and Executive profiles.",
+            "",
+            "Understand the MEANING and STRUCTURE of the resume — never rely on hard-coded keywords.",
+            "Section titles vary wildly (Technical Skills / Core Competencies / Areas of Expertise /",
+            "Professional Skills / Functional Skills / Proficiencies): treat them as the same 'skills' bucket.",
+            "Extract every value ONLY from what the candidate wrote. Never invent, guess, translate,",
+            "reuse sample data, or add placeholders.",
+            "Return ONLY valid JSON — no prose, no markdown fences.",
+          ].join(" "),
         },
         {
           role: "user",
-          content: `Return one JSON object with exactly these keys: name, email, phone, location, experience, currentCompany, skills, education, projects, certifications, technologies.
+          content: `Return ONE JSON object with EXACTLY these keys:
 
-Rules:
-- Copy values exactly from the resume when possible.
-- Empty unknown scalar fields must be "".
-- Empty unknown list fields must be [].
-- List entries must be exact skills/projects/certifications/technologies found in the resume.
-- Do not include markdown fences.
+{
+  "name": string,                 // Full name of the candidate
+  "email": string,
+  "phone": string,                // Include country code if present
+  "location": string,             // Current city / state / country
+  "currentDesignation": string,   // Latest job title / role
+  "currentCompany": string,       // Latest employer
+  "experience": string,           // Total experience e.g. "6.5 years"
+  "relevantExperience": string,   // Relevant experience if explicitly mentioned
+  "noticePeriod": string,         // e.g. "30 days", "Immediate", "Serving notice"
+  "education": string,            // Highest / most recent qualification on one line
+  "educationHistory": string[],   // Every education entry, newest first: "Degree — Institution (Year)"
+  "employmentHistory": string[],  // Every job: "Designation — Company (Duration)". Newest first.
+  "skills": string[],             // Unified from Skills / Core Competencies / Expertise / Proficiencies
+  "tools": string[],              // Software / platforms / instruments the candidate uses
+  "technologies": string[],       // Technologies / frameworks / stacks
+  "projects": string[],           // "Project Name — Role — Technologies — Responsibilities" (one per project)
+  "certifications": string[],     // Every certification / license / training
+  "languages": string[]           // Spoken languages
+}
+
+STRICT RULES:
+1. Copy values EXACTLY as they appear in the resume. Preserve original casing where reasonable.
+2. If a scalar value is not present, return the string "Not Found" (never "", never null, never guessed).
+3. If a list has no entries, return [].
+4. Merge synonymous sections into their unified bucket (e.g. "Core Competencies" -> skills).
+5. For employmentHistory / educationHistory / projects, extract EVERY entry — do not stop at 2 or 3.
+6. Never include markdown, commentary, or code fences. Return the raw JSON object only.
 
 RESUME TEXT:
 ${resumeText.slice(0, 28000)}`,
         },
       ],
     });
-    return mergeParsedResume(parseJsonObject(text), local, resumeText);
+    return finalizeNotFound(mergeParsedResume(parseJsonObject(text), local, resumeText));
   } catch (error) {
     console.error("[TalentOS resume parser] AI extraction failed; using deterministic extraction.", error);
-    return local;
+    return finalizeNotFound(local);
   }
+}
+
+function finalizeNotFound(parsed: ParsedResumeData): ParsedResumeData {
+  const scalar = (v: string) => (v && v.trim() ? v.trim() : "Not Found");
+  return {
+    ...parsed,
+    name: scalar(parsed.name),
+    email: scalar(parsed.email),
+    phone: scalar(parsed.phone),
+    location: scalar(parsed.location),
+    experience: scalar(parsed.experience),
+    currentCompany: scalar(parsed.currentCompany),
+    education: scalar(parsed.education),
+    currentDesignation: scalar(parsed.currentDesignation ?? ""),
+    relevantExperience: scalar(parsed.relevantExperience ?? ""),
+    noticePeriod: scalar(parsed.noticePeriod ?? ""),
+  };
 }
 
 export async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysis> {
