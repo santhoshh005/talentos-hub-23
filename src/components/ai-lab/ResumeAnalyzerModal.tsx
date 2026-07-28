@@ -422,17 +422,23 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     toast.success("Report copied");
   }, [reportText]);
 
-  const downloadReport = useCallback(() => {
-    if (!reportText || !parsed) return;
-    const blob = new Blob([reportText], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    const candidate = (parsed.name || "candidate").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-    link.href = url;
-    link.download = `talentos-resume-analysis-${candidate || "candidate"}.txt`;
-    link.click();
-    URL.revokeObjectURL(url);
-  }, [parsed, reportText]);
+  const [downloading, setDownloading] = useState(false);
+  const downloadReport = useCallback(async () => {
+    if (!parsed) return;
+    setDownloading(true);
+    try {
+      const { generateResumeReportPdf } = await import("@/lib/resume-report-pdf");
+      const pdf = await generateResumeReportPdf(parsed, analysis);
+      const candidate = (parsed.name || "candidate").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+      pdf.save(`talentos-resume-analysis-${candidate || "candidate"}.pdf`);
+      toast.success("PDF report downloaded");
+    } catch (error) {
+      console.error("[TalentOS] PDF export failed", error);
+      toast.error("Could not generate PDF");
+    } finally {
+      setDownloading(false);
+    }
+  }, [analysis, parsed]);
 
   const shareReport = useCallback(async () => {
     if (!reportText) return;
@@ -801,8 +807,9 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                         <div className="text-xs text-muted-foreground">Copy, download, or share the extracted resume details.</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" onClick={downloadReport} className="rounded-xl border-border bg-background/35">
-                          <Download className="h-4 w-4" /> Download
+                        <Button type="button" variant="outline" onClick={downloadReport} disabled={downloading} className="rounded-xl border-border bg-background/35">
+                          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          {downloading ? "Preparing…" : "Download PDF"}
                         </Button>
                         <Button type="button" variant="outline" onClick={copyReport} className="rounded-xl border-border bg-background/35">
                           <Copy className="h-4 w-4" /> Copy
