@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from "react";
 import type { DragEvent } from "react";
-import { Upload, FileText, Loader2, CheckCircle2, Files } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2, Files, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { extractResumeText } from "@/lib/resume-extract";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 const BULK_LIMIT = 25;
 const SIZE_LIMIT = 10 * 1024 * 1024;
 
-function validate(files: File[]): File[] {
+export function validateResumeFiles(files: File[]): File[] {
   const good: File[] = [];
   for (const f of files) {
     const lower = f.name.toLowerCase();
@@ -24,6 +24,45 @@ function validate(files: File[]): File[] {
     good.push(f);
   }
   return good.slice(0, BULK_LIMIT);
+}
+
+/** Small reusable "Add more resumes" button that opens a file picker and returns validated File[]. */
+export function AddResumesButton({
+  onFiles,
+  label = "Add more resumes",
+  className,
+}: {
+  onFiles: (files: File[]) => void;
+  label?: string;
+  className?: string;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  return (
+    <>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={() => ref.current?.click()}
+        className={cn("rounded-lg border-white/10 bg-white/[0.03]", className)}
+      >
+        <Plus className="h-4 w-4" /> {label}
+      </Button>
+      <input
+        ref={ref}
+        type="file"
+        multiple
+        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        className="hidden"
+        onChange={(e) => {
+          const files = Array.from(e.target.files ?? []);
+          e.target.value = "";
+          if (!files.length) return;
+          const valid = validateResumeFiles(files);
+          if (valid.length) onFiles(valid);
+        }}
+      />
+    </>
+  );
 }
 
 export function CandidateUpload({
@@ -60,7 +99,7 @@ export function CandidateUpload({
 
   const handleFiles = useCallback(
     (files: File[]) => {
-      const valid = validate(files);
+      const valid = validateResumeFiles(files);
       if (valid.length === 0) return;
       if (valid.length === 1 || !onBulk) {
         void process(valid[0]);

@@ -33,8 +33,8 @@ function normalizeHex(input: string | undefined, fallback: string): string {
   return fallback.replace("#", "").toUpperCase();
 }
 
-function headerStyle(template: ClientTemplate) {
-  const fill = normalizeHex(template.headerColor, DEFAULT_HEADER_COLOR);
+function headerStyle(template: ClientTemplate, headerColorOverride?: string) {
+  const fill = normalizeHex(headerColorOverride ?? template.headerColor, DEFAULT_HEADER_COLOR);
   const font = normalizeHex(template.headerTextColor, DEFAULT_HEADER_TEXT_COLOR);
   return {
     fill: { patternType: "solid" as const, fgColor: { rgb: fill } },
@@ -78,12 +78,13 @@ export async function exportToXlsx(
   record: CandidateRecord,
   template: ClientTemplate,
   overrideRows?: PreviewRow[],
+  headerColorOverride?: string,
 ): Promise<void> {
   const XLSX = await loadXlsx();
   const rows = overrideRows ?? buildPreviewRow(record, template);
   const aoa = toAOA(rows);
   const sheet = XLSX.utils.aoa_to_sheet(aoa);
-  applyHeaderStyle(XLSX, sheet, rows.length, template);
+  applyHeaderStyle(XLSX, sheet, rows.length, template, headerColorOverride);
   sheet["!cols"] = rows.map((r) => ({ wch: Math.min(40, Math.max(14, r.label.length + 4)) }));
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheet, template.export?.sheetName || "Candidates");
@@ -95,8 +96,9 @@ function applyHeaderStyle(
   sheet: Record<string, { s?: unknown } | undefined>,
   columnCount: number,
   template: ClientTemplate,
+  headerColorOverride?: string,
 ) {
-  const style = headerStyle(template);
+  const style = headerStyle(template, headerColorOverride);
   for (let c = 0; c < columnCount; c++) {
     const addr = XLSX.utils.encode_cell({ r: 0, c });
     const cell = sheet[addr];
@@ -112,6 +114,7 @@ export async function exportBulkXlsx(
   records: CandidateRecord[],
   template: ClientTemplate,
   overrideRowsPerRecord?: PreviewRow[][],
+  headerColorOverride?: string,
 ): Promise<void> {
   const XLSX = await loadXlsx();
   const perRecord = overrideRowsPerRecord ?? records.map((r) => buildPreviewRow(r, template));
@@ -120,7 +123,7 @@ export async function exportBulkXlsx(
   const dataRows = perRecord.map((row) => row.map((c) => c.value));
   const aoa: string[][] = [header, ...dataRows];
   const sheet = XLSX.utils.aoa_to_sheet(aoa);
-  applyHeaderStyle(XLSX, sheet, header.length, template);
+  applyHeaderStyle(XLSX, sheet, header.length, template, headerColorOverride);
   sheet["!cols"] = header.map((h, i) => {
     const maxLen = Math.max(h.length, ...dataRows.map((r) => (r[i] ?? "").length));
     return { wch: Math.min(48, Math.max(14, maxLen + 2)) };

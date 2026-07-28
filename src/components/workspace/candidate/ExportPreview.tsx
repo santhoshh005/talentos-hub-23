@@ -33,11 +33,15 @@ export function ExportPreview({
   const initial = useMemo(() => buildPreviewRow(record, template), [record, template]);
   const [rows, setRows] = useState<PreviewRow[]>(initial);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [headerBgOverride, setHeaderBgOverride] = useState<string>(
+    template.headerColor ?? DEFAULT_HEADER_COLOR,
+  );
 
   useEffect(() => {
     setRows(initial);
     setHidden(new Set());
-  }, [initial]);
+    setHeaderBgOverride(template.headerColor ?? DEFAULT_HEADER_COLOR);
+  }, [initial, template.headerColor]);
 
   const updateValue = (i: number, v: string) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, value: v } : r)));
@@ -77,12 +81,12 @@ export function ExportPreview({
 
   const visibleRows = rows.filter((r) => !hidden.has(r.columnId));
   const previewRows: PreviewRow[] = visibleRows.map((r) => ({ ...r, value: display(r.value) }));
-  const headerBg = template.headerColor ?? DEFAULT_HEADER_COLOR;
+  const headerBg = headerBgOverride;
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
 
   const doXlsx = async () => {
     try {
-      await exportToXlsx(record, template, visibleRows);
+      await exportToXlsx(record, template, visibleRows, headerBg);
       toast.success("Excel exported");
     } catch (err) {
       console.error(err);
@@ -109,6 +113,7 @@ export function ExportPreview({
           </p>
         </div>
         <div className="flex gap-2">
+          <HeaderColorControl value={headerBg} onChange={setHeaderBgOverride} />
           <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
@@ -264,5 +269,33 @@ function SortableRow({
         <Trash2 className="h-3 w-3" />
       </button>
     </li>
+  );
+}
+
+export function HeaderColorControl({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label
+      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground"
+      title="Header background color (preview + export)"
+    >
+      <span className="hidden sm:inline">Header</span>
+      <span
+        className="inline-block h-4 w-4 rounded border border-white/20"
+        style={{ background: value }}
+      />
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0"
+        aria-label="Header background color"
+      />
+    </label>
   );
 }
