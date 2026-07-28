@@ -37,6 +37,10 @@ export function TemplateManager() {
             columns: patch.columns ?? [],
             notes: patch.notes,
             export: patch.export,
+            headerColor: patch.headerColor,
+            headerTextColor: patch.headerTextColor,
+            mismatchRuleSet: patch.mismatchRuleSet,
+            needsReview: patch.needsReview,
           });
           setCreating(false);
         }}

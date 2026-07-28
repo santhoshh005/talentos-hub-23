@@ -101,7 +101,7 @@ class LocalTemplateRepository implements TemplateRepository {
       headerColor: input.headerColor,
       headerTextColor: input.headerTextColor,
       mismatchRuleSet: normalizeMismatchRuleSet(input.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET),
-      needsReview: input.needsReview ?? countMismatches(input.columns, input.mismatchRuleSet) > 0,
+      needsReview: input.needsReview ?? countMismatches(input.columns, normalizeMismatchRuleSet(input.mismatchRuleSet)) > 0,
       favorite: false,
       createdAt: now,
       updatedAt: now,
