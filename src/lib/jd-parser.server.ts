@@ -111,19 +111,13 @@ export async function runParseJobDescription(data: JdInput): Promise<ParsedJobDe
     const { text } = await generateText({
       model: gateway("google/gemini-3.6-flash"),
       temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: [
-            "You are TalentOS Job Description Parser.",
-            "First divide the JD into logical sections, THEN extract only recruiter-meaningful content.",
-            "Skills must be atomic tools, technologies, frameworks, methodologies, or domain competencies — NEVER a heading, sentence, or generic word.",
-            "Return ONLY valid JSON. No prose, no markdown fences.",
-          ].join(" "),
-        },
-        {
-          role: "user",
-          content: `Return ONE JSON object with EXACTLY these keys:
+      instructions: [
+        "You are TalentOS Job Description Parser.",
+        "First divide the JD into logical sections, THEN extract only recruiter-meaningful content.",
+        "Skills must be atomic tools, technologies, frameworks, methodologies, or domain competencies — NEVER a heading, sentence, or generic word.",
+        "Return ONLY valid JSON. No prose, no markdown fences.",
+      ].join(" "),
+      prompt: `Return ONE JSON object with EXACTLY these keys:
 
 {
   "jobTitle": string,             // e.g. "Java Full Stack Developer"
@@ -153,8 +147,6 @@ STRICT RULES:
 
 JOB DESCRIPTION:
 ${jd.slice(0, 20000)}`,
-        },
-      ],
     });
     return finalize(mergeJd(parseJsonObject(text), local));
   } catch (error) {

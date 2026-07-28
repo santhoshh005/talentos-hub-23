@@ -148,21 +148,15 @@ export async function runJdIntelligence(data: JdInput): Promise<JdIntelligence> 
     const { text } = await generateText({
       model: gateway("google/gemini-3.6-flash"),
       temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: [
-            "You are the TalentOS JD Intelligence Engine.",
-            "You ONLY understand and structure a Job Description.",
-            "You NEVER compare against candidates, score, or generate interview content.",
-            "Divide the JD into logical sections first, then extract only recruiter-meaningful information.",
-            "Skills, tools, and technologies must be atomic tokens — never headings, sentences, or generic words.",
-            "Return ONLY valid JSON. No prose, no markdown.",
-          ].join(" "),
-        },
-        {
-          role: "user",
-          content: `Return ONE JSON object with EXACTLY these keys:
+      instructions: [
+        "You are the TalentOS JD Intelligence Engine.",
+        "You ONLY understand and structure a Job Description.",
+        "You NEVER compare against candidates, score, or generate interview content.",
+        "Divide the JD into logical sections first, then extract only recruiter-meaningful information.",
+        "Skills, tools, and technologies must be atomic tokens — never headings, sentences, or generic words.",
+        "Return ONLY valid JSON. No prose, no markdown.",
+      ].join(" "),
+      prompt: `Return ONE JSON object with EXACTLY these keys:
 
 {
   "jobTitle": string,
@@ -193,8 +187,6 @@ STRICT RULES:
 
 JOB DESCRIPTION:
 ${jd.slice(0, 20000)}`,
-        },
-      ],
     });
     return finalize(mergeJd(parseJsonObject(text), local));
   } catch (error) {

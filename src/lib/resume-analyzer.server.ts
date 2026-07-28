@@ -191,26 +191,20 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
     const { text } = await generateText({
       model: gateway("google/gemini-3.6-flash"),
       temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: [
-            "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
-            "IT, Talent Acquisition, HR, Finance, Banking, Accounting, Sales, Marketing, Healthcare, Pharma,",
-            "Manufacturing, Mechanical / Civil / Electrical / Electronics / Embedded / Automotive / Aerospace",
-            "engineering, Legal, Operations, Customer Support, Freshers, and Executive profiles.",
-            "",
-            "Understand the MEANING and STRUCTURE of the resume — never rely on hard-coded keywords.",
-            "Section titles vary wildly (Technical Skills / Core Competencies / Areas of Expertise /",
-            "Professional Skills / Functional Skills / Proficiencies): treat them as the same 'skills' bucket.",
-            "Extract every value ONLY from what the candidate wrote. Never invent, guess, translate,",
-            "reuse sample data, or add placeholders.",
-            "Return ONLY valid JSON — no prose, no markdown fences.",
-          ].join(" "),
-        },
-        {
-          role: "user",
-          content: `Return ONE JSON object with EXACTLY these keys:
+      instructions: [
+        "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
+        "IT, Talent Acquisition, HR, Finance, Banking, Accounting, Sales, Marketing, Healthcare, Pharma,",
+        "Manufacturing, Mechanical / Civil / Electrical / Electronics / Embedded / Automotive / Aerospace",
+        "engineering, Legal, Operations, Customer Support, Freshers, and Executive profiles.",
+        "",
+        "Understand the MEANING and STRUCTURE of the resume — never rely on hard-coded keywords.",
+        "Section titles vary wildly (Technical Skills / Core Competencies / Areas of Expertise /",
+        "Professional Skills / Functional Skills / Proficiencies): treat them as the same 'skills' bucket.",
+        "Extract every value ONLY from what the candidate wrote. Never invent, guess, translate,",
+        "reuse sample data, or add placeholders.",
+        "Return ONLY valid JSON — no prose, no markdown fences.",
+      ].join(" "),
+      prompt: `Return ONE JSON object with EXACTLY these keys:
 
 {
   "name": string,                 // Full name of the candidate
@@ -243,8 +237,6 @@ STRICT RULES:
 
 RESUME TEXT:
 ${resumeText.slice(0, 28000)}`,
-        },
-      ],
     });
     return finalizeNotFound(mergeParsedResume(parseJsonObject(text), local, resumeText));
   } catch (error) {
@@ -280,15 +272,9 @@ export async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<Resume
     const { text } = await generateText({
       model: gateway("google/gemini-3.6-flash"),
       temperature: 0.1,
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Never use mock data. Return only valid JSON matching the requested keys.",
-        },
-        {
-          role: "user",
-          content: `Return JSON with these keys:
+      instructions:
+        "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Never use mock data. Return only valid JSON matching the requested keys.",
+      prompt: `Return JSON with these keys:
 overallScore number 0-100, verdict string, scores { technicalSkills, experience, education, communication, cultureFit }, matchingSkills string[], additionalSkills string[], missingSkills string[], summary string, strengths string[], weaknesses string[], resumeImprovements string[], hiringRecommendation string, interviewQuestions { technical string[], hr string[], scenario string[] }, scorecard { overallResumeQuality, atsCompatibility, keywordOptimization, formatting, experienceQuality, education, softSkills }.
 
 Keep arrays to 3-7 items and base every item on the supplied resume/JD.
@@ -298,8 +284,6 @@ ${data.resumeText.slice(0, 18000)}
 
 JOB DESCRIPTION:
 ${data.jobDescription.slice(0, 8000)}`,
-        },
-      ],
     });
     return normalizeAnalysis(parseJsonObject(text), local);
   } catch (error) {

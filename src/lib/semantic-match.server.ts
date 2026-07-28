@@ -79,10 +79,8 @@ export async function runSemanticMatch(resume: ParsedResumeV3, jd: ParsedJDV3): 
     const { text } = await generateText({
       model,
       temperature: 0,
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: buildPrompt(resume, jd) },
-      ],
+      instructions: SYSTEM,
+      prompt: buildPrompt(resume, jd),
     });
     return coerceMatches(parseJsonObject(text), jdRequirements);
   };

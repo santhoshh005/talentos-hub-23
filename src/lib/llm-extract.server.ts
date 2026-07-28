@@ -131,10 +131,8 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
     const { text } = await generateText({
       model,
       temperature: 0,
-      messages: [
-        { role: "system", content: RESUME_SYSTEM },
-        { role: "user", content: buildResumePrompt(normalize(resumeText)) },
-      ],
+      instructions: RESUME_SYSTEM,
+      prompt: buildResumePrompt(normalize(resumeText)),
     });
     return coerceParsedResume(parseJsonObject(text));
   };
@@ -162,10 +160,8 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
     const { text } = await generateText({
       model,
       temperature: 0,
-      messages: [
-        { role: "system", content: JD_SYSTEM },
-        { role: "user", content: buildJdPrompt(normalize(jdText)) },
-      ],
+      instructions: JD_SYSTEM,
+      prompt: buildJdPrompt(normalize(jdText)),
     });
     return coerceParsedJd(parseJsonObject(text));
   };
