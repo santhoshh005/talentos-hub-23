@@ -286,6 +286,10 @@ export function CandidateWorkspace() {
               onReset={reset}
               onEditRecord={editBulkRecord}
               onAddFiles={(files) => void appendBulk(files)}
+              onUpdateTemplate={(patch) => {
+                repo.update(selectedTemplate.id, patch);
+                toast.success("Template updated");
+              }}
             />
           </motion.div>
         )}

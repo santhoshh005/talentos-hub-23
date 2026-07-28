@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Download, RotateCcw, CheckCircle2, AlertTriangle, Clock, Wand2 } from "lucide-react";
 import { InlineSpinner } from "@/components/loader/InlineSpinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -10,7 +10,7 @@ import { buildPreviewRow, exportBulkXlsx } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
 import { AddResumesButton } from "./CandidateUpload";
 import { HeaderColorControl } from "./ExportPreview";
-import { diagnoseColumn } from "@/lib/templates/column-diagnostics";
+import { diagnoseColumn, applyColumnFixes } from "@/lib/templates/column-diagnostics";
 
 export type BulkStatus = "queued" | "parsing" | "extracting" | "done" | "failed";
 
@@ -28,12 +28,14 @@ export function BulkCandidateTable({
   onReset,
   onEditRecord,
   onAddFiles,
+  onUpdateTemplate,
 }: {
   items: BulkItem[];
   template: ClientTemplate;
   onReset: () => void;
   onEditRecord: (id: string, patch: Partial<CandidateRecord>) => void;
   onAddFiles?: (files: File[]) => void;
+  onUpdateTemplate?: (patch: { columns: ClientTemplate["columns"] }) => void;
 }) {
   const [headerBg, setHeaderBg] = useState<string>(template.headerColor ?? DEFAULT_HEADER_COLOR);
   const [exporting, setExporting] = useState(false);
@@ -53,6 +55,14 @@ export function BulkCandidateTable({
   const visibleColumns = template.columns.filter((c) => !c.hidden);
   const columnDiagnostics = visibleColumns.map((c) => diagnoseColumn(c));
   const mismatchCount = columnDiagnostics.filter((d) => d.mismatch).length;
+
+  const fixAllMismatches = () => {
+    if (!onUpdateTemplate) return;
+    const { columns: nextCols, fixed } = applyColumnFixes(template.columns);
+    if (!fixed) return;
+    onUpdateTemplate({ columns: nextCols });
+    toast.success(`Fixed ${fixed} column${fixed === 1 ? "" : "s"} across all ${doneItems.length} record${doneItems.length === 1 ? "" : "s"}`);
+  };
 
   const doExport = async () => {
     setExporting(true);
@@ -140,14 +150,24 @@ export function BulkCandidateTable({
           {mismatchCount > 0 && (
             <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              <div>
+              <div className="flex-1">
                 <div className="font-semibold">
                   {mismatchCount} column{mismatchCount === 1 ? "" : "s"} may be reading the wrong field.
                 </div>
                 <div className="text-amber-200/80">
-                  Open Manage templates or the single-record preview to remap.
+                  Apply the recommended mapping to every column at once, or open Manage templates to review.
                 </div>
               </div>
+              {onUpdateTemplate && (
+                <button
+                  type="button"
+                  onClick={fixAllMismatches}
+                  className="flex items-center gap-1 rounded-md bg-amber-400/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-100 hover:bg-amber-400/30"
+                  title="Apply the recommended field mapping to every mismatched column"
+                >
+                  <Wand2 className="h-3 w-3" /> Fix all
+                </button>
+              )}
             </div>
           )}
           <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">

@@ -24,8 +24,8 @@ import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates
 import { buildPreviewRow, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
 import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
-import { diagnoseColumn, describeField } from "@/lib/templates/column-diagnostics";
-import { AlertTriangle } from "lucide-react";
+import { diagnoseColumn, describeField, applyColumnFixes } from "@/lib/templates/column-diagnostics";
+import { AlertTriangle, Wand2 } from "lucide-react";
 
 export function ExportPreview({
   record,
@@ -120,6 +120,30 @@ export function ExportPreview({
   const diagnostics = useMemo(() => rows.map((r) => diagnoseColumn(r)), [rows]);
   const mismatchCount = diagnostics.filter((d) => d.mismatch).length;
 
+  const fixAllMismatches = () => {
+    const { columns: fixedRows, fixed } = applyColumnFixes(rows);
+    if (!fixed) return;
+    // Repull values for rows whose fieldKey changed, using the same logic as updateFieldKey.
+    const nextRows: Row[] = fixedRows.map((r, i) => {
+      const prev = rows[i];
+      if (prev.fieldKey === r.fieldKey || r.fieldKey.startsWith("__")) return { ...prev, ...r };
+      const col = template.columns.find((c) => c.id === prev.columnId);
+      const nextValue = col
+        ? buildPreviewRow(record, { ...template, columns: [{ ...col, fieldKey: r.fieldKey }] })[0]?.value ?? prev.value
+        : prev.value;
+      return { ...prev, fieldKey: r.fieldKey, value: nextValue };
+    });
+    setRows(nextRows);
+    if (onUpdateTemplate) {
+      const nextCols = template.columns.map((c) => {
+        const nr = nextRows.find((r) => r.columnId === c.id);
+        return nr ? { ...c, fieldKey: nr.fieldKey } : c;
+      });
+      onUpdateTemplate({ columns: nextCols });
+    }
+    toast.success(`Fixed ${fixed} column${fixed === 1 ? "" : "s"}`);
+  };
+
   const persistFieldKeys = () => {
     if (!onUpdateTemplate) return;
     const nextCols = template.columns
@@ -196,6 +220,14 @@ export function ExportPreview({
               {onUpdateTemplate ? " Changes here can be saved back to the template." : ""}
             </div>
           </div>
+          <button
+            type="button"
+            onClick={fixAllMismatches}
+            className="flex items-center gap-1 rounded-md bg-amber-400/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-100 hover:bg-amber-400/30"
+            title="Apply the recommended field mapping to every mismatched column"
+          >
+            <Wand2 className="h-3 w-3" /> Fix all
+          </button>
           <button type="button" onClick={() => setDismissedBanner(true)} className="rounded px-1 text-amber-200/80 hover:text-amber-100">
             Dismiss
           </button>
