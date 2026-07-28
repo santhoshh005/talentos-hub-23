@@ -739,16 +739,6 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                               {analysis.verdict}
                             </div>
                             <p className="mt-3 text-sm leading-6 text-muted-foreground">{analysis.summary}</p>
-                            {analysis.scoreReason && (
-                              <p className="mt-2 text-xs italic text-accent/90">{analysis.scoreReason}</p>
-                            )}
-                            {(analysis.domain || analysis.industry || analysis.seniority) && (
-                              <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
-                                {analysis.domain && <span className="rounded-full border border-border bg-background/40 px-2 py-0.5">Domain: {analysis.domain}</span>}
-                                {analysis.industry && <span className="rounded-full border border-border bg-background/40 px-2 py-0.5">Industry: {analysis.industry}</span>}
-                                {analysis.seniority && <span className="rounded-full border border-border bg-background/40 px-2 py-0.5">Seniority: {analysis.seniority}</span>}
-                              </div>
-                            )}
                             <div className="mt-5 space-y-3">
                               {(
                                 [
@@ -771,33 +761,6 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                           </div>
                         </div>
                       </GlassCard>
-
-                      {analysis.scoreBreakdown && (
-                        <GlassCard>
-                          <div className="mb-3 text-sm font-semibold">Score Breakdown (weighted)</div>
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                            {(
-                              [
-                                ["Skills (35%)", analysis.scoreBreakdown.skills],
-                                ["Experience (20%)", analysis.scoreBreakdown.experience],
-                                ["Domain (15%)", analysis.scoreBreakdown.domain],
-                                ["Industry (10%)", analysis.scoreBreakdown.industry],
-                                ["Tools (10%)", analysis.scoreBreakdown.tools],
-                                ["Certifications (5%)", analysis.scoreBreakdown.certifications],
-                                ["Career Progression (5%)", analysis.scoreBreakdown.progression],
-                              ] as const
-                            ).map(([label, value]) => (
-                              <div key={label} className="rounded-xl border border-border bg-background/30 p-3">
-                                <div className="mb-1 flex justify-between text-[11px] text-muted-foreground">
-                                  <span>{label}</span>
-                                  <span className="tabular-nums">{value}%</span>
-                                </div>
-                                <ProgressBar value={value} />
-                              </div>
-                            ))}
-                          </div>
-                        </GlassCard>
-                      )}
 
                       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
                         <GlassCard>
@@ -828,39 +791,6 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                           <p className="mt-1 text-sm text-foreground">{analysis.hiringRecommendation}</p>
                         </div>
                       </GlassCard>
-
-                      {analysis.recruiterInsights && (
-                        <GlassCard>
-                          <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-                            <Sparkles className="h-4 w-4 text-accent" /> Recruiter Intelligence
-                          </div>
-                          {analysis.recruiterInsights.candidateSummary && (
-                            <p className="mb-4 text-sm leading-6 text-muted-foreground">{analysis.recruiterInsights.candidateSummary}</p>
-                          )}
-                          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                            <TextListCard icon={CheckCircle2} title="Top Strengths" items={analysis.recruiterInsights.topStrengths} />
-                            <TextListCard icon={AlertTriangle} title="Possible Risks" items={analysis.recruiterInsights.possibleRisks} />
-                            <TextListCard icon={Cpu} title="Interview Focus Areas" items={analysis.recruiterInsights.interviewFocus} />
-                            <TextListCard icon={AlertTriangle} title="Red Flags" items={analysis.recruiterInsights.redFlags} />
-                          </div>
-                          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-                            {(
-                              [
-                                ["Current Employer", analysis.recruiterInsights.currentEmployer],
-                                ["Expected Role", analysis.recruiterInsights.expectedRole],
-                                ["Notice Period", analysis.recruiterInsights.noticePeriod],
-                                ["Career Stability", analysis.recruiterInsights.careerStability],
-                                ["Likely Salary Band", analysis.recruiterInsights.likelySalaryBand],
-                              ] as const
-                            ).map(([label, value]) => (
-                              <div key={label} className="rounded-xl border border-border bg-background/30 p-3">
-                                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
-                                <div className="mt-1 text-sm text-foreground">{value || "Not Found"}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </GlassCard>
-                      )}
 
                       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
                         <Collapsible title="Technical Questions" icon={Cpu} items={analysis.interviewQuestions.technical} />
