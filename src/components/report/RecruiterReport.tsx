@@ -491,7 +491,6 @@ function PipelineStageCard({ name, durationMs, ok, index }: { name: string; dura
 }
 
 const STAGE_LABELS: Record<string, string> = {
-  ...({} as Record<string, string>),
   resumeParser: "Resume Parser",
   jdIntelligence: "JD Intelligence",
   skillNormalization: "Skill Normalization",
