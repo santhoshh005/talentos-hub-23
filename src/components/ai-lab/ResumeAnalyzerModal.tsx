@@ -807,8 +807,9 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                         <div className="text-xs text-muted-foreground">Copy, download, or share the extracted resume details.</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" onClick={downloadReport} className="rounded-xl border-border bg-background/35">
-                          <Download className="h-4 w-4" /> Download
+                        <Button type="button" variant="outline" onClick={downloadReport} disabled={downloading} className="rounded-xl border-border bg-background/35">
+                          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+                          {downloading ? "Preparing…" : "Download PDF"}
                         </Button>
                         <Button type="button" variant="outline" onClick={copyReport} className="rounded-xl border-border bg-background/35">
                           <Copy className="h-4 w-4" /> Copy
