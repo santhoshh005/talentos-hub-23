@@ -16,6 +16,8 @@ export interface NormalizedSkill {
   normalized: string;
 }
 
+import { isCleanSkillToken } from "./token-sanitizer";
+
 export interface SkillNormalizationInput {
   resume: unknown;
   jd: unknown;
@@ -214,8 +216,10 @@ export function normalizeSkillList(values: unknown): NormalizedSkill[] {
   for (const original of list) {
     const trimmedOriginal = original.replace(/\s+/g, " ").trim();
     if (!trimmedOriginal) continue;
+    if (!isCleanSkillToken(trimmedOriginal)) continue;
     const normalized = normalizeSkill(trimmedOriginal);
     if (!normalized) continue;
+    if (!isCleanSkillToken(normalized)) continue;
     const dedupeKey = normalized.toLowerCase();
     if (seen.has(dedupeKey)) continue;
     seen.add(dedupeKey);

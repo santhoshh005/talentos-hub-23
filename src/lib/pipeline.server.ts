@@ -22,6 +22,8 @@ import { runJdIntelligence, type JdIntelligence } from "./jd-intelligence.server
 import { normalizeSkills, type SkillNormalizationOutput } from "./skill-normalizer";
 import { matchSkills, type MatchingResult } from "./matching-engine";
 import { buildEvidence, type SkillEvidence } from "./evidence-engine";
+import { scoreMatch, type ScoringResult } from "./scoring-engine";
+import { buildRecruiterIntelligence, type RecruiterIntelligence } from "./recruiter-intelligence";
 
 export const PipelineInputSchema = z.object({
   resumeText: z.string().min(20),
@@ -35,7 +37,9 @@ export type PipelineStageName =
   | "jdIntelligence"
   | "skillNormalization"
   | "matching"
-  | "evidence";
+  | "evidence"
+  | "scoring"
+  | "recruiterIntelligence";
 
 export interface PipelineStageTiming {
   stage: PipelineStageName | string;
@@ -58,6 +62,8 @@ export interface PipelineSuccess {
   normalizedSkills: SkillNormalizationOutput;
   matching: MatchingResult;
   evidence: SkillEvidence[];
+  scoring: ScoringResult;
+  intelligence: RecruiterIntelligence;
   metadata: PipelineMetadata;
 }
 
@@ -85,6 +91,8 @@ export interface PipelineContext {
   normalizedSkills?: SkillNormalizationOutput;
   matching?: MatchingResult;
   evidence?: SkillEvidence[];
+  scoring?: ScoringResult;
+  intelligence?: RecruiterIntelligence;
 }
 
 // ---------------------------------------------------------------------------
@@ -136,6 +144,31 @@ export const defaultPipelineStages: PipelineStage[] = [
       });
     },
   },
+  {
+    name: "scoring",
+    run: async (ctx) => {
+      requireStage(ctx.matching, "matching");
+      requireStage(ctx.evidence, "evidence");
+      ctx.scoring = scoreMatch({ matching: ctx.matching, evidence: ctx.evidence });
+    },
+  },
+  {
+    name: "recruiterIntelligence",
+    run: async (ctx) => {
+      requireStage(ctx.resume, "resumeParser");
+      requireStage(ctx.jobDescription, "jdIntelligence");
+      requireStage(ctx.matching, "matching");
+      requireStage(ctx.evidence, "evidence");
+      requireStage(ctx.scoring, "scoring");
+      ctx.intelligence = buildRecruiterIntelligence({
+        resume: ctx.resume,
+        jd: ctx.jobDescription,
+        matching: ctx.matching,
+        evidence: ctx.evidence,
+        scoring: ctx.scoring,
+      });
+    },
+  },
 ];
 
 // ---------------------------------------------------------------------------
@@ -180,6 +213,8 @@ export async function runResumeIntelligencePipeline(
     normalizedSkills: ctx.normalizedSkills as SkillNormalizationOutput,
     matching: ctx.matching as MatchingResult,
     evidence: ctx.evidence as SkillEvidence[],
+    scoring: ctx.scoring as ScoringResult,
+    intelligence: ctx.intelligence as RecruiterIntelligence,
     metadata: buildMetadata(startedAt, startPerf, timings),
   };
 }

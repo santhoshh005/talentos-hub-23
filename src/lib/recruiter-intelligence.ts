@@ -1,0 +1,218 @@
+// ---------------------------------------------------------------------------
+// Recruiter Intelligence Engine
+// ---------------------------------------------------------------------------
+// Deterministic recruiter-grade narrative: summary, strengths, risks,
+// grouped missing skills, inferred domain & seniority. NEVER calls AI —
+// downstream services can enrich wording later.
+// ---------------------------------------------------------------------------
+
+import type { ParsedResumeData } from "./resume-analyzer.server";
+import type { JdIntelligence } from "./jd-intelligence.server";
+import type { MatchingResult } from "./matching-engine";
+import type { SkillEvidence } from "./evidence-engine";
+import type { ScoringResult } from "./scoring-engine";
+import { extractYearsFromExperience, seniorityFromYears } from "./token-sanitizer";
+
+export type SkillCategory =
+  | "Frontend" | "Backend" | "Cloud" | "DevOps" | "Data" | "AI/ML"
+  | "Database" | "Mobile" | "Security" | "QA" | "Recruitment" | "Other";
+
+export interface GroupedSkills {
+  category: SkillCategory;
+  skills: string[];
+}
+
+export interface RecruiterIntelligence {
+  inferredDomain: string;
+  inferredSeniority: string;
+  candidateYears: number;
+  requiredYears: { min: number; max: number } | null;
+  seniorityAlignment: "Aligned" | "Under" | "Over" | "Unknown";
+  recommendation: {
+    label: "Highly Recommended" | "Recommended" | "Needs Review" | "Low Match";
+    tone: "emerald" | "sky" | "amber" | "rose";
+    description: string;
+  };
+  summary: string;
+  strengths: string[];
+  risks: string[];
+  missingByCategory: GroupedSkills[];
+}
+
+// ---------------------------------------------------------------------------
+
+const CATEGORY_RULES: Array<{ category: SkillCategory; match: RegExp }> = [
+  { category: "Frontend", match: /^(react|next\.js|vue|angular|svelte|html|css|tailwind|redux|typescript|javascript)$/i },
+  { category: "Backend", match: /^(node\.js|express|nestjs|java|spring|spring boot|python|django|flask|go|golang|ruby|rails|\.net|c#|php|laravel|rest api|graphql|grpc)$/i },
+  { category: "Cloud", match: /^(aws|azure|gcp|cloudflare|vercel|netlify)$/i },
+  { category: "DevOps", match: /^(docker|kubernetes|terraform|jenkins|ci\/cd|github actions|ansible|helm|git|azure devops)$/i },
+  { category: "Database", match: /^(sql|mysql|postgresql|mongodb|oracle|redis|dynamodb|cassandra|snowflake|bigquery)$/i },
+  { category: "Data", match: /^(power bi|tableau|excel|microsoft excel|spark|hadoop|kafka|airflow|dbt|etl)$/i },
+  { category: "AI/ML", match: /^(machine learning|deep learning|artificial intelligence|nlp|tensorflow|pytorch|scikit-learn|pandas|numpy|langchain|openai)$/i },
+  { category: "Mobile", match: /^(react native|flutter|swift|kotlin|ios|android)$/i },
+  { category: "Security", match: /^(oauth|jwt|owasp|penetration testing|iam|encryption)$/i },
+  { category: "QA", match: /^(selenium|cypress|playwright|jest|junit|pytest|test automation)$/i },
+  { category: "Recruitment", match: /^(recruitment|screening|candidate sourcing|boolean search|ats)$/i },
+];
+
+function categorize(skill: string): SkillCategory {
+  for (const rule of CATEGORY_RULES) if (rule.match.test(skill)) return rule.category;
+  return "Other";
+}
+
+function groupByCategory(skills: string[]): GroupedSkills[] {
+  const buckets = new Map<SkillCategory, string[]>();
+  for (const s of skills) {
+    const c = categorize(s);
+    if (!buckets.has(c)) buckets.set(c, []);
+    buckets.get(c)!.push(s);
+  }
+  return Array.from(buckets.entries())
+    .map(([category, arr]) => ({ category, skills: arr.sort((a, b) => a.localeCompare(b)) }))
+    .sort((a, b) => a.category.localeCompare(b.category));
+}
+
+// ---------------------------------------------------------------------------
+
+const DOMAIN_RULES: Array<{ domain: string; match: RegExp }> = [
+  { domain: "AI / Machine Learning", match: /\b(ai|ml|machine learning|deep learning|nlp|data scien|llm)\b/i },
+  { domain: "Data & Analytics", match: /\b(data analyst|data engineer|analytics|bi|business intelligence|reporting)\b/i },
+  { domain: "Cloud & DevOps", match: /\b(devops|sre|cloud|infrastructure|platform engineer)\b/i },
+  { domain: "Backend Engineering", match: /\b(backend|back-end|server|api|microservices|java developer|python developer|node)\b/i },
+  { domain: "Frontend Engineering", match: /\b(frontend|front-end|ui developer|react|angular|vue)\b/i },
+  { domain: "Full-Stack Engineering", match: /\b(full[\s-]?stack|mern|mean)\b/i },
+  { domain: "Mobile Engineering", match: /\b(mobile|ios|android|react native|flutter)\b/i },
+  { domain: "Talent Acquisition", match: /\b(recruiter|recruitment|talent acquisition|hr|sourcing)\b/i },
+  { domain: "Fintech / Banking", match: /\b(fintech|banking|payments|trading)\b/i },
+  { domain: "Healthcare", match: /\b(healthcare|medical|clinical|pharma)\b/i },
+  { domain: "E-commerce / Retail", match: /\b(ecommerce|e-commerce|retail|shopify)\b/i },
+  { domain: "Cybersecurity", match: /\b(security|infosec|penetration|soc analyst)\b/i },
+];
+
+function inferDomain(jd: JdIntelligence, resume: ParsedResumeData): string {
+  if (jd.domain && jd.domain !== "Not Found") return jd.domain;
+  const haystack = [jd.jobTitle, jd.industry, jd.department, resume.currentDesignation]
+    .filter((v) => v && v !== "Not Found")
+    .join(" ");
+  for (const rule of DOMAIN_RULES) if (rule.match.test(haystack)) return rule.domain;
+  return jd.jobTitle && jd.jobTitle !== "Not Found" ? jd.jobTitle : "General";
+}
+
+function parseRequiredYears(text: string): { min: number; max: number } | null {
+  if (!text) return null;
+  const range = text.match(/(\d+(?:\.\d+)?)\s*[-–to]{1,3}\s*(\d+(?:\.\d+)?)/);
+  if (range) return { min: parseFloat(range[1]), max: parseFloat(range[2]) };
+  const single = text.match(/(\d+(?:\.\d+)?)\s*\+?\s*(?:years?|yrs?)/i);
+  if (single) {
+    const n = parseFloat(single[1]);
+    return { min: n, max: n + 3 };
+  }
+  return null;
+}
+
+function computeAlignment(
+  candidateYears: number,
+  required: { min: number; max: number } | null,
+): RecruiterIntelligence["seniorityAlignment"] {
+  if (!required || candidateYears <= 0) return "Unknown";
+  if (candidateYears < required.min - 0.5) return "Under";
+  if (candidateYears > required.max + 2) return "Over";
+  return "Aligned";
+}
+
+function recommendationFor(pct: number): RecruiterIntelligence["recommendation"] {
+  if (pct >= 80) return { label: "Highly Recommended", tone: "emerald", description: "Strong alignment across required skills and evidence." };
+  if (pct >= 65) return { label: "Recommended", tone: "sky", description: "Solid fit with minor gaps — validate in interview." };
+  if (pct >= 45) return { label: "Needs Review", tone: "amber", description: "Partial alignment — recruiter judgement recommended." };
+  return { label: "Low Match", tone: "rose", description: "Significant gaps against the role's core requirements." };
+}
+
+export interface RecruiterIntelligenceInput {
+  resume: ParsedResumeData;
+  jd: JdIntelligence;
+  matching: MatchingResult;
+  evidence: SkillEvidence[];
+  scoring: ScoringResult;
+}
+
+export function buildRecruiterIntelligence(input: RecruiterIntelligenceInput): RecruiterIntelligence {
+  const { resume, jd, matching, evidence, scoring } = input;
+
+  const candidateYears = extractYearsFromExperience(resume.experience);
+  const requiredYears = parseRequiredYears(jd.experienceRequired);
+  const alignment = computeAlignment(candidateYears, requiredYears);
+  const inferredSeniorityCandidate = seniorityFromYears(candidateYears);
+  const inferredDomain = inferDomain(jd, resume);
+
+  const recommendation = recommendationFor(scoring.matchPercentage);
+  const missingByCategory = groupByCategory(matching.missingSkills);
+
+  // Strengths: high-confidence matched skills with strong evidence
+  const evidenceByKey = new Map(evidence.map((e) => [e.skill.toLowerCase(), e]));
+  const strongMatches = matching.matchingSkills
+    .map((m) => ({ ...m, ev: evidenceByKey.get(m.skill.toLowerCase())?.evidenceStrength ?? 0 }))
+    .sort((a, b) => (b.ev + b.confidence) - (a.ev + a.confidence));
+
+  const strengths: string[] = [];
+  if (candidateYears > 0) {
+    strengths.push(`${candidateYears} years of overall experience — profile trends ${inferredSeniorityCandidate}.`);
+  }
+  const topSkills = strongMatches.slice(0, 5).map((m) => m.skill);
+  if (topSkills.length) {
+    strengths.push(`Core skill overlap: ${topSkills.join(", ")}.`);
+  }
+  const evidencedSkills = strongMatches.filter((m) => m.ev >= 60).map((m) => m.skill).slice(0, 4);
+  if (evidencedSkills.length) {
+    strengths.push(`Deep evidence for ${evidencedSkills.join(", ")} across resume sections.`);
+  }
+  if (alignment === "Aligned") {
+    strengths.push(`Experience aligns with the JD's ${jd.experienceRequired} requirement.`);
+  }
+  if (resume.certifications && resume.certifications.length > 0) {
+    strengths.push(`Holds ${resume.certifications.length} relevant certification${resume.certifications.length === 1 ? "" : "s"}.`);
+  }
+
+  const risks: string[] = [];
+  if (matching.missingSkills.length > 0) {
+    const topMissing = matching.missingSkills.slice(0, 5).join(", ");
+    risks.push(`Missing ${matching.missingSkills.length} required skill${matching.missingSkills.length === 1 ? "" : "s"}: ${topMissing}${matching.missingSkills.length > 5 ? "…" : ""}.`);
+  }
+  if (alignment === "Under" && requiredYears) {
+    risks.push(`Under the JD's minimum experience (${requiredYears.min}+ years) — candidate has ${candidateYears} years.`);
+  }
+  if (alignment === "Over" && requiredYears) {
+    risks.push(`Overqualified vs the JD's expected range (${requiredYears.min}-${requiredYears.max} years).`);
+  }
+  const weakEvidence = strongMatches.filter((m) => m.ev > 0 && m.ev < 40).map((m) => m.skill).slice(0, 4);
+  if (weakEvidence.length) {
+    risks.push(`Thin evidence for ${weakEvidence.join(", ")} — probe depth in interview.`);
+  }
+  if (resume.noticePeriod && /^\d+\s*months?/i.test(resume.noticePeriod)) {
+    risks.push(`Notice period is ${resume.noticePeriod} — plan pipeline accordingly.`);
+  }
+  if (risks.length === 0) risks.push("No material risks detected from deterministic signals.");
+
+  const seniorityLabel =
+    jd.seniorityLevel && jd.seniorityLevel !== "Not Found" ? jd.seniorityLevel : inferredSeniorityCandidate;
+
+  const summary = [
+    `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany}`,
+    candidateYears > 0 ? `with ${candidateYears} years of experience` : "with unspecified tenure",
+    `applying for a ${seniorityLabel} ${inferredDomain} role.`,
+    `Skill coverage: ${scoring.skillCoverage}% (${matching.similarity.matchedRequiredSkills}/${matching.similarity.totalRequiredSkills} required), evidence strength: ${scoring.evidenceScore}%.`,
+    `Overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`,
+  ].join(" ");
+
+  return {
+    inferredDomain,
+    inferredSeniority: seniorityLabel,
+    candidateYears,
+    requiredYears,
+    seniorityAlignment: alignment,
+    recommendation,
+    summary,
+    strengths,
+    risks,
+    missingByCategory,
+  };
+}
