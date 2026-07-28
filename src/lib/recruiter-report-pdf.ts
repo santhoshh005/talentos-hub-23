@@ -225,9 +225,13 @@ function skillTable(c: Ctx, title: string, items: string[], tone: string) {
 
 function coverPage(
   c: Ctx,
-  meta: { candidate: string; role: string; domain: string; matchPct: number; analysisId: string; generatedAt: string },
+  meta: {
+    candidate: string; role: string; domain: string; matchPct: number;
+    analysisId: string; generatedAt: string;
+    skillCoverage?: number; evidenceScore?: number; seniority?: string;
+  },
 ) {
-  const { candidate, role, domain, matchPct, analysisId, generatedAt } = meta;
+  const { candidate, role, domain, matchPct, analysisId, generatedAt, skillCoverage, evidenceScore, seniority } = meta;
   c.y = 40;
   // Brand logo mark
   setFill(c.pdf, COLOR.primary);
@@ -259,7 +263,7 @@ function coverPage(
 
   setText(c.pdf, COLOR.sub);
   c.pdf.setFont("helvetica", "normal");
-  c.pdf.setFontSize(12);
+  c.pdf.setFontSize(10);
   c.pdf.text(`${role}  •  ${domain}`, PAGE.margin, c.y + 6);
   c.y += 16;
 
@@ -315,6 +319,9 @@ function coverPage(
   c.pdf.text(`Overall Match Score: ${matchPct}%`, rx, ry + 20);
   c.pdf.text(`Detected Role: ${role}`, rx, ry + 26);
   c.pdf.text(`Detected Domain: ${domain}`, rx, ry + 32);
+  if (typeof skillCoverage === "number") {
+    c.pdf.text(`Skill Coverage: ${skillCoverage}%    Evidence: ${evidenceScore ?? 0}%`, rx, ry + 38);
+  }
 
   c.y += cardH + 10;
 
@@ -322,21 +329,32 @@ function coverPage(
   keyValueGrid(c, [
     ["Generated", generatedAt],
     ["Analysis ID", analysisId],
+    ["Seniority", seniority || "—"],
+    ["Role", role],
   ]);
 }
 
-function executiveSummaryPage(c: Ctx, text: string, followUps: string[]) {
+function executiveSummaryPage(c: Ctx, text: string, strengths: string[], risks: string[]) {
   newPage(c);
   sectionTitle(c, "Section 1", "Executive Summary");
-  paragraph(c, text, 11, COLOR.ink);
+  paragraph(c, text, 10, COLOR.ink);
   c.y += 4;
-  if (followUps.length) {
+  if (strengths.length) {
     setText(c.pdf, COLOR.muted);
     c.pdf.setFont("helvetica", "bold");
-    c.pdf.setFontSize(9);
-    c.pdf.text("KEY HIGHLIGHTS", PAGE.margin, c.y);
+    c.pdf.setFontSize(8);
+    c.pdf.text("STRENGTHS", PAGE.margin, c.y);
     c.y += 5;
-    bullets(c, followUps);
+    bullets(c, strengths);
+  }
+  if (risks.length) {
+    c.y += 2;
+    setText(c.pdf, COLOR.muted);
+    c.pdf.setFont("helvetica", "bold");
+    c.pdf.setFontSize(8);
+    c.pdf.text("RISKS", PAGE.margin, c.y);
+    c.y += 5;
+    bullets(c, risks);
   }
 }
 
@@ -381,11 +399,27 @@ function candidateProfilePage(c: Ctx, resume: any) {
   bullets(c, resume.projects);
 }
 
-function skillAnalysisPage(c: Ctx, matching: any) {
+function skillAnalysisPage(
+  c: Ctx,
+  matching: any,
+  missingByCategory?: { category: string; skills: string[] }[],
+) {
   newPage(c);
-  sectionTitle(c, "Section 3", "Skill Analysis");
+  sectionTitle(c, "Section 2", "Skill Analysis");
   skillTable(c, "Matching Skills", matching.matchingSkills.map((m: any) => m.skill), COLOR.good);
-  skillTable(c, "Missing Skills", matching.missingSkills, COLOR.bad);
+  if (missingByCategory && missingByCategory.length) {
+    ensure(c, 14);
+    setText(c.pdf, COLOR.ink);
+    c.pdf.setFont("helvetica", "bold");
+    c.pdf.setFontSize(11);
+    c.pdf.text(`Missing Skills  (${matching.missingSkills.length})`, PAGE.margin, c.y);
+    c.y += 4;
+    for (const group of missingByCategory) {
+      skillTable(c, group.category, group.skills, COLOR.bad);
+    }
+  } else {
+    skillTable(c, "Missing Skills", matching.missingSkills, COLOR.bad);
+  }
   skillTable(c, "Additional Skills", matching.additionalSkills, COLOR.accent);
 }
 
