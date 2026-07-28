@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Loader2 } from "lucide-react";
+import { NeuralOrbit } from "@/components/loader/NeuralOrbit";
 
 function Shimmer({ className = "" }: { className?: string }) {
   return (
@@ -17,10 +17,7 @@ export function CandidateWorkspaceSkeleton() {
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-3 backdrop-blur-xl">
-        <Loader2 className="h-4 w-4 animate-spin text-accent" />
-        <div className="text-sm text-muted-foreground">
-          Parsing resume and extracting candidate details…
-        </div>
+        <NeuralOrbit size="sm" variant="bare" context="resume-extract" showMessages />
       </div>
 
       {/* Snapshot skeleton */}

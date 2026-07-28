@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, Loader2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Download, RotateCcw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { InlineSpinner } from "@/components/loader/InlineSpinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
@@ -188,7 +189,7 @@ function StatusIcon({ status }: { status: BulkStatus }) {
   if (status === "done") return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />;
   if (status === "failed") return <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />;
   if (status === "queued") return <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />;
-  return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />;
+  return <InlineSpinner context="bulk-extract" className="shrink-0" />;
 }
 
 function StatusLabel({ status }: { status: BulkStatus }) {
