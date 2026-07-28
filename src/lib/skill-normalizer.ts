@@ -404,7 +404,6 @@ const CANONICAL_ALIASES: Record<string, string> = {
   // ---------------------------------------------------------------------
   "quickbooks": "QuickBooks",
   "tally": "Tally",
-  "sap fico ": "SAP FICO",
   "ifrs": "IFRS",
   "gaap": "GAAP",
   "sox": "SOX",
