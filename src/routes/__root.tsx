@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppLayout } from "../components/layout/AppLayout";
+import { LoaderProvider } from "../components/loader/LoaderProvider";
+import { FirstVisitGate } from "../components/loader/FirstVisitGate";
 
 function NotFoundComponent() {
   return (
@@ -127,7 +129,11 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <LoaderProvider>
+        <FirstVisitGate>
+          <Outlet />
+        </FirstVisitGate>
+      </LoaderProvider>
     </QueryClientProvider>
   );
 }

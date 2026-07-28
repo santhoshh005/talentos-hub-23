@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Navbar } from "./Navbar";
 import { Footer } from "./Footer";
+import { PageTransition } from "./PageTransition";
 
 export function AppLayout({ children }: { children: ReactNode }) {
   return (
@@ -24,7 +25,9 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </div>
 
       <Navbar />
-      <main className="pt-24">{children}</main>
+      <main className="pt-24">
+        <PageTransition>{children}</PageTransition>
+      </main>
       <Footer />
     </div>
   );
