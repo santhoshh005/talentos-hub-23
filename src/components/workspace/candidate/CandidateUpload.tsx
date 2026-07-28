@@ -1,12 +1,11 @@
 import { useCallback, useRef, useState } from "react";
 import type { DragEvent } from "react";
-import { Upload, FileText, Loader2, CheckCircle2, Files, Plus } from "lucide-react";
+import { Upload, FileText, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { extractResumeText } from "@/lib/resume-extract";
 import { cn } from "@/lib/utils";
 
-const BULK_LIMIT = 25;
 const SIZE_LIMIT = 10 * 1024 * 1024;
 
 export function validateResumeFiles(files: File[]): File[] {
@@ -23,55 +22,14 @@ export function validateResumeFiles(files: File[]): File[] {
     }
     good.push(f);
   }
-  return good.slice(0, BULK_LIMIT);
-}
-
-/** Small reusable "Add more resumes" button that opens a file picker and returns validated File[]. */
-export function AddResumesButton({
-  onFiles,
-  label = "Add more resumes",
-  className,
-}: {
-  onFiles: (files: File[]) => void;
-  label?: string;
-  className?: string;
-}) {
-  const ref = useRef<HTMLInputElement>(null);
-  return (
-    <>
-      <Button
-        type="button"
-        variant="outline"
-        onClick={() => ref.current?.click()}
-        className={cn("rounded-lg border-white/10 bg-white/[0.03]", className)}
-      >
-        <Plus className="h-4 w-4" /> {label}
-      </Button>
-      <input
-        ref={ref}
-        type="file"
-        multiple
-        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-        className="hidden"
-        onChange={(e) => {
-          const files = Array.from(e.target.files ?? []);
-          e.target.value = "";
-          if (!files.length) return;
-          const valid = validateResumeFiles(files);
-          if (valid.length) onFiles(valid);
-        }}
-      />
-    </>
-  );
+  return good;
 }
 
 export function CandidateUpload({
   onExtracted,
-  onBulk,
   busy,
 }: {
   onExtracted: (text: string, fileName: string) => void;
-  onBulk?: (files: File[]) => void;
   busy: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -101,13 +59,12 @@ export function CandidateUpload({
     (files: File[]) => {
       const valid = validateResumeFiles(files);
       if (valid.length === 0) return;
-      if (valid.length === 1 || !onBulk) {
-        void process(valid[0]);
-        return;
+      if (valid.length > 1) {
+        toast.error("Single resume mode is enabled. Processing the first resume only.");
       }
-      onBulk(valid);
+      void process(valid[0]);
     },
-    [onBulk, process],
+    [process],
   );
 
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
@@ -144,11 +101,11 @@ export function CandidateUpload({
               Loaded <span className="text-accent">{fileName}</span>
             </>
           ) : (
-            "Drop one or many resumes to extract candidate data"
+            "Drop one resume to extract candidate data"
           )}
         </div>
         <div className="mt-1 text-xs text-muted-foreground">
-          PDF or DOCX · up to 10 MB each · up to {BULK_LIMIT} files
+          PDF or DOCX · up to 10 MB
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-2">
@@ -161,16 +118,10 @@ export function CandidateUpload({
         >
           <FileText className="h-4 w-4" /> Choose file
         </Button>
-        {onBulk && (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-            <Files className="h-3.5 w-3.5" /> Select multiple for bulk mode
-          </span>
-        )}
       </div>
       <input
         ref={inputRef}
         type="file"
-        multiple
         accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
         className="hidden"
         onChange={(e) => {

@@ -3,18 +3,15 @@ import { ArrowRight, Building2, MapPin, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import { display } from "@/lib/candidate-display";
-import { AddResumesButton } from "./CandidateUpload";
 
 export function CandidateSnapshot({
   record,
   onContinue,
   onReset,
-  onAddMore,
 }: {
   record: CandidateRecord;
   onContinue: () => void;
   onReset: () => void;
-  onAddMore?: (files: File[]) => void;
 }) {
   const skills = (record.primarySkills.length ? record.primarySkills : record.secondarySkills).slice(0, 6);
   return (
@@ -69,7 +66,6 @@ export function CandidateSnapshot({
           Snapshot is auto-generated. You can edit every field next.
         </div>
         <div className="flex gap-2">
-          {onAddMore && <AddResumesButton onFiles={onAddMore} />}
           <Button type="button" variant="outline" onClick={onReset} className="rounded-lg border-white/10 bg-white/[0.03]">
             Upload another
           </Button>

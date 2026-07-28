@@ -29,12 +29,12 @@ export const MISMATCH_RULE_SETS: readonly MismatchRuleSetOption[] = [
   {
     id: "header-label",
     label: "Auto-map by headers",
-    description: "Fix all uses the column header text to remap fields aggressively.",
+    description: "Uses the column header text to review field mappings aggressively.",
   },
   {
     id: "conservative-client",
     label: "Conservative client headers",
-    description: "Fix only exact, low-risk header matches for clients with custom labels.",
+    description: "Uses exact, low-risk header matches for clients with custom labels.",
   },
 ] as const;
 
