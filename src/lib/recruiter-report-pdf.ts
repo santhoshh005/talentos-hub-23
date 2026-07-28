@@ -360,7 +360,7 @@ function executiveSummaryPage(c: Ctx, text: string, strengths: string[], risks: 
 
 function candidateProfilePage(c: Ctx, resume: any) {
   newPage(c);
-  sectionTitle(c, "Section 2", "Candidate Profile");
+  sectionTitle(c, "Section 3", "Candidate Profile");
   keyValueGrid(c, [
     ["Email", resume.email],
     ["Phone", resume.phone],
@@ -440,7 +440,7 @@ function evidenceAnalysisPage(c: Ctx, evidence: any[]) {
     theme: "striped",
     margin: { left: PAGE.margin, right: PAGE.margin },
     headStyles: { fillColor: rgb(COLOR.ink), textColor: rgb(COLOR.white), fontStyle: "bold", fontSize: 9 },
-    styles: { font: "helvetica", fontSize: 9, cellPadding: 2.5, textColor: rgb(COLOR.ink), overflow: "linebreak" },
+    styles: { font: "helvetica", fontSize: 8.5, cellPadding: 2, textColor: rgb(COLOR.ink), overflow: "linebreak" },
     alternateRowStyles: { fillColor: rgb(COLOR.soft) },
     columnStyles: {
       0: { cellWidth: 45, fontStyle: "bold" },
