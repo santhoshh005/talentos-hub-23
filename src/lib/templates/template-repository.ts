@@ -6,6 +6,10 @@ export interface CreateTemplateInput {
   columns: ClientTemplate["columns"];
   notes?: string;
   export?: ClientTemplate["export"];
+  headerColor?: ClientTemplate["headerColor"];
+  headerTextColor?: ClientTemplate["headerTextColor"];
+  mismatchRuleSet?: ClientTemplate["mismatchRuleSet"];
+  needsReview?: ClientTemplate["needsReview"];
 }
 
 export interface TemplateRepository {

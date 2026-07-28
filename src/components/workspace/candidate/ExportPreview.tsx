@@ -20,7 +20,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import type { ClientTemplate } from "@/lib/templates/template-types";
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR, MISMATCH_RULE_SETS, normalizeMismatchRuleSet, type MismatchRuleSetId } from "@/lib/templates/template-types";
 import { buildPreviewRow, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
 import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
@@ -34,7 +34,7 @@ export function ExportPreview({
 }: {
   record: CandidateRecord;
   template: ClientTemplate;
-  onUpdateTemplate?: (patch: { columns: typeof template.columns }) => void;
+  onUpdateTemplate?: (patch: Partial<Pick<ClientTemplate, "columns" | "mismatchRuleSet">>) => void;
 }) {
   const initial = useMemo(() => buildPreviewRow(record, template), [record, template]);
   // Rows carry a fieldKey so we can show the source-field caption and remap inline.
@@ -117,11 +117,17 @@ export function ExportPreview({
   const previewRows: PreviewRow[] = visibleRows.map((r) => ({ ...r, value: display(r.value) }));
   const headerBg = headerBgOverride;
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
-  const diagnostics = useMemo(() => rows.map((r) => diagnoseColumn(r)), [rows]);
+  const mismatchRuleSet = normalizeMismatchRuleSet(template.mismatchRuleSet);
+  const diagnostics = useMemo(() => rows.map((r) => diagnoseColumn(r, mismatchRuleSet)), [rows, mismatchRuleSet]);
   const mismatchCount = diagnostics.filter((d) => d.mismatch).length;
 
+  const updateMismatchRuleSet = (next: MismatchRuleSetId) => {
+    setDismissedBanner(false);
+    onUpdateTemplate?.({ mismatchRuleSet: next });
+  };
+
   const fixAllMismatches = () => {
-    const { columns: fixedRows, fixed } = applyColumnFixes(rows);
+    const { columns: fixedRows, fixed } = applyColumnFixes(rows, mismatchRuleSet);
     if (!fixed) return;
     // Repull values for rows whose fieldKey changed, using the same logic as updateFieldKey.
     const nextRows: Row[] = fixedRows.map((r, i) => {
@@ -190,6 +196,11 @@ export function ExportPreview({
           </p>
         </div>
         <div className="flex gap-2">
+          <MismatchRuleSetControl
+            value={mismatchRuleSet}
+            onChange={updateMismatchRuleSet}
+            disabled={!onUpdateTemplate}
+          />
           <HeaderColorControl value={headerBg} onChange={setHeaderBgOverride} />
           <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
             <RotateCcw className="h-4 w-4" /> Reset
@@ -290,7 +301,7 @@ export function ExportPreview({
               <tr className="border-b border-white/10" style={{ background: headerBg }}>
                 {previewRows.map((r) => {
                   const row = rows.find((x) => x.columnId === r.columnId);
-                  const d = row ? diagnoseColumn(row) : undefined;
+                  const d = row ? diagnoseColumn(row, mismatchRuleSet) : undefined;
                   return (
                     <th
                       key={r.columnId}
@@ -334,6 +345,38 @@ export function ExportPreview({
         </div>
       </div>
     </div>
+  );
+}
+
+export function MismatchRuleSetControl({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: MismatchRuleSetId;
+  onChange: (v: MismatchRuleSetId) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <label
+      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground"
+      title="Template-specific mismatch behavior for Fix all"
+    >
+      <span className="hidden sm:inline">Mismatch</span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value as MismatchRuleSetId)}
+        className="max-w-44 rounded border border-white/10 bg-background px-1.5 py-1 text-[10px] text-foreground outline-none focus:border-accent disabled:opacity-60"
+        aria-label="Mismatch rule set"
+      >
+        {MISMATCH_RULE_SETS.map((rule) => (
+          <option key={rule.id} value={rule.id} className="bg-background">
+            {rule.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

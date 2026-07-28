@@ -1,5 +1,5 @@
 import { CANDIDATE_FIELDS } from "../candidate-schemas";
-import type { TemplateColumn } from "./template-types";
+import type { MismatchRuleSetId, TemplateColumn } from "./template-types";
 
 export async function parseTemplateHeaders(file: File): Promise<string[]> {
   const XLSX = await import("xlsx");
@@ -13,7 +13,7 @@ export async function parseTemplateHeaders(file: File): Promise<string[]> {
   return header.map((h) => String(h ?? "").trim()).filter(Boolean);
 }
 
-const HINTS: Record<string, string[]> = {
+const HEADER_LABEL_HINTS: Record<string, string[]> = {
   fullName: ["name", "candidate", "full name"],
   email: ["email", "e-mail", "mail"],
   mobile: ["mobile", "phone", "contact", "cell"],
@@ -40,16 +40,48 @@ const HINTS: Record<string, string[]> = {
   recruiterNotes: ["remarks", "notes", "comment"],
 };
 
+const CONSERVATIVE_CLIENT_HINTS: Record<string, string[]> = {
+  fullName: ["candidate name", "full name", "name of candidate"],
+  email: ["email", "email id", "e-mail", "mail id"],
+  mobile: ["mobile", "mobile number", "phone number", "contact number", "phone no", "ph no"],
+  linkedin: ["linkedin", "linked in"],
+  github: ["github"],
+  portfolio: ["portfolio", "website"],
+  currentCompany: ["current company", "current employer", "current organisation", "current organization"],
+  currentDesignation: ["current designation", "designation", "job title", "current role"],
+  totalExperience: ["total experience", "total exp", "overall experience"],
+  relevantExperience: ["relevant experience"],
+  primarySkills: ["primary skills", "technical skills", "key skills", "skills"],
+  secondarySkills: ["secondary skills"],
+  currentLocation: ["current location"],
+  preferredLocation: ["preferred location"],
+  currentCTC: ["current ctc", "current salary"],
+  expectedCTC: ["expected ctc", "expected salary"],
+  noticePeriod: ["notice period", "notice", "np"],
+  employmentType: ["employment type"],
+  education: ["education", "qualification"],
+  certifications: ["certification", "certifications"],
+  pan: ["pan", "pan number"],
+  passport: ["passport", "passport number"],
+  visaStatus: ["visa status"],
+  recruiterNotes: ["remarks", "notes", "comments", "recruiter notes"],
+};
+
+function hintsForRuleSet(ruleSet: MismatchRuleSetId | undefined): Record<string, string[]> {
+  if (ruleSet === "conservative-client") return CONSERVATIVE_CLIENT_HINTS;
+  return HEADER_LABEL_HINTS;
+}
+
 /**
  * Best-effort mapping from a human header label to a candidate fieldKey.
  * Returns undefined when nothing plausible matches. Longer hints win so
  * "current ctc" beats "ctc" and "current location" beats "location".
  */
-export function suggestFieldKeyForLabel(label: string): string | undefined {
+export function suggestFieldKeyForLabel(label: string, ruleSet?: MismatchRuleSetId): string | undefined {
   const lower = label.toLowerCase().trim();
   if (!lower) return undefined;
   let best: { key: string; score: number } | undefined;
-  for (const [key, hints] of Object.entries(HINTS)) {
+  for (const [key, hints] of Object.entries(hintsForRuleSet(ruleSet))) {
     for (const hint of hints) {
       if (lower.includes(hint) && (!best || hint.length > best.score)) {
         best = { key, score: hint.length };
@@ -63,7 +95,7 @@ export function suggestFieldKeyForLabel(label: string): string | undefined {
 
 export function suggestFieldMapping(headers: string[]): TemplateColumn[] {
   return headers.map((header, i) => {
-    const match = suggestFieldKeyForLabel(header);
+    const match = suggestFieldKeyForLabel(header, "header-label");
     return {
       id: `imp_${i}_${Math.random().toString(36).slice(2, 7)}`,
       fieldKey: match ?? `__unmapped_${i}`,

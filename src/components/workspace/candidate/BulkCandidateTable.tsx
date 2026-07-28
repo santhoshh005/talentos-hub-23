@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import type { ClientTemplate } from "@/lib/templates/template-types";
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR, normalizeMismatchRuleSet } from "@/lib/templates/template-types";
 import { buildPreviewRow, exportBulkXlsx } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
 import { AddResumesButton } from "./CandidateUpload";
-import { HeaderColorControl } from "./ExportPreview";
+import { HeaderColorControl, MismatchRuleSetControl } from "./ExportPreview";
 import { diagnoseColumn, applyColumnFixes } from "@/lib/templates/column-diagnostics";
 
 export type BulkStatus = "queued" | "parsing" | "extracting" | "done" | "failed";
@@ -35,7 +35,7 @@ export function BulkCandidateTable({
   onReset: () => void;
   onEditRecord: (id: string, patch: Partial<CandidateRecord>) => void;
   onAddFiles?: (files: File[]) => void;
-  onUpdateTemplate?: (patch: { columns: ClientTemplate["columns"] }) => void;
+  onUpdateTemplate?: (patch: Partial<Pick<ClientTemplate, "columns" | "mismatchRuleSet">>) => void;
 }) {
   const [headerBg, setHeaderBg] = useState<string>(template.headerColor ?? DEFAULT_HEADER_COLOR);
   const [exporting, setExporting] = useState(false);
@@ -43,6 +43,7 @@ export function BulkCandidateTable({
     setHeaderBg(template.headerColor ?? DEFAULT_HEADER_COLOR);
   }, [template.headerColor]);
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
+  const mismatchRuleSet = normalizeMismatchRuleSet(template.mismatchRuleSet);
 
   const doneItems = items.filter((i) => i.status === "done" || i.status === "failed");
   const stillWorking = items.some((i) => i.status !== "done" && i.status !== "failed");
@@ -53,12 +54,12 @@ export function BulkCandidateTable({
   );
   const header = rowsPerRecord[0]?.map((r) => r.label) ?? template.columns.filter((c) => !c.hidden).map((c) => c.label);
   const visibleColumns = template.columns.filter((c) => !c.hidden);
-  const columnDiagnostics = visibleColumns.map((c) => diagnoseColumn(c));
+  const columnDiagnostics = visibleColumns.map((c) => diagnoseColumn(c, mismatchRuleSet));
   const mismatchCount = columnDiagnostics.filter((d) => d.mismatch).length;
 
   const fixAllMismatches = () => {
     if (!onUpdateTemplate) return;
-    const { columns: nextCols, fixed } = applyColumnFixes(template.columns);
+    const { columns: nextCols, fixed } = applyColumnFixes(template.columns, mismatchRuleSet);
     if (!fixed) return;
     onUpdateTemplate({ columns: nextCols });
     toast.success(`Fixed ${fixed} column${fixed === 1 ? "" : "s"} across all ${doneItems.length} record${doneItems.length === 1 ? "" : "s"}`);
@@ -97,6 +98,12 @@ export function BulkCandidateTable({
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {onUpdateTemplate && (
+            <MismatchRuleSetControl
+              value={mismatchRuleSet}
+              onChange={(ruleSet) => onUpdateTemplate({ mismatchRuleSet: ruleSet })}
+            />
+          )}
           <HeaderColorControl value={headerBg} onChange={setHeaderBg} />
           {onAddFiles && <AddResumesButton onFiles={onAddFiles} />}
           <Button

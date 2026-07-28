@@ -18,7 +18,7 @@ import { GripVertical, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
 import type { ClientTemplate, TemplateColumn } from "@/lib/templates/template-types";
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR, MISMATCH_RULE_SETS, normalizeMismatchRuleSet, type MismatchRuleSetId } from "@/lib/templates/template-types";
 import { diagnoseColumn } from "@/lib/templates/column-diagnostics";
 import { AlertTriangle } from "lucide-react";
 
@@ -43,6 +43,9 @@ export function TemplateEditor({
   const [headerColor, setHeaderColor] = useState(template?.headerColor ?? DEFAULT_HEADER_COLOR);
   const [headerTextColor, setHeaderTextColor] = useState(
     template?.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR,
+  );
+  const [mismatchRuleSet, setMismatchRuleSet] = useState<MismatchRuleSetId>(
+    normalizeMismatchRuleSet(template?.mismatchRuleSet),
   );
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -86,7 +89,8 @@ export function TemplateEditor({
       export: { sheetName: sheetName.trim() || "Candidates" },
       headerColor,
       headerTextColor,
-      needsReview: columns.some((c) => diagnoseColumn(c).mismatch),
+      mismatchRuleSet,
+      needsReview: columns.some((c) => diagnoseColumn(c, mismatchRuleSet).mismatch),
     });
 
   return (
@@ -183,6 +187,45 @@ export function TemplateEditor({
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-semibold">Mismatch rule set</h3>
+            <p className="text-xs text-muted-foreground">
+              Choose how this client's Fix all action treats header-to-field mismatches.
+            </p>
+          </div>
+          <select
+            value={mismatchRuleSet}
+            onChange={(e) => setMismatchRuleSet(e.target.value as MismatchRuleSetId)}
+            className="min-w-[240px] rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
+          >
+            {MISMATCH_RULE_SETS.map((rule) => (
+              <option key={rule.id} value={rule.id} className="bg-background">
+                {rule.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="mt-3 grid gap-2 md:grid-cols-3">
+          {MISMATCH_RULE_SETS.map((rule) => (
+            <button
+              key={rule.id}
+              type="button"
+              onClick={() => setMismatchRuleSet(rule.id)}
+              className={`rounded-xl border p-3 text-left text-xs transition ${
+                mismatchRuleSet === rule.id
+                  ? "border-accent/60 bg-accent/10 text-foreground"
+                  : "border-white/10 bg-white/[0.02] text-muted-foreground hover:border-accent/40 hover:text-foreground"
+              }`}
+            >
+              <div className="font-semibold">{rule.label}</div>
+              <div className="mt-1 text-[11px] leading-relaxed opacity-80">{rule.description}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Columns</h3>
           <Button type="button" variant="outline" onClick={addColumn} className="rounded-lg border-white/10 bg-white/[0.03]">
@@ -194,7 +237,7 @@ export function TemplateEditor({
           <SortableContext items={columns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
             <div className="mt-4 space-y-2">
               {columns.map((col) => {
-                const d = diagnoseColumn(col);
+                const d = diagnoseColumn(col, mismatchRuleSet);
                 return (
                 <SortableRow key={col.id} column={col} mismatch={d.mismatch}>
                   <select
@@ -249,7 +292,7 @@ export function TemplateEditor({
             </div>
           </SortableContext>
         </DndContext>
-        {columns.some((c) => diagnoseColumn(c).mismatch) && (
+        {columns.some((c) => diagnoseColumn(c, mismatchRuleSet).mismatch) && (
           <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>

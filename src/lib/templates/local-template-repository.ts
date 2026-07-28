@@ -1,4 +1,5 @@
 import type { ClientTemplate } from "./template-types";
+import { DEFAULT_MISMATCH_RULE_SET, normalizeMismatchRuleSet } from "./template-types";
 import type { CreateTemplateInput, TemplateRepository } from "./template-repository";
 import { seedTemplates } from "./seed-templates";
 import { countMismatches } from "./column-diagnostics";
@@ -21,10 +22,25 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
+function normalizeTemplate(template: ClientTemplate): ClientTemplate {
+  const mismatchRuleSet = normalizeMismatchRuleSet(template.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET);
+  return {
+    ...template,
+    mismatchRuleSet,
+    needsReview: countMismatches(template.columns, mismatchRuleSet) > 0,
+  };
+}
+
 function readAll(): ClientTemplate[] {
   if (typeof window === "undefined") return [];
   const stored = safeParse<ClientTemplate[] | null>(localStorage.getItem(STORE_KEY), null);
-  if (stored && stored.length > 0) return stored;
+  if (stored && stored.length > 0) {
+    const normalized = stored.map(normalizeTemplate);
+    if (JSON.stringify(stored) !== JSON.stringify(normalized)) {
+      localStorage.setItem(STORE_KEY, JSON.stringify(normalized));
+    }
+    return normalized;
+  }
   const seeded = seedTemplates();
   localStorage.setItem(STORE_KEY, JSON.stringify(seeded));
   return seeded;
@@ -35,7 +51,7 @@ function runMismatchMigrationOnce(): void {
   if (localStorage.getItem(MIGRATION_KEY)) return;
   const stored = safeParse<ClientTemplate[] | null>(localStorage.getItem(STORE_KEY), null);
   if (stored && stored.length > 0) {
-    const next = stored.map((t) => ({ ...t, needsReview: countMismatches(t.columns) > 0 }));
+    const next = stored.map((t) => normalizeTemplate({ ...t, mismatchRuleSet: t.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET }));
     localStorage.setItem(STORE_KEY, JSON.stringify(next));
   }
   localStorage.setItem(MIGRATION_KEY, "1");
@@ -82,6 +98,10 @@ class LocalTemplateRepository implements TemplateRepository {
       columns: input.columns.map((c) => ({ ...c, id: c.id || uid() })),
       notes: input.notes,
       export: input.export,
+      headerColor: input.headerColor,
+      headerTextColor: input.headerTextColor,
+      mismatchRuleSet: normalizeMismatchRuleSet(input.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET),
+      needsReview: input.needsReview ?? countMismatches(input.columns, normalizeMismatchRuleSet(input.mismatchRuleSet)) > 0,
       favorite: false,
       createdAt: now,
       updatedAt: now,
@@ -117,6 +137,10 @@ class LocalTemplateRepository implements TemplateRepository {
       columns: src.columns.map((c) => ({ ...c, id: uid() })),
       notes: src.notes,
       export: src.export,
+      headerColor: src.headerColor,
+      headerTextColor: src.headerTextColor,
+      mismatchRuleSet: src.mismatchRuleSet,
+      needsReview: src.needsReview,
     });
   }
 
