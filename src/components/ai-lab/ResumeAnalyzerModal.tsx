@@ -1,47 +1,36 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import type { DragEvent, ElementType, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { DragEvent, ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
+import { useNavigate } from "@tanstack/react-router";
 import {
   AlertTriangle,
-  Award,
-  BarChart3,
-  Building2,
   CheckCircle2,
-  ChevronDown,
-  Copy,
-  Cpu,
-  Download,
   FileText,
-  FolderGit2,
-  GraduationCap,
   Loader2,
-  Mail,
-  MapPin,
-  Phone,
   RotateCcw,
-  Share2,
   Sparkles,
-  TrendingUp,
   Upload,
-  Users,
-  Wrench,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import {
-  analyzeResumeMatch,
-  parseResume,
-  type ParsedResumeData,
-  type ResumeAnalysis,
-} from "@/lib/resume-analyzer.functions";
+import { runResumeIntelligence } from "@/lib/pipeline.functions";
 import { extractResumeText } from "@/lib/resume-extract";
+import { setResult } from "@/lib/report-store";
 import { cn } from "@/lib/utils";
 
-type ParsedResume = ParsedResumeData & { rawText: string };
-type Step = "upload" | "reading" | "ready";
-type ChipVariant = "match" | "extra" | "missing";
+type Phase = "intake" | "running" | "error";
+
+const LOADING_STEPS = [
+  { key: "upload", label: "Resume Uploaded" },
+  { key: "resumeParser", label: "Parsing Resume" },
+  { key: "jdIntelligence", label: "Understanding Job Description" },
+  { key: "skillNormalization", label: "Normalizing Skills" },
+  { key: "matching", label: "Matching Skills" },
+  { key: "evidence", label: "Analyzing Evidence" },
+  { key: "report", label: "Preparing Report" },
+] as const;
 
 function GlassCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
@@ -51,331 +40,95 @@ function GlassCard({ children, className }: { children: ReactNode; className?: s
   );
 }
 
-function ProgressBar({ value }: { value: number }) {
-  return (
-    <div className="h-2 overflow-hidden rounded-full bg-muted">
-      <motion.div
-        initial={{ width: 0 }}
-        animate={{ width: `${Math.max(4, Math.min(100, value))}%` }}
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-        className="h-full rounded-full bg-gradient-to-r from-primary to-accent"
-      />
-    </div>
-  );
-}
-
-function Chip({ label, variant = "extra" }: { label: string; variant?: ChipVariant }) {
-  const styles: Record<ChipVariant, string> = {
-    match: "border-accent/40 bg-accent/10 text-accent",
-    extra: "border-primary/40 bg-primary/10 text-primary-foreground",
-    missing: "border-destructive/40 bg-destructive/10 text-destructive-foreground",
-  };
-  return (
-    <motion.span whileHover={{ y: -2 }} className={cn("inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium", styles[variant])}>
-      {label}
-    </motion.span>
-  );
-}
-
-function EmptyState({ label }: { label: string }) {
-  return <p className="text-sm text-muted-foreground">{label}</p>;
-}
-
-function DetailCard({ icon: Icon, label, value }: { icon: ElementType; label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-background/35 p-3">
-      <div className="flex items-center gap-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground">
-        <Icon className="h-3.5 w-3.5 text-accent" /> {label}
-      </div>
-      <div className="mt-1 break-words text-sm text-foreground">{value || "Not found in resume"}</div>
-    </div>
-  );
-}
-
-function ListCard({ icon: Icon, title, items }: { icon: ElementType; title: string; items: string[] }) {
-  return (
-    <GlassCard>
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <Icon className="h-4 w-4 text-accent" /> {title}
-      </div>
-      {items.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {items.map((item) => (
-            <Chip key={item} label={item} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState label="No clear entries found in the uploaded resume." />
-      )}
-    </GlassCard>
-  );
-}
-
-function TextListCard({ icon: Icon, title, items }: { icon: ElementType; title: string; items: string[] }) {
-  return (
-    <GlassCard>
-      <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
-        <Icon className="h-4 w-4 text-accent" /> {title}
-      </div>
-      {items.length > 0 ? (
-        <ul className="space-y-2 text-sm text-muted-foreground">
-          {items.map((item) => (
-            <li key={item} className="flex gap-2">
-              <span className="mt-2 h-1.5 w-1.5 flex-none rounded-full bg-accent" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <EmptyState label="No clear entries found in the uploaded resume." />
-      )}
-    </GlassCard>
-  );
-}
-
-function ScoreCircle({ score }: { score: number }) {
-  const id = useId();
-  const radius = 78;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (Math.max(0, Math.min(100, score)) / 100) * circumference;
-  return (
-    <div className="relative h-48 w-48">
-      <svg viewBox="0 0 192 192" className="h-48 w-48 -rotate-90">
-        <defs>
-          <linearGradient id={id} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="var(--primary)" />
-            <stop offset="100%" stopColor="var(--accent)" />
-          </linearGradient>
-        </defs>
-        <circle cx="96" cy="96" r={radius} className="stroke-muted" strokeWidth="13" fill="none" />
-        <motion.circle
-          cx="96"
-          cy="96"
-          r={radius}
-          stroke={`url(#${id})`}
-          strokeWidth="13"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={circumference}
-          initial={{ strokeDashoffset: circumference }}
-          animate={{ strokeDashoffset: offset }}
-          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-5xl font-semibold tracking-tight">{score}%</span>
-        <span className="mt-1 text-xs uppercase tracking-widest text-muted-foreground">Match Score</span>
-      </div>
-    </div>
-  );
-}
-
-function Collapsible({ title, items, icon: Icon }: { title: string; items: string[]; icon: ElementType }) {
-  const [open, setOpen] = useState(true);
-  return (
-    <GlassCard>
-      <button type="button" onClick={() => setOpen((value) => !value)} className="flex w-full items-center justify-between text-left">
-        <span className="flex items-center gap-2 text-sm font-semibold">
-          <Icon className="h-4 w-4 text-accent" /> {title}
-        </span>
-        <ChevronDown className={cn("h-4 w-4 text-muted-foreground transition-transform", open && "rotate-180")} />
-      </button>
-      <AnimatePresence initial={false}>
-        {open && (
-          <motion.ul
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="mt-3 space-y-2 overflow-hidden text-sm text-muted-foreground"
-          >
-            {items.map((item, index) => (
-              <li key={`${item}-${index}`} className="rounded-xl border border-border bg-background/35 p-3">
-                {item}
-              </li>
-            ))}
-          </motion.ul>
-        )}
-      </AnimatePresence>
-    </GlassCard>
-  );
-}
-
 export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [step, setStep] = useState<Step>("upload");
+  const navigate = useNavigate();
+  const runPipeline = useServerFn(runResumeIntelligence);
+
+  const [phase, setPhase] = useState<Phase>("intake");
   const [file, setFile] = useState<File | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [status, setStatus] = useState("Waiting for resume upload");
+  const [resumeText, setResumeText] = useState("");
+  const [extracting, setExtracting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [error, setError] = useState("");
-  const [parsed, setParsed] = useState<ParsedResume | null>(null);
   const [jobDescription, setJobDescription] = useState("");
-  const [analysis, setAnalysis] = useState<ResumeAnalysis | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [analyzeProgress, setAnalyzeProgress] = useState(0);
-  const [analyzeStatus, setAnalyzeStatus] = useState("");
   const [jdMode, setJdMode] = useState<"paste" | "upload">("paste");
   const [jdFileName, setJdFileName] = useState("");
   const [jdLoading, setJdLoading] = useState(false);
+  const [activeStep, setActiveStep] = useState(0);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [failedStage, setFailedStage] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const jdInputRef = useRef<HTMLInputElement>(null);
-  const requestIdRef = useRef(0);
-  const parseResumeFn = useServerFn(parseResume);
-  const analyzeResumeFn = useServerFn(analyzeResumeMatch);
+  const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const clearTimer = () => {
+    if (stepTimerRef.current) {
+      clearInterval(stepTimerRef.current);
+      stepTimerRef.current = null;
+    }
+  };
 
   const reset = useCallback(() => {
-    requestIdRef.current += 1;
-    setStep("upload");
+    clearTimer();
+    setPhase("intake");
     setFile(null);
-    setProgress(0);
-    setStatus("Waiting for resume upload");
+    setResumeText("");
+    setExtracting(false);
     setDragActive(false);
-    setError("");
-    setParsed(null);
     setJobDescription("");
-    setAnalysis(null);
-    setAnalyzing(false);
-    setAnalyzeProgress(0);
-    setAnalyzeStatus("");
     setJdMode("paste");
     setJdFileName("");
     setJdLoading(false);
+    setActiveStep(0);
+    setErrorMessage("");
+    setFailedStage(null);
     if (inputRef.current) inputRef.current.value = "";
     if (jdInputRef.current) jdInputRef.current.value = "";
   }, []);
 
   useEffect(() => {
     if (!open) reset();
+    return () => clearTimer();
   }, [open, reset]);
 
-  const parsedFields = useMemo(
-    () => [
-      { icon: Mail, label: "Email", value: parsed?.email ?? "" },
-      { icon: Phone, label: "Phone", value: parsed?.phone ?? "" },
-      { icon: MapPin, label: "Location", value: parsed?.location ?? "" },
-      { icon: Building2, label: "Current Company", value: parsed?.currentCompany ?? "" },
-      { icon: BarChart3, label: "Experience", value: parsed?.experience ?? "" },
-      { icon: GraduationCap, label: "Education", value: parsed?.education ?? "" },
-    ],
-    [parsed],
-  );
+  const processResumeFile = useCallback(async (nextFile: File) => {
+    const lower = nextFile.name.toLowerCase();
+    if (!lower.endsWith(".pdf") && !lower.endsWith(".docx")) {
+      toast.error("Upload a PDF or DOCX resume.");
+      return;
+    }
+    if (nextFile.size > 10 * 1024 * 1024) {
+      toast.error("Resume file must be under 10 MB.");
+      return;
+    }
+    setExtracting(true);
+    setFile(nextFile);
+    setResumeText("");
+    try {
+      const text = await extractResumeText(nextFile);
+      setResumeText(text);
+      toast.success("Resume ready");
+    } catch (caught) {
+      console.error("[TalentOS Resume Analyzer] resume extract failed:", caught);
+      toast.error("Could not read that resume file.");
+      setFile(null);
+    } finally {
+      setExtracting(false);
+    }
+  }, []);
 
-  const processFile = useCallback(
-    async (nextFile: File) => {
-      const lowerName = nextFile.name.toLowerCase();
-      if (!lowerName.endsWith(".pdf") && !lowerName.endsWith(".docx")) {
-        toast.error("Upload a PDF or DOCX resume.");
-        return;
-      }
-      if (nextFile.size > 10 * 1024 * 1024) {
-        toast.error("Resume file must be under 10 MB.");
-        return;
-      }
-
-      const requestId = requestIdRef.current + 1;
-      requestIdRef.current = requestId;
-      let progressTimer: ReturnType<typeof setInterval> | undefined;
-
-      setFile(nextFile);
-      setStep("reading");
-      setProgress(8);
-      setStatus("Reading uploaded file");
-      setError("");
-      setParsed(null);
-      setAnalysis(null);
-
-      progressTimer = setInterval(() => {
-        setProgress((value) => Math.min(88, value + 5));
-      }, 300);
-
-      try {
-        const rawText = await extractResumeText(nextFile);
-        if (requestIdRef.current !== requestId) return;
-        setProgress(55);
-        setStatus("Extracting exact resume details");
-
-        const structured = await parseResumeFn({ data: { resumeText: rawText } });
-        if (requestIdRef.current !== requestId) return;
-
-        setParsed({ ...structured, rawText });
-        setProgress(100);
-        setStatus("Resume parsed successfully");
-        setStep("ready");
-        toast.success("Resume parsed from uploaded file");
-      } catch (caught) {
-        if (requestIdRef.current !== requestId) return;
-        const message = caught instanceof Error ? caught.message : "Failed to parse this resume.";
-        console.error("[TalentOS Resume Analyzer] upload pipeline failed:", caught);
-        setError(message);
-        setStep("upload");
-        setProgress(0);
-        toast.error(message);
-      } finally {
-        if (progressTimer) clearInterval(progressTimer);
-      }
-    },
-    [parseResumeFn],
-  );
-
-  const onDrop = useCallback(
+  const onDropResume = useCallback(
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
       setDragActive(false);
-      const droppedFile = event.dataTransfer.files?.[0];
-      if (droppedFile) void processFile(droppedFile);
+      const dropped = event.dataTransfer.files?.[0];
+      if (dropped) void processResumeFile(dropped);
     },
-    [processFile],
+    [processResumeFile],
   );
 
-  const runAnalysis = useCallback(async () => {
-    if (!parsed) return;
-    if (jobDescription.trim().length < 20) {
-      toast.error("Paste a Job Description with at least 20 characters.");
-      return;
-    }
-    setAnalyzing(true);
-    setAnalyzeProgress(6);
-    setAnalyzeStatus("Reading job description");
-    const steps = [
-      { at: 22, label: "Matching skills & keywords" },
-      { at: 44, label: "Scoring experience & education" },
-      { at: 66, label: "Generating recruiter insights" },
-      { at: 84, label: "Preparing interview questions" },
-    ];
-    let stepIndex = 0;
-    const timer = setInterval(() => {
-      setAnalyzeProgress((value) => {
-        const next = Math.min(92, value + 4);
-        if (stepIndex < steps.length && next >= steps[stepIndex].at) {
-          setAnalyzeStatus(steps[stepIndex].label);
-          stepIndex += 1;
-        }
-        return next;
-      });
-    }, 220);
-    try {
-      const result = await analyzeResumeFn({
-        data: {
-          resumeText: parsed.rawText,
-          jobDescription,
-          candidateName: parsed.name,
-        },
-      });
-      setAnalysis(result);
-      setAnalyzeProgress(100);
-      setAnalyzeStatus("Analysis ready");
-      toast.success("Match analysis complete");
-    } catch (caught) {
-      console.error("[TalentOS Resume Analyzer] match failed:", caught);
-      toast.error("Analysis failed. Please try again.");
-    } finally {
-      clearInterval(timer);
-      setAnalyzing(false);
-    }
-  }, [analyzeResumeFn, jobDescription, parsed]);
-
   const processJdFile = useCallback(async (nextFile: File) => {
-    const lowerName = nextFile.name.toLowerCase();
-    if (!lowerName.endsWith(".pdf") && !lowerName.endsWith(".docx") && !lowerName.endsWith(".txt")) {
+    const lower = nextFile.name.toLowerCase();
+    if (!lower.endsWith(".pdf") && !lower.endsWith(".docx") && !lower.endsWith(".txt")) {
       toast.error("Upload a PDF, DOCX, or TXT job description.");
       return;
     }
@@ -386,7 +139,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     setJdLoading(true);
     setJdFileName(nextFile.name);
     try {
-      const text = lowerName.endsWith(".txt")
+      const text = lower.endsWith(".txt")
         ? await nextFile.text()
         : await extractResumeText(nextFile);
       setJobDescription(text.trim());
@@ -399,60 +152,58 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
     }
   }, []);
 
-  const reportText = useMemo(() => {
-    if (!parsed) return "";
-    const lines = [
-      "TalentOS — Resume Analyzer Report",
-      `Candidate: ${parsed.name || "Not found"}`,
-      `Email: ${parsed.email || "Not found"}`,
-      `Phone: ${parsed.phone || "Not found"}`,
-      `Education: ${parsed.education || "Not found"}`,
-      `Skills: ${parsed.skills.join(", ") || "Not found"}`,
-      `Technologies: ${parsed.technologies.join(", ") || "Not found"}`,
-    ];
-    if (analysis) {
-      lines.push("", `Match Score: ${analysis.overallScore}%`, `Verdict: ${analysis.verdict}`, `Summary: ${analysis.summary}`);
+  const runAnalysis = useCallback(async () => {
+    if (!resumeText || resumeText.trim().length < 20) {
+      toast.error("Upload a resume first.");
+      return;
     }
-    return lines.join("\n");
-  }, [analysis, parsed]);
+    if (jobDescription.trim().length < 20) {
+      toast.error("Paste a Job Description with at least 20 characters.");
+      return;
+    }
 
-  const copyReport = useCallback(() => {
-    if (!reportText) return;
-    void navigator.clipboard?.writeText(reportText);
-    toast.success("Report copied");
-  }, [reportText]);
+    setPhase("running");
+    setErrorMessage("");
+    setFailedStage(null);
+    setActiveStep(1);
 
-  const [downloading, setDownloading] = useState(false);
-  const downloadReport = useCallback(async () => {
-    if (!parsed) return;
-    setDownloading(true);
+    clearTimer();
+    stepTimerRef.current = setInterval(() => {
+      setActiveStep((s) => (s < LOADING_STEPS.length - 2 ? s + 1 : s));
+    }, 900);
+
     try {
-      const { generateResumeReportPdf } = await import("@/lib/resume-report-pdf");
-      const pdf = await generateResumeReportPdf(parsed, analysis);
-      const candidate = (parsed.name || "candidate").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-      pdf.save(`talentos-resume-analysis-${candidate || "candidate"}.pdf`);
-      toast.success("PDF report downloaded");
-    } catch (error) {
-      console.error("[TalentOS] PDF export failed", error);
-      toast.error("Could not generate PDF");
-    } finally {
-      setDownloading(false);
-    }
-  }, [analysis, parsed]);
-
-  const shareReport = useCallback(async () => {
-    if (!reportText) return;
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: "TalentOS Resume Analysis", text: reportText });
-        return;
-      } catch {
-        return;
+      const output = await runPipeline({ data: { resumeText, jobDescription } });
+      clearTimer();
+      if (output.ok) {
+        setActiveStep(LOADING_STEPS.length - 1);
+        setResult(output);
+        // brief hold so the last step visibly illuminates, then navigate
+        setTimeout(() => {
+          onClose();
+          navigate({ to: "/report" });
+        }, 400);
+      } else {
+        setFailedStage(String(output.failedStage));
+        setErrorMessage(output.error.message);
+        setPhase("error");
       }
+    } catch (caught) {
+      clearTimer();
+      const message = caught instanceof Error ? caught.message : "Pipeline call failed.";
+      console.error("[TalentOS Resume Analyzer] pipeline failed:", caught);
+      setErrorMessage(message);
+      setPhase("error");
     }
-    void navigator.clipboard?.writeText(reportText);
-    toast.success("Share text copied");
-  }, [reportText]);
+  }, [jobDescription, navigate, onClose, resumeText, runPipeline]);
+
+  const retry = useCallback(() => {
+    setErrorMessage("");
+    setFailedStage(null);
+    setPhase("intake");
+  }, []);
+
+  const ready = !!resumeText && !extracting && jobDescription.trim().length >= 20;
 
   return (
     <AnimatePresence>
@@ -469,7 +220,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
             animate={{ x: 0, opacity: 1, scale: 1 }}
             exit={{ x: 96, opacity: 0, scale: 0.98 }}
             transition={{ type: "spring", damping: 28, stiffness: 250 }}
-            className="relative flex h-full w-full max-w-6xl flex-col overflow-hidden border-l border-border bg-background"
+            className="relative flex h-full w-full max-w-3xl flex-col overflow-hidden border-l border-border bg-background"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -484,7 +235,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                 </div>
                 <div>
                   <h2 className="text-sm font-semibold tracking-tight md:text-base">Resume Analyzer</h2>
-                  <p className="text-xs text-muted-foreground">Real extraction from your uploaded PDF or DOCX</p>
+                  <p className="text-xs text-muted-foreground">Upload a resume + JD to run the Resume Intelligence Pipeline</p>
                 </div>
               </div>
               <Button type="button" variant="outline" size="icon" aria-label="Close resume analyzer" onClick={onClose} className="border-border bg-background/40">
@@ -493,120 +244,61 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
             </header>
 
             <div className="relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-6">
-              {step === "upload" && (
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto flex min-h-full max-w-3xl flex-col justify-center">
-                  <div
-                    onDragOver={(event) => {
-                      event.preventDefault();
-                      setDragActive(true);
-                    }}
-                    onDragLeave={() => setDragActive(false)}
-                    onDrop={onDrop}
-                    className={cn(
-                      "relative overflow-hidden rounded-3xl border-2 border-dashed p-8 text-center shadow-2xl backdrop-blur-xl transition-all md:p-12",
-                      dragActive ? "border-accent bg-accent/10 shadow-accent/10" : "border-border bg-card/45 hover:border-accent/50",
-                    )}
-                  >
-                    <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent" />
-                    <motion.div animate={{ y: [0, -6, 0] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} className="mx-auto mb-6 grid h-20 w-20 place-items-center rounded-3xl bg-gradient-to-br from-primary/25 to-accent/15 ring-1 ring-border">
-                      <Upload className="h-8 w-8 text-accent" />
-                    </motion.div>
-                    <h3 className="text-2xl font-semibold tracking-tight">Upload the actual resume</h3>
-                    <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-muted-foreground">
-                      TalentOS reads the uploaded PDF/DOCX, extracts embedded text, then structures only details found in that resume.
-                    </p>
-                    <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
-                      <Button type="button" onClick={() => inputRef.current?.click()} className="rounded-xl bg-gradient-to-r from-primary to-accent px-6 shadow-xl shadow-primary/25">
-                        <FileText className="h-4 w-4" /> Browse Files
-                      </Button>
-                      <Button type="button" variant="outline" onClick={reset} className="rounded-xl border-border bg-background/30">
-                        <RotateCcw className="h-4 w-4" /> Reset
-                      </Button>
+              {phase === "intake" && (
+                <motion.div key="intake" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl space-y-5">
+                  <GlassCard>
+                    <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
+                      <Upload className="h-4 w-4 text-accent" /> Resume
                     </div>
-                    <input
-                      ref={inputRef}
-                      type="file"
-                      accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      className="hidden"
-                      aria-label="Upload resume"
-                      onChange={(event) => {
-                        const selectedFile = event.target.files?.[0];
-                        event.target.value = "";
-                        if (selectedFile) void processFile(selectedFile);
+                    <div
+                      onDragOver={(event) => {
+                        event.preventDefault();
+                        setDragActive(true);
                       }}
-                    />
-                    <p className="mt-5 text-xs text-muted-foreground">PDF or DOCX · Up to 10 MB · Text-based resumes parse best</p>
-                    {error && (
-                      <div className="mt-6 flex items-start gap-2 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-left text-sm text-destructive-foreground">
-                        <AlertTriangle className="mt-0.5 h-4 w-4 flex-none" />
-                        <span>{error}</span>
+                      onDragLeave={() => setDragActive(false)}
+                      onDrop={onDropResume}
+                      className={cn(
+                        "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-6 text-center transition-colors",
+                        dragActive ? "border-accent bg-accent/10" : "border-border bg-background/40 hover:border-accent/50",
+                      )}
+                    >
+                      {extracting ? (
+                        <Loader2 className="h-6 w-6 animate-spin text-accent" />
+                      ) : file ? (
+                        <CheckCircle2 className="h-6 w-6 text-emerald-400" />
+                      ) : (
+                        <Upload className="h-6 w-6 text-accent" />
+                      )}
+                      <div className="text-sm text-muted-foreground">
+                        {file ? (
+                          <>Loaded <span className="text-foreground">{file.name}</span></>
+                        ) : (
+                          "Drop a PDF or DOCX resume here"
+                        )}
                       </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-
-              {step === "reading" && (
-                <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto flex min-h-full max-w-2xl flex-col justify-center">
-                  <GlassCard className="text-center">
-                    <motion.div animate={{ rotate: 360 }} transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }} className="mx-auto mb-6 grid h-16 w-16 place-items-center rounded-2xl bg-gradient-to-br from-primary/20 to-accent/10">
-                      <Loader2 className="h-8 w-8 text-accent" />
-                    </motion.div>
-                    <h3 className="text-xl font-semibold tracking-tight">Parsing your resume</h3>
-                    <p className="mt-2 text-sm text-muted-foreground">{status}</p>
-                    <div className="mt-6 text-left">
-                      <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-                        <span className="truncate">{file?.name}</span>
-                        <span>{Math.round(progress)}%</span>
-                      </div>
-                      <ProgressBar value={progress} />
-                    </div>
-                  </GlassCard>
-                </motion.div>
-              )}
-
-              {step === "ready" && parsed && (
-                <div className="mx-auto max-w-5xl space-y-6">
-                  <GlassCard>
-                    <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-[10px] font-medium uppercase tracking-widest text-accent">
-                          <CheckCircle2 className="h-3.5 w-3.5" /> Parsed from uploaded file
-                        </span>
-                        <h3 className="mt-3 text-3xl font-semibold tracking-tight">{parsed.name || "Candidate profile"}</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">{file?.name} · {((file?.size ?? 0) / 1024).toFixed(1)} KB · {parsed.rawText.length.toLocaleString()} extracted characters</p>
-                      </div>
-                      <Button type="button" variant="outline" onClick={reset} className="rounded-xl border-border bg-background/35">
-                        <RotateCcw className="h-4 w-4" /> Upload another
+                      <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="rounded-xl border-border bg-background/40">
+                        <FileText className="h-4 w-4" /> Choose resume file
                       </Button>
+                      <input
+                        ref={inputRef}
+                        type="file"
+                        accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        aria-label="Upload resume"
+                        onChange={(event) => {
+                          const selected = event.target.files?.[0];
+                          event.target.value = "";
+                          if (selected) void processResumeFile(selected);
+                        }}
+                      />
                     </div>
-                    <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                      {parsedFields.map((field) => (
-                        <DetailCard key={field.label} {...field} />
-                      ))}
-                    </div>
-                  </GlassCard>
-
-                  <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-                    <ListCard icon={Wrench} title="Skills" items={parsed.skills} />
-                    <ListCard icon={Cpu} title="Technologies" items={parsed.technologies} />
-                    <TextListCard icon={FolderGit2} title="Projects" items={parsed.projects} />
-                    <TextListCard icon={Award} title="Certifications" items={parsed.certifications} />
-                  </div>
-
-                  <GlassCard>
-                    <details>
-                      <summary className="cursor-pointer text-sm font-semibold text-foreground">Extracted resume text</summary>
-                      <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap rounded-2xl border border-border bg-background/50 p-4 text-xs leading-5 text-muted-foreground">
-                        {parsed.rawText}
-                      </pre>
-                    </details>
+                    <p className="mt-3 text-xs text-muted-foreground">PDF or DOCX · up to 10 MB</p>
                   </GlassCard>
 
                   <GlassCard>
                     <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2 text-sm font-semibold">
-                        <FileText className="h-4 w-4 text-accent" /> Job Description Matching
+                        <FileText className="h-4 w-4 text-accent" /> Job Description
                       </div>
                       <span className="text-xs text-muted-foreground">{jobDescription.length} characters</span>
                     </div>
@@ -631,7 +323,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                       <textarea
                         value={jobDescription}
                         onChange={(event) => setJobDescription(event.target.value)}
-                        placeholder="Paste the Job Description here to compare it with this exact resume..."
+                        placeholder="Paste the Job Description here…"
                         rows={8}
                         className="w-full resize-y rounded-2xl border border-border bg-background/50 p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30"
                       />
@@ -658,12 +350,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                               "Drop a PDF, DOCX, or TXT job description here"
                             )}
                           </div>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => jdInputRef.current?.click()}
-                            className="rounded-xl border-border bg-background/40"
-                          >
+                          <Button type="button" variant="outline" onClick={() => jdInputRef.current?.click()} className="rounded-xl border-border bg-background/40">
                             <FileText className="h-4 w-4" /> Choose JD file
                           </Button>
                           <input
@@ -679,148 +366,103 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                             }}
                           />
                         </div>
-                        {jobDescription && (
-                          <details className="rounded-2xl border border-border bg-background/40 p-3 text-xs text-muted-foreground">
-                            <summary className="cursor-pointer text-foreground">Preview extracted JD text</summary>
-                            <pre className="mt-3 max-h-56 overflow-auto whitespace-pre-wrap leading-5">{jobDescription}</pre>
-                          </details>
-                        )}
                       </div>
                     )}
-                    <div className="mt-4 flex justify-end">
-                      <Button type="button" onClick={runAnalysis} disabled={analyzing} className="rounded-xl bg-gradient-to-r from-primary to-accent px-6 shadow-xl shadow-primary/25">
-                        {analyzing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                        {analyzing ? "Analyzing…" : "Analyze Match"}
+                  </GlassCard>
+
+                  <div className="flex items-center justify-end gap-3">
+                    <Button type="button" variant="outline" onClick={reset} className="rounded-xl border-border bg-background/40">
+                      <RotateCcw className="h-4 w-4" /> Reset
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={runAnalysis}
+                      disabled={!ready}
+                      className="rounded-xl bg-gradient-to-r from-primary to-accent px-6 shadow-xl shadow-primary/25"
+                    >
+                      <Sparkles className="h-4 w-4" /> Analyze Resume
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
+
+              {phase === "running" && (
+                <motion.div key="running" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto flex min-h-full max-w-2xl flex-col justify-center">
+                  <GlassCard>
+                    <div className="mb-6 flex items-center gap-3">
+                      <div className="rounded-xl border border-border bg-primary/10 p-2.5 text-primary">
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      </div>
+                      <div>
+                        <div className="text-xs uppercase tracking-widest text-muted-foreground">Running Pipeline</div>
+                        <h3 className="text-lg font-semibold">Analyzing candidate against role</h3>
+                      </div>
+                    </div>
+                    <ol className="space-y-3">
+                      {LOADING_STEPS.map((step, i) => {
+                        const done = i < activeStep;
+                        const current = i === activeStep;
+                        return (
+                          <motion.li
+                            key={step.key}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className={cn(
+                              "flex items-center gap-3 rounded-xl border px-4 py-3 transition-colors",
+                              done && "border-emerald-400/30 bg-emerald-500/5",
+                              current && "border-primary/40 bg-primary/5",
+                              !done && !current && "border-border bg-background/40",
+                            )}
+                          >
+                            <span
+                              className={cn(
+                                "flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-semibold",
+                                done && "border-emerald-400/40 bg-emerald-500/20 text-emerald-300",
+                                current && "border-primary/40 bg-primary/20 text-primary",
+                                !done && !current && "border-border text-muted-foreground",
+                              )}
+                            >
+                              {done ? (
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                              ) : current ? (
+                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                i + 1
+                              )}
+                            </span>
+                            <span className={cn("text-sm", done || current ? "text-foreground" : "text-muted-foreground")}>{step.label}</span>
+                          </motion.li>
+                        );
+                      })}
+                    </ol>
+                  </GlassCard>
+                </motion.div>
+              )}
+
+              {phase === "error" && (
+                <motion.div key="error" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto flex min-h-full max-w-xl flex-col justify-center">
+                  <GlassCard className="text-center">
+                    <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-rose-400/30 bg-rose-500/10 text-rose-300">
+                      <AlertTriangle className="h-6 w-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold">Pipeline stopped</h3>
+                    {failedStage && (
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Failed at stage: <span className="text-rose-300">{failedStage}</span>
+                      </p>
+                    )}
+                    {errorMessage && <p className="mt-3 text-sm text-foreground/90">{errorMessage}</p>}
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                      <Button type="button" variant="outline" onClick={reset} className="gap-2">
+                        <RotateCcw className="h-4 w-4" /> Start Over
+                      </Button>
+                      <Button type="button" onClick={retry} className="gap-2">
+                        <Sparkles className="h-4 w-4" /> Retry
                       </Button>
                     </div>
-                    {analyzing && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="mt-5 rounded-2xl border border-border bg-background/50 p-4"
-                      >
-                        <div className="mb-3 flex items-center gap-3">
-                          <div className="relative h-9 w-9">
-                            <span className="absolute inset-0 animate-ping rounded-full bg-accent/30" />
-                            <div className="relative grid h-9 w-9 place-items-center rounded-full bg-gradient-to-br from-primary to-accent">
-                              <Sparkles className="h-4 w-4 text-primary-foreground" />
-                            </div>
-                          </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">{analyzeStatus || "Analyzing your match"}</div>
-                            <div className="text-xs text-muted-foreground">TalentOS AI is comparing the resume against the JD…</div>
-                          </div>
-                          <div className="text-xs tabular-nums text-muted-foreground">{Math.round(analyzeProgress)}%</div>
-                        </div>
-                        <ProgressBar value={analyzeProgress} />
-                        <div className="mt-3 flex gap-1.5 overflow-hidden">
-                          {Array.from({ length: 16 }).map((_, i) => (
-                            <motion.span
-                              key={i}
-                              className="h-1 flex-1 rounded-full bg-accent/40"
-                              animate={{ opacity: [0.2, 1, 0.2] }}
-                              transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.06 }}
-                            />
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
                   </GlassCard>
-
-                  {analysis && (
-                    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                      <GlassCard>
-                        <div className="grid gap-6 lg:grid-cols-[auto_1fr] lg:items-center">
-                          <div className="flex justify-center">
-                            <ScoreCircle score={analysis.overallScore} />
-                          </div>
-                          <div>
-                            <div className="inline-flex rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
-                              {analysis.verdict}
-                            </div>
-                            <p className="mt-3 text-sm leading-6 text-muted-foreground">{analysis.summary}</p>
-                            <div className="mt-5 space-y-3">
-                              {(
-                                [
-                                  ["Technical Skills", analysis.scores.technicalSkills],
-                                  ["Experience", analysis.scores.experience],
-                                  ["Education", analysis.scores.education],
-                                  ["Communication", analysis.scores.communication],
-                                  ["Culture Fit", analysis.scores.cultureFit],
-                                ] as const
-                              ).map(([label, value]) => (
-                                <div key={label}>
-                                  <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                                    <span>{label}</span>
-                                    <span>{value}%</span>
-                                  </div>
-                                  <ProgressBar value={value} />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </GlassCard>
-
-                      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-                        <GlassCard>
-                          <div className="mb-3 text-sm font-semibold text-accent">Matching Skills</div>
-                          <div className="flex flex-wrap gap-2">{analysis.matchingSkills.map((skill) => <Chip key={skill} label={skill} variant="match" />)}</div>
-                        </GlassCard>
-                        <GlassCard>
-                          <div className="mb-3 text-sm font-semibold">Additional Skills</div>
-                          <div className="flex flex-wrap gap-2">{analysis.additionalSkills.map((skill) => <Chip key={skill} label={skill} variant="extra" />)}</div>
-                        </GlassCard>
-                        <GlassCard>
-                          <div className="mb-3 text-sm font-semibold text-destructive-foreground">Missing JD Signals</div>
-                          <div className="flex flex-wrap gap-2">{analysis.missingSkills.map((skill) => <Chip key={skill} label={skill} variant="missing" />)}</div>
-                        </GlassCard>
-                      </div>
-
-                      <GlassCard>
-                        <div className="mb-4 flex items-center gap-2 text-sm font-semibold">
-                          <TrendingUp className="h-4 w-4 text-accent" /> Recruiter Insights
-                        </div>
-                        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                          <TextListCard icon={CheckCircle2} title="Strengths" items={analysis.strengths} />
-                          <TextListCard icon={AlertTriangle} title="Gaps" items={analysis.weaknesses} />
-                          <TextListCard icon={Sparkles} title="Resume Improvements" items={analysis.resumeImprovements} />
-                        </div>
-                        <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 p-4">
-                          <div className="text-xs font-medium uppercase tracking-widest text-accent">Hiring Recommendation</div>
-                          <p className="mt-1 text-sm text-foreground">{analysis.hiringRecommendation}</p>
-                        </div>
-                      </GlassCard>
-
-                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-                        <Collapsible title="Technical Questions" icon={Cpu} items={analysis.interviewQuestions.technical} />
-                        <Collapsible title="HR Questions" icon={Users} items={analysis.interviewQuestions.hr} />
-                        <Collapsible title="Scenario Questions" icon={Sparkles} items={analysis.interviewQuestions.scenario} />
-                      </div>
-                    </motion.div>
-                  )}
-
-                  <GlassCard>
-                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <div className="text-sm font-semibold">Export parsed results</div>
-                        <div className="text-xs text-muted-foreground">Copy, download, or share the extracted resume details.</div>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <Button type="button" variant="outline" onClick={downloadReport} disabled={downloading} className="rounded-xl border-border bg-background/35">
-                          {downloading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-                          {downloading ? "Preparing…" : "Download PDF"}
-                        </Button>
-                        <Button type="button" variant="outline" onClick={copyReport} className="rounded-xl border-border bg-background/35">
-                          <Copy className="h-4 w-4" /> Copy
-                        </Button>
-                        <Button type="button" onClick={shareReport} className="rounded-xl bg-gradient-to-r from-primary to-accent">
-                          <Share2 className="h-4 w-4" /> Share
-                        </Button>
-                      </div>
-                    </div>
-                  </GlassCard>
-                </div>
+                </motion.div>
               )}
             </div>
           </motion.div>
