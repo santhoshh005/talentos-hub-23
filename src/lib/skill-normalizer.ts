@@ -479,7 +479,6 @@ const CANONICAL_ALIASES: Record<string, string> = {
   "business analysis": "Business Analysis",
   "change management": "Change Management",
   "supply chain": "Supply Chain",
-  "talent acquisition": "Talent Acquisition",
   "full stack": "Full Stack Development",
   "full stack development": "Full Stack Development",
   "full-stack": "Full Stack Development",
