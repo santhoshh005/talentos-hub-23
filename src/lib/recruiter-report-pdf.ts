@@ -564,7 +564,135 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
 }
 
 export function downloadRecruiterReportPdf(result: PipelineResult): void {
-  const pdf = generateRecruiterReportPdf(result);
   if (!result.ok) return;
+  void downloadRecruiterReportSnapshot(result);
+}
+
+/**
+ * Snapshot-mode export: captures the on-screen Recruiter Report exactly as
+ * rendered (colors, tables, evidence, pipeline) and paginates it into a
+ * clean A4 PDF with a branded header on every page. Uses html2canvas-pro
+ * so modern CSS color functions (oklch, color-mix) render correctly.
+ */
+export async function downloadRecruiterReportSnapshot(result: PipelineResult): Promise<void> {
+  if (!result.ok) return;
+  const root = document.getElementById("recruiter-report-root") as HTMLElement | null;
+  if (!root) {
+    // Fallback to legacy programmatic PDF if the DOM node isn't mounted.
+    const pdf = generateRecruiterReportPdf(result);
+    pdf.save(buildRecruiterReportFileName(result.resume.name));
+    return;
+  }
+
+  const { default: html2canvas } = await import("html2canvas-pro");
+
+  // Render the report canvas at a fixed pixel width so text scales
+  // predictably in the PDF (slightly smaller than screen for a neater feel).
+  const RENDER_WIDTH = 1120;
+  const canvas = await html2canvas(root, {
+    backgroundColor: "#020617",
+    scale: 2,
+    useCORS: true,
+    windowWidth: RENDER_WIDTH,
+    width: RENDER_WIDTH,
+  });
+
+  // Compute child section boundaries (in captured-canvas pixels) so page
+  // breaks fall between sections instead of slicing rows.
+  const rootRect = root.getBoundingClientRect();
+  const pxPerUnit = canvas.height / rootRect.height;
+  const boundaries: number[] = [];
+  Array.from(root.children).forEach((child) => {
+    const r = (child as HTMLElement).getBoundingClientRect();
+    boundaries.push((r.top - rootRect.top) * pxPerUnit);
+    boundaries.push((r.bottom - rootRect.top) * pxPerUnit);
+  });
+  boundaries.push(canvas.height);
+  const sortedBounds = Array.from(new Set(boundaries.map((n) => Math.round(n)))).sort((a, b) => a - b);
+
+  const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
+  const PW = 210;
+  const PH = 297;
+  const MARGIN_X = 8;
+  const HEADER_H = 12;
+  const FOOTER_H = 8;
+  const contentW = PW - MARGIN_X * 2;
+  const contentH = PH - HEADER_H - FOOTER_H - 4;
+  const pxPerMm = canvas.width / contentW;
+  const pagePxH = Math.floor(contentH * pxPerMm);
+
+  const pages: Array<{ startPx: number; endPx: number }> = [];
+  let cursor = 0;
+  while (cursor < canvas.height) {
+    const idealEnd = cursor + pagePxH;
+    if (idealEnd >= canvas.height) {
+      pages.push({ startPx: cursor, endPx: canvas.height });
+      break;
+    }
+    // Snap to the last section boundary that fits on this page and lies
+    // past a minimum fill threshold so we don't produce near-empty pages.
+    const minEnd = cursor + pagePxH * 0.55;
+    let snap = idealEnd;
+    for (let i = sortedBounds.length - 1; i >= 0; i--) {
+      const b = sortedBounds[i];
+      if (b <= idealEnd && b >= minEnd && b > cursor) {
+        snap = b;
+        break;
+      }
+    }
+    pages.push({ startPx: cursor, endPx: snap });
+    cursor = snap;
+  }
+
+  const candidateName = result.resume.name || "Candidate";
+  const generatedAt = new Date();
+
+  pages.forEach((page, idx) => {
+    if (idx > 0) pdf.addPage();
+    // Branded header band
+    const [r, g, b] = hexToRgb("#0F172A");
+    pdf.setFillColor(r, g, b);
+    pdf.rect(0, 0, PW, HEADER_H, "F");
+    const [ar, ag, ab] = hexToRgb("#38BDF8");
+    pdf.setFillColor(ar, ag, ab);
+    pdf.circle(MARGIN_X + 2.2, HEADER_H / 2, 1.8, "F");
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("TalentOS", MARGIN_X + 6.5, HEADER_H / 2 + 0.6, { baseline: "middle" });
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8);
+    pdf.setTextColor(148, 163, 184);
+    pdf.text("Recruiter Intelligence Report", MARGIN_X + 24, HEADER_H / 2 + 0.6, { baseline: "middle" });
+    pdf.setTextColor(226, 232, 240);
+    pdf.text(candidateName, PW - MARGIN_X, HEADER_H / 2 + 0.6, { align: "right", baseline: "middle" });
+
+    // Slice this page's portion of the canvas
+    const sliceH = page.endPx - page.startPx;
+    const slice = document.createElement("canvas");
+    slice.width = canvas.width;
+    slice.height = sliceH;
+    const sctx = slice.getContext("2d")!;
+    sctx.fillStyle = "#020617";
+    sctx.fillRect(0, 0, slice.width, slice.height);
+    sctx.drawImage(canvas, 0, page.startPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
+    const imgH = (sliceH / canvas.width) * contentW;
+    pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", MARGIN_X, HEADER_H + 2, contentW, imgH, undefined, "FAST");
+
+    // Footer
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.15);
+    pdf.line(MARGIN_X, PH - FOOTER_H + 1, PW - MARGIN_X, PH - FOOTER_H + 1);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(120, 130, 150);
+    pdf.text(`Generated ${generatedAt.toLocaleString()}`, MARGIN_X, PH - 3);
+    pdf.text(`Page ${idx + 1} of ${pages.length}`, PW - MARGIN_X, PH - 3, { align: "right" });
+  });
+
   pdf.save(buildRecruiterReportFileName(result.resume.name));
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 }
