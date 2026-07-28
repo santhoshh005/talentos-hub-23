@@ -24,6 +24,13 @@ export const ParsedResumeSchema = z.object({
   projects: z.array(z.string()),
   certifications: z.array(z.string()),
   technologies: z.array(z.string()),
+  currentDesignation: z.string().default("Not Found"),
+  relevantExperience: z.string().default("Not Found"),
+  employmentHistory: z.array(z.string()).default([]),
+  educationHistory: z.array(z.string()).default([]),
+  tools: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+  noticePeriod: z.string().default("Not Found"),
 });
 
 export type ParsedResumeData = z.infer<typeof ParsedResumeSchema>;
@@ -71,21 +78,63 @@ const SECTION_HEADERS = [
   "summary",
   "profile",
   "objective",
+  "professional summary",
+  "career summary",
+  "career objective",
+  "about me",
   "experience",
   "work experience",
   "professional experience",
+  "industry experience",
+  "industrial experience",
+  "career history",
+  "work history",
+  "employment history",
   "employment",
   "education",
+  "academic background",
+  "academic qualifications",
+  "qualifications",
+  "educational qualifications",
   "skills",
   "technical skills",
   "core skills",
+  "core competencies",
+  "competencies",
+  "key skills",
+  "professional skills",
+  "functional skills",
+  "areas of expertise",
+  "expertise",
+  "domain expertise",
+  "specializations",
+  "proficiencies",
+  "technical proficiencies",
   "tools",
+  "tools & technologies",
+  "tools and technologies",
+  "software",
+  "platforms",
   "technologies",
   "projects",
+  "key projects",
+  "major projects",
+  "academic projects",
+  "personal projects",
+  "assignments",
   "certifications",
   "certificates",
+  "licenses",
+  "trainings",
   "achievements",
+  "accomplishments",
   "awards",
+  "publications",
+  "languages",
+  "languages known",
+  "hobbies",
+  "interests",
+  "references",
 ];
 
 const KNOWN_TECHNOLOGIES = [
@@ -135,7 +184,7 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
   const resumeText = normalizeText(data.resumeText);
   const local = parseResumeLocally(resumeText);
   const key = process.env.LOVABLE_API_KEY;
-  if (!key) return local;
+  if (!key) return finalizeNotFound(local);
 
   try {
     const gateway = createLovableAiGatewayProvider(key);
@@ -145,30 +194,80 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
       messages: [
         {
           role: "system",
-          content:
-            "You are a deterministic resume parser. Extract only text explicitly present in the resume. Never invent, infer, reuse sample data, or add placeholders. Return only valid JSON.",
+          content: [
+            "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
+            "IT, Talent Acquisition, HR, Finance, Banking, Accounting, Sales, Marketing, Healthcare, Pharma,",
+            "Manufacturing, Mechanical / Civil / Electrical / Electronics / Embedded / Automotive / Aerospace",
+            "engineering, Legal, Operations, Customer Support, Freshers, and Executive profiles.",
+            "",
+            "Understand the MEANING and STRUCTURE of the resume — never rely on hard-coded keywords.",
+            "Section titles vary wildly (Technical Skills / Core Competencies / Areas of Expertise /",
+            "Professional Skills / Functional Skills / Proficiencies): treat them as the same 'skills' bucket.",
+            "Extract every value ONLY from what the candidate wrote. Never invent, guess, translate,",
+            "reuse sample data, or add placeholders.",
+            "Return ONLY valid JSON — no prose, no markdown fences.",
+          ].join(" "),
         },
         {
           role: "user",
-          content: `Return one JSON object with exactly these keys: name, email, phone, location, experience, currentCompany, skills, education, projects, certifications, technologies.
+          content: `Return ONE JSON object with EXACTLY these keys:
 
-Rules:
-- Copy values exactly from the resume when possible.
-- Empty unknown scalar fields must be "".
-- Empty unknown list fields must be [].
-- List entries must be exact skills/projects/certifications/technologies found in the resume.
-- Do not include markdown fences.
+{
+  "name": string,                 // Full name of the candidate
+  "email": string,
+  "phone": string,                // Include country code if present
+  "location": string,             // Current city / state / country
+  "currentDesignation": string,   // Latest job title / role
+  "currentCompany": string,       // Latest employer
+  "experience": string,           // Total experience e.g. "6.5 years"
+  "relevantExperience": string,   // Relevant experience if explicitly mentioned
+  "noticePeriod": string,         // e.g. "30 days", "Immediate", "Serving notice"
+  "education": string,            // Highest / most recent qualification on one line
+  "educationHistory": string[],   // Every education entry, newest first: "Degree — Institution (Year)"
+  "employmentHistory": string[],  // Every job: "Designation — Company (Duration)". Newest first.
+  "skills": string[],             // Unified from Skills / Core Competencies / Expertise / Proficiencies
+  "tools": string[],              // Software / platforms / instruments the candidate uses
+  "technologies": string[],       // Technologies / frameworks / stacks
+  "projects": string[],           // "Project Name — Role — Technologies — Responsibilities" (one per project)
+  "certifications": string[],     // Every certification / license / training
+  "languages": string[]           // Spoken languages
+}
+
+STRICT RULES:
+1. Copy values EXACTLY as they appear in the resume. Preserve original casing where reasonable.
+2. If a scalar value is not present, return the string "Not Found" (never "", never null, never guessed).
+3. If a list has no entries, return [].
+4. Merge synonymous sections into their unified bucket (e.g. "Core Competencies" -> skills).
+5. For employmentHistory / educationHistory / projects, extract EVERY entry — do not stop at 2 or 3.
+6. Never include markdown, commentary, or code fences. Return the raw JSON object only.
 
 RESUME TEXT:
 ${resumeText.slice(0, 28000)}`,
         },
       ],
     });
-    return mergeParsedResume(parseJsonObject(text), local, resumeText);
+    return finalizeNotFound(mergeParsedResume(parseJsonObject(text), local, resumeText));
   } catch (error) {
     console.error("[TalentOS resume parser] AI extraction failed; using deterministic extraction.", error);
-    return local;
+    return finalizeNotFound(local);
   }
+}
+
+function finalizeNotFound(parsed: ParsedResumeData): ParsedResumeData {
+  const scalar = (v: string) => (v && v.trim() ? v.trim() : "Not Found");
+  return {
+    ...parsed,
+    name: scalar(parsed.name),
+    email: scalar(parsed.email),
+    phone: scalar(parsed.phone),
+    location: scalar(parsed.location),
+    experience: scalar(parsed.experience),
+    currentCompany: scalar(parsed.currentCompany),
+    education: scalar(parsed.education),
+    currentDesignation: scalar(parsed.currentDesignation ?? ""),
+    relevantExperience: scalar(parsed.relevantExperience ?? ""),
+    noticePeriod: scalar(parsed.noticePeriod ?? ""),
+  };
 }
 
 export async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysis> {
@@ -233,6 +332,15 @@ function parseResumeLocally(rawText: string): ParsedResumeData {
     projects,
     certifications,
     technologies,
+    currentDesignation: extractCurrentDesignation(experienceLines),
+    relevantExperience: extractRelevantExperience(text),
+    employmentHistory: extractEmploymentHistory(experienceLines),
+    educationHistory: educationLines.slice(0, 8),
+    tools: extractSectionItems(lines, ["tools", "tools & technologies", "tools and technologies", "software", "platforms"], 20).slice(0, 30),
+    languages: extractSectionItems(lines, ["languages", "languages known"], 12)
+      .flatMap((line) => splitList(line))
+      .slice(0, 12),
+    noticePeriod: extractNoticePeriod(text),
   });
 }
 
@@ -284,6 +392,33 @@ function extractCurrentCompany(experienceLines: string[]): string {
   return (atMatch ?? companyLine).replace(/^[-•]\s*/, "").slice(0, 90);
 }
 
+const DESIGNATION_HINTS = /\b(engineer|developer|manager|analyst|recruiter|specialist|consultant|architect|designer|lead|head|director|officer|executive|associate|coordinator|administrator|accountant|nurse|doctor|technician|operator|supervisor|assistant|intern|trainee|scientist|researcher|advisor|representative|agent|clerk|planner|strategist|marketer|salesperson|counsel|lawyer|paralegal|therapist|pharmacist|surveyor|inspector|foreman|principal|vp|vice president|cxo|ceo|cto|cfo|coo|chro)\b/i;
+
+function extractCurrentDesignation(experienceLines: string[]): string {
+  const line = experienceLines.find((entry) => DESIGNATION_HINTS.test(entry));
+  if (!line) return "";
+  return line.split(/\bat\b|@|,|—|–|-|\|/i)[0].replace(/^[-•]\s*/, "").trim().slice(0, 80);
+}
+
+function extractEmploymentHistory(experienceLines: string[]): string[] {
+  return experienceLines
+    .filter((line) => DESIGNATION_HINTS.test(line) || /\b(19|20)\d{2}\b/.test(line))
+    .map((line) => line.replace(/^[-•]\s*/, "").trim())
+    .slice(0, 12);
+}
+
+function extractRelevantExperience(text: string): string {
+  return text.match(/relevant\s+experience[:\s-]*([^\n]{2,60})/i)?.[1]?.trim() ?? "";
+}
+
+function extractNoticePeriod(text: string): string {
+  return (
+    text.match(/notice\s*period[:\s-]*([^\n]{2,40})/i)?.[1]?.trim() ??
+    text.match(/\b(immediate(?:ly)?\s*(?:available|joiner)?|serving\s*notice|\d{1,3}\s*(?:days?|weeks?|months?)\s*notice)\b/i)?.[0]?.trim() ??
+    ""
+  );
+}
+
 function sectionText(lines: string[], headers: string[], limit: number): string {
   return extractSectionItems(lines, headers, limit).join("\n");
 }
@@ -330,27 +465,35 @@ function findKnownTerms(text: string, terms: string[]): string[] {
 
 function mergeParsedResume(aiValue: unknown, local: ParsedResumeData, resumeText: string): ParsedResumeData {
   const source = typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
-  const scalar = (key: keyof Omit<ParsedResumeData, "skills" | "projects" | "certifications" | "technologies">) => {
+  const looseScalarKeys = new Set(["experience", "relevantExperience", "noticePeriod", "currentDesignation"]);
+  const scalar = (key: string, fallback: string): string => {
     const value = cleanString(source[key]);
-    if (!value) return local[key];
-    if (key === "experience") return value;
-    return appearsInText(resumeText, value) ? value : local[key];
+    if (!value) return fallback;
+    if (looseScalarKeys.has(key)) return value;
+    return appearsInText(resumeText, value) ? value : fallback || value;
   };
-  const list = (key: "skills" | "projects" | "certifications" | "technologies") =>
-    unique([...local[key], ...toStringArray(source[key]).filter((item) => appearsInText(resumeText, item))]).slice(0, key === "projects" ? 12 : 40);
+  const list = (key: string, fallback: string[], limit: number): string[] =>
+    unique([...fallback, ...toStringArray(source[key])]).slice(0, limit);
 
   return ParsedResumeSchema.parse({
-    name: scalar("name"),
-    email: scalar("email") || local.email,
-    phone: scalar("phone") || local.phone,
-    location: scalar("location"),
-    experience: scalar("experience"),
-    currentCompany: scalar("currentCompany"),
-    skills: list("skills"),
-    education: scalar("education"),
-    projects: list("projects"),
-    certifications: list("certifications"),
-    technologies: list("technologies"),
+    name: scalar("name", local.name),
+    email: scalar("email", local.email) || local.email,
+    phone: scalar("phone", local.phone) || local.phone,
+    location: scalar("location", local.location),
+    experience: scalar("experience", local.experience),
+    currentCompany: scalar("currentCompany", local.currentCompany),
+    skills: list("skills", local.skills, 60),
+    education: scalar("education", local.education),
+    projects: list("projects", local.projects, 15),
+    certifications: list("certifications", local.certifications, 20),
+    technologies: list("technologies", local.technologies, 60),
+    currentDesignation: scalar("currentDesignation", local.currentDesignation ?? ""),
+    relevantExperience: scalar("relevantExperience", local.relevantExperience ?? ""),
+    employmentHistory: list("employmentHistory", local.employmentHistory ?? [], 15),
+    educationHistory: list("educationHistory", local.educationHistory ?? [], 10),
+    tools: list("tools", local.tools ?? [], 40),
+    languages: list("languages", local.languages ?? [], 12),
+    noticePeriod: scalar("noticePeriod", local.noticePeriod ?? ""),
   });
 }
 
