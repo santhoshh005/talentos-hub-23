@@ -35,7 +35,6 @@ export function BulkCandidateTable({
   onReset: () => void;
   onEditRecord: (id: string, patch: Partial<CandidateRecord>) => void;
   onAddFiles?: (files: File[]) => void;
-  onUpdateTemplate?: (patch: { columns: ClientTemplate["columns"] }) => void;
   onUpdateTemplate?: (patch: Partial<Pick<ClientTemplate, "columns" | "mismatchRuleSet">>) => void;
 }) {
   const [headerBg, setHeaderBg] = useState<string>(template.headerColor ?? DEFAULT_HEADER_COLOR);
