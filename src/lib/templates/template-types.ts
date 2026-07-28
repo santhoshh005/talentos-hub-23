@@ -20,14 +20,7 @@ export interface ClientTemplate {
   createdAt: number;
   updatedAt: number;
   export?: ExportSettings;
-  /** Hex color for the header row background in the exported Excel. */
-  headerColor?: string;
-  /** Hex color for the header row text in the exported Excel. */
-  headerTextColor?: string;
 }
-
-export const DEFAULT_HEADER_COLOR = "#0F172A";
-export const DEFAULT_HEADER_TEXT_COLOR = "#FFFFFF";
 
 export interface TemplateSummary {
   id: string;
