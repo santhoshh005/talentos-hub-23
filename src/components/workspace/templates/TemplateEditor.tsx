@@ -18,6 +18,7 @@ import { GripVertical, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
 import type { ClientTemplate, TemplateColumn } from "@/lib/templates/template-types";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
 
 function uid() {
   return `col_${Math.random().toString(36).slice(2, 9)}`;
@@ -37,6 +38,10 @@ export function TemplateEditor({
   const [notes, setNotes] = useState(template?.notes ?? "");
   const [sheetName, setSheetName] = useState(template?.export?.sheetName ?? "Candidates");
   const [columns, setColumns] = useState<TemplateColumn[]>(template?.columns ?? []);
+  const [headerColor, setHeaderColor] = useState(template?.headerColor ?? DEFAULT_HEADER_COLOR);
+  const [headerTextColor, setHeaderTextColor] = useState(
+    template?.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR,
+  );
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -77,6 +82,8 @@ export function TemplateEditor({
       notes: notes.trim(),
       columns,
       export: { sheetName: sheetName.trim() || "Candidates" },
+      headerColor,
+      headerTextColor,
     });
 
   return (
@@ -127,6 +134,50 @@ export function TemplateEditor({
           className="w-full resize-y rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
       </Field>
+
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Header style</h3>
+            <p className="text-xs text-muted-foreground">
+              Pick any color for the header row in the exported Excel.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setHeaderColor(DEFAULT_HEADER_COLOR);
+              setHeaderTextColor(DEFAULT_HEADER_TEXT_COLOR);
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            Reset
+          </button>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_minmax(0,1.2fr)]">
+          <ColorField label="Background" value={headerColor} onChange={setHeaderColor} />
+          <ColorField label="Text" value={headerTextColor} onChange={setHeaderTextColor} />
+          <div>
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+              Preview
+            </span>
+            <div
+              className="mt-1.5 overflow-hidden rounded-lg border border-white/10"
+              style={{ background: headerColor }}
+            >
+              <div
+                className="px-3 py-2 text-xs font-semibold tracking-wide"
+                style={{ color: headerTextColor }}
+              >
+                Candidate Name · Email · Mobile
+              </div>
+              <div className="bg-white/[0.03] px-3 py-2 text-xs text-muted-foreground">
+                Sample row
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
         <div className="flex items-center justify-between">
@@ -184,6 +235,39 @@ export function TemplateEditor({
         </DndContext>
       </div>
     </div>
+  );
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block">
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
+      <div className="mt-1.5 flex items-center gap-2">
+        <input
+          type="color"
+          value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
+          onChange={(e) => onChange(e.target.value.toUpperCase())}
+          className="h-9 w-12 cursor-pointer rounded-md border border-white/10 bg-transparent p-0"
+          aria-label={`${label} color picker`}
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="#0F172A"
+          className="w-full rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 font-mono text-xs uppercase outline-none focus:border-accent"
+        />
+      </div>
+    </label>
   );
 }
 
