@@ -13,25 +13,21 @@ import { parseCandidateText, mergeCandidate } from "@/lib/candidate-parse";
 import { CandidateRecordSchema } from "@/lib/candidate-schemas";
 import { useTemplates } from "@/lib/templates/use-templates";
 import type { ClientTemplate } from "@/lib/templates/template-types";
-import { CandidateUpload, AddResumesButton } from "./CandidateUpload";
+import { CandidateUpload } from "./CandidateUpload";
 import { CandidateWorkspaceSkeleton } from "./CandidateWorkspaceSkeleton";
 import { CandidateSnapshot } from "./CandidateSnapshot";
 import { CandidateRecordEditor } from "./CandidateRecordEditor";
 import { CandidateCompleteness } from "./CandidateCompleteness";
 import { TemplateSelector } from "./TemplateSelector";
 import { ExportPreview } from "./ExportPreview";
-import { extractResumeText } from "@/lib/resume-extract";
-import { BulkCandidateTable, type BulkItem } from "./BulkCandidateTable";
 
-type Phase = "upload" | "extracting" | "snapshot" | "edit" | "bulk";
+type Phase = "upload" | "extracting" | "snapshot" | "edit";
 
-const BULK_CONCURRENCY = 3;
 const STORAGE_KEY = "talentos:candidate-workspace:v1";
 
 interface PersistedState {
   phase: Phase;
   record: CandidateRecord;
-  bulkItems: BulkItem[];
   selectedTemplateId?: string;
 }
 
@@ -40,14 +36,14 @@ function loadPersisted(): PersistedState | null {
   try {
     const raw = window.sessionStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedState;
-    // Any in-flight items no longer have their File; mark as failed so recruiter can re-upload.
-    const bulkItems = (parsed.bulkItems ?? []).map((i) =>
-      i.status === "done" || i.status === "failed"
-        ? i
-        : { ...i, status: "failed" as const, error: "Interrupted — re-upload to retry" },
-    );
-    return { ...parsed, bulkItems };
+    const parsed = JSON.parse(raw) as Partial<PersistedState> & { phase?: string };
+    const record = CandidateRecordSchema.parse(parsed.record ?? {});
+    const phase: Phase = parsed.phase === "snapshot" || parsed.phase === "edit"
+      ? parsed.phase
+      : record.fullName
+      ? "snapshot"
+      : "upload";
+    return { phase, record, selectedTemplateId: parsed.selectedTemplateId };
   } catch {
     return null;
   }
@@ -81,7 +77,6 @@ export function CandidateWorkspace() {
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(
     initial.current?.selectedTemplateId,
   );
-  const [bulkItems, setBulkItems] = useState<BulkItem[]>(initial.current?.bulkItems ?? []);
 
   // Preselect first template once available
   useEffect(() => {
@@ -90,14 +85,14 @@ export function CandidateWorkspace() {
     }
   }, [templates, selectedTemplateId]);
 
-  // Persist workspace state so navigating to Templates and back does not wipe the batch.
+  // Persist the single-candidate workspace so navigating to Templates and back keeps the parsed record.
   useEffect(() => {
-    if (phase === "upload" && bulkItems.length === 0 && !record.fullName) {
+    if (phase === "upload" && !record.fullName) {
       clearPersisted();
       return;
     }
-    savePersisted({ phase, record, bulkItems, selectedTemplateId });
-  }, [phase, record, bulkItems, selectedTemplateId]);
+    savePersisted({ phase, record, selectedTemplateId });
+  }, [phase, record, selectedTemplateId]);
 
   const onExtracted = useCallback(
     async (resumeText: string) => {
@@ -129,7 +124,6 @@ export function CandidateWorkspace() {
 
   const reset = () => {
     setRecord(emptyCandidateRecord());
-    setBulkItems([]);
     setPhase("upload");
     clearPersisted();
   };
@@ -143,110 +137,6 @@ export function CandidateWorkspace() {
     repo.markRecent(t.id);
   };
 
-  const patchBulkItem = useCallback(
-    (id: string, patch: Partial<BulkItem>) =>
-      setBulkItems((items) => items.map((i) => (i.id === id ? { ...i, ...patch } : i))),
-    [],
-  );
-
-  const editBulkRecord = useCallback(
-    (id: string, patch: Partial<CandidateRecord>) =>
-      setBulkItems((items) =>
-        items.map((i) => (i.id === id ? { ...i, record: { ...i.record, ...patch } } : i)),
-      ),
-    [],
-  );
-
-  const processFiles = useCallback(
-    async (pairs: { item: BulkItem; file: File }[]) => {
-      const processOne = async (item: BulkItem, file: File) => {
-        try {
-          patchBulkItem(item.id, { status: "parsing" });
-          const text = await extractResumeText(file);
-          patchBulkItem(item.id, { status: "extracting" });
-          const seed = parseCandidateText(text);
-          const optimistic = CandidateRecordSchema.parse(mergeCandidate(seed, {}));
-          patchBulkItem(item.id, { record: optimistic });
-          try {
-            const next = await extract({ data: { resumeText: text, seed } });
-            patchBulkItem(item.id, { record: next, status: "done" });
-          } catch (err) {
-            console.error(err);
-            patchBulkItem(item.id, {
-              status: "done",
-              record: optimistic,
-              error: "AI extraction failed — using parsed fields",
-            });
-          }
-        } catch (err) {
-          console.error(err);
-          patchBulkItem(item.id, {
-            status: "failed",
-            error: err instanceof Error ? err.message : "Could not read resume",
-          });
-        }
-      };
-      const queue = [...pairs];
-      const workers = Array.from({ length: Math.min(BULK_CONCURRENCY, queue.length) }, async () => {
-        while (queue.length) {
-          const next = queue.shift();
-          if (!next) return;
-          await processOne(next.item, next.file);
-        }
-      });
-      await Promise.all(workers);
-    },
-    [extract, patchBulkItem],
-  );
-
-  const seedFrom = (files: File[]): BulkItem[] =>
-    files.map((f, idx) => ({
-      id: `${Date.now()}_${idx}_${f.name}`,
-      fileName: f.name,
-      status: "queued",
-      record: emptyCandidateRecord(),
-    }));
-
-  const runBulk = useCallback(
-    async (files: File[]) => {
-      const seeded = seedFrom(files);
-      setBulkItems(seeded);
-      setPhase("bulk");
-      await processFiles(seeded.map((item, idx) => ({ item, file: files[idx] })));
-      toast.success("Bulk extraction complete");
-    },
-    [processFiles],
-  );
-
-  const appendBulk = useCallback(
-    async (files: File[]) => {
-      const seeded = seedFrom(files);
-      setBulkItems((items) => [...items, ...seeded]);
-      setPhase("bulk");
-      await processFiles(seeded.map((item, idx) => ({ item, file: files[idx] })));
-      toast.success(`Added ${files.length} resume${files.length === 1 ? "" : "s"}`);
-    },
-    [processFiles],
-  );
-
-  const promoteAndAppend = useCallback(
-    async (files: File[]) => {
-      // Convert current single record into first bulk item, then append and process new files.
-      const singleItem: BulkItem = {
-        id: `${Date.now()}_single`,
-        fileName: record.fullName ? `${record.fullName}.pdf` : "Current candidate",
-        status: "done",
-        record,
-      };
-      const seeded = seedFrom(files);
-      setBulkItems([singleItem, ...seeded]);
-      setPhase("bulk");
-      await processFiles(seeded.map((item, idx) => ({ item, file: files[idx] })));
-      toast.success(`Added ${files.length} resume${files.length === 1 ? "" : "s"}`);
-    },
-    [processFiles, record],
-  );
-
   return (
     <div className="space-y-6">
       <AnimatePresence mode="wait">
@@ -257,40 +147,13 @@ export function CandidateWorkspace() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
           >
-            <CandidateUpload
-              busy={false}
-              onExtracted={(text) => void onExtracted(text)}
-              onBulk={(files) => void runBulk(files)}
-            />
+            <CandidateUpload busy={false} onExtracted={(text) => void onExtracted(text)} />
           </motion.div>
         )}
 
         {phase === "extracting" && (
           <motion.div key="extracting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <CandidateWorkspaceSkeleton />
-          </motion.div>
-        )}
-
-        {phase === "bulk" && selectedTemplate && (
-          <motion.div
-            key="bulk"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className="space-y-4"
-          >
-            <TemplateSelector selectedId={selectedTemplateId} onSelect={selectTemplate} />
-            <BulkCandidateTable
-              items={bulkItems}
-              template={selectedTemplate}
-              onReset={reset}
-              onEditRecord={editBulkRecord}
-              onAddFiles={(files) => void appendBulk(files)}
-              onUpdateTemplate={(patch) => {
-                repo.update(selectedTemplate.id, patch);
-                toast.success("Template updated");
-              }}
-            />
           </motion.div>
         )}
 
@@ -306,7 +169,6 @@ export function CandidateWorkspace() {
               record={record}
               onContinue={() => setPhase("edit")}
               onReset={reset}
-              onAddMore={(files) => void promoteAndAppend(files)}
             />
             {selectedTemplate && (
               <ExportPreview
@@ -332,7 +194,6 @@ export function CandidateWorkspace() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold tracking-tight">Editable candidate record</h2>
                 <div className="flex gap-2">
-                  <AddResumesButton onFiles={(files) => void promoteAndAppend(files)} />
                   <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
                     <RotateCcw className="h-4 w-4" /> Start over
                   </Button>

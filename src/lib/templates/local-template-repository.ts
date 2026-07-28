@@ -3,6 +3,7 @@ import { DEFAULT_MISMATCH_RULE_SET, normalizeMismatchRuleSet } from "./template-
 import type { CreateTemplateInput, TemplateRepository } from "./template-repository";
 import { seedTemplates } from "./seed-templates";
 import { countMismatches } from "./column-diagnostics";
+import { suggestFieldKeyForLabel } from "./excel-import";
 
 const STORE_KEY = "talentos:templates:v1";
 const RECENT_KEY = "talentos:templates:recent:v1";
@@ -24,10 +25,16 @@ function safeParse<T>(raw: string | null, fallback: T): T {
 
 function normalizeTemplate(template: ClientTemplate): ClientTemplate {
   const mismatchRuleSet = normalizeMismatchRuleSet(template.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET);
+  const columns = template.columns.map((column) => {
+    if (!column.fieldKey || column.fieldKey.startsWith("__")) return column;
+    const suggested = suggestFieldKeyForLabel(column.label, "conservative-client");
+    return suggested && suggested !== column.fieldKey ? { ...column, fieldKey: suggested } : column;
+  });
   return {
     ...template,
+    columns,
     mismatchRuleSet,
-    needsReview: countMismatches(template.columns, mismatchRuleSet) > 0,
+    needsReview: countMismatches(columns, mismatchRuleSet) > 0,
   };
 }
 

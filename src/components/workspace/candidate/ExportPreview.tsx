@@ -20,12 +20,11 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import type { ClientTemplate } from "@/lib/templates/template-types";
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR, MISMATCH_RULE_SETS, normalizeMismatchRuleSet, type MismatchRuleSetId } from "@/lib/templates/template-types";
-import { buildPreviewRow, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
+import { buildPreviewRow, effectiveTemplateFieldKey, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
-import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
-import { diagnoseColumn, describeField, applyColumnFixes } from "@/lib/templates/column-diagnostics";
-import { AlertTriangle, Wand2 } from "lucide-react";
+import { CANDIDATE_FIELDS, candidateFieldValue } from "@/lib/candidate-schemas";
+import { describeField } from "@/lib/templates/column-diagnostics";
 
 export function ExportPreview({
   record,
@@ -34,7 +33,7 @@ export function ExportPreview({
 }: {
   record: CandidateRecord;
   template: ClientTemplate;
-  onUpdateTemplate?: (patch: Partial<Pick<ClientTemplate, "columns" | "mismatchRuleSet">>) => void;
+  onUpdateTemplate?: (patch: Partial<Pick<ClientTemplate, "columns">>) => void;
 }) {
   const initial = useMemo(() => buildPreviewRow(record, template), [record, template]);
   // Rows carry a fieldKey so we can show the source-field caption and remap inline.
@@ -43,7 +42,7 @@ export function ExportPreview({
     () =>
       initial.map((r) => {
         const col = template.columns.find((c) => c.id === r.columnId);
-        return { ...r, fieldKey: col?.fieldKey ?? "__custom" };
+        return { ...r, fieldKey: col ? effectiveTemplateFieldKey(col) : "__custom" };
       }),
     [initial, template.columns],
   );
@@ -53,13 +52,11 @@ export function ExportPreview({
     template.headerColor ?? DEFAULT_HEADER_COLOR,
   );
   const [exporting, setExporting] = useState<null | "xlsx" | "csv">(null);
-  const [dismissedBanner, setDismissedBanner] = useState(false);
 
   useEffect(() => {
     setRows(initialRows);
     setHidden(new Set());
     setHeaderBgOverride(template.headerColor ?? DEFAULT_HEADER_COLOR);
-    setDismissedBanner(false);
   }, [initialRows, template.headerColor]);
 
   const updateValue = (i: number, v: string) =>
@@ -73,8 +70,7 @@ export function ExportPreview({
         const next = { ...r, fieldKey: key };
         // Repull value from the record when remapping to a real field.
         if (!key.startsWith("__")) {
-          const col = template.columns.find((c) => c.id === r.columnId);
-          if (col) next.value = buildPreviewRow(record, { ...template, columns: [{ ...col, fieldKey: key }] })[0]?.value ?? next.value;
+          next.value = candidateFieldValue(record, key);
         }
         return next;
       }),
@@ -93,7 +89,6 @@ export function ExportPreview({
   const reset = () => {
     setRows(initialRows);
     setHidden(new Set());
-    setDismissedBanner(false);
   };
   const toggleHidden = (id: string) =>
     setHidden((h) => {
@@ -117,38 +112,6 @@ export function ExportPreview({
   const previewRows: PreviewRow[] = visibleRows.map((r) => ({ ...r, value: display(r.value) }));
   const headerBg = headerBgOverride;
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
-  const mismatchRuleSet = normalizeMismatchRuleSet(template.mismatchRuleSet);
-  const diagnostics = useMemo(() => rows.map((r) => diagnoseColumn(r, mismatchRuleSet)), [rows, mismatchRuleSet]);
-  const mismatchCount = diagnostics.filter((d) => d.mismatch).length;
-
-  const updateMismatchRuleSet = (next: MismatchRuleSetId) => {
-    setDismissedBanner(false);
-    onUpdateTemplate?.({ mismatchRuleSet: next });
-  };
-
-  const fixAllMismatches = () => {
-    const { columns: fixedRows, fixed } = applyColumnFixes(rows, mismatchRuleSet);
-    if (!fixed) return;
-    // Repull values for rows whose fieldKey changed, using the same logic as updateFieldKey.
-    const nextRows: Row[] = fixedRows.map((r, i) => {
-      const prev = rows[i];
-      if (prev.fieldKey === r.fieldKey || r.fieldKey.startsWith("__")) return { ...prev, ...r };
-      const col = template.columns.find((c) => c.id === prev.columnId);
-      const nextValue = col
-        ? buildPreviewRow(record, { ...template, columns: [{ ...col, fieldKey: r.fieldKey }] })[0]?.value ?? prev.value
-        : prev.value;
-      return { ...prev, fieldKey: r.fieldKey, value: nextValue };
-    });
-    setRows(nextRows);
-    if (onUpdateTemplate) {
-      const nextCols = template.columns.map((c) => {
-        const nr = nextRows.find((r) => r.columnId === c.id);
-        return nr ? { ...c, fieldKey: nr.fieldKey } : c;
-      });
-      onUpdateTemplate({ columns: nextCols });
-    }
-    toast.success(`Fixed ${fixed} column${fixed === 1 ? "" : "s"}`);
-  };
 
   const persistFieldKeys = () => {
     if (!onUpdateTemplate) return;
@@ -196,11 +159,6 @@ export function ExportPreview({
           </p>
         </div>
         <div className="flex gap-2">
-          <MismatchRuleSetControl
-            value={mismatchRuleSet}
-            onChange={updateMismatchRuleSet}
-            disabled={!onUpdateTemplate}
-          />
           <HeaderColorControl value={headerBg} onChange={setHeaderBgOverride} />
           <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
             <RotateCcw className="h-4 w-4" /> Reset
@@ -218,32 +176,6 @@ export function ExportPreview({
           </Button>
         </div>
       </div>
-
-      {mismatchCount > 0 && !dismissedBanner && (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
-          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-          <div className="flex-1">
-            <div className="font-semibold">
-              {mismatchCount} column{mismatchCount === 1 ? "" : "s"} may be reading the wrong field.
-            </div>
-            <div className="text-amber-200/80">
-              The header label doesn't match the source data. Use the column-order panel to remap.
-              {onUpdateTemplate ? " Changes here can be saved back to the template." : ""}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={fixAllMismatches}
-            className="flex items-center gap-1 rounded-md bg-amber-400/20 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-amber-100 hover:bg-amber-400/30"
-            title="Apply the recommended field mapping to every mismatched column"
-          >
-            <Wand2 className="h-3 w-3" /> Fix all
-          </button>
-          <button type="button" onClick={() => setDismissedBanner(true)} className="rounded px-1 text-amber-200/80 hover:text-amber-100">
-            Dismiss
-          </button>
-        </div>
-      )}
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
         {/* Column rearranger */}
@@ -281,7 +213,6 @@ export function ExportPreview({
                     id={r.columnId}
                     label={r.label}
                     fieldKey={r.fieldKey}
-                    diagnostic={diagnostics[i]}
                     hidden={hidden.has(r.columnId)}
                     onLabelChange={(v) => updateLabel(i, v)}
                     onFieldKeyChange={(k) => updateFieldKey(i, k)}
@@ -301,7 +232,6 @@ export function ExportPreview({
               <tr className="border-b border-white/10" style={{ background: headerBg }}>
                 {previewRows.map((r) => {
                   const row = rows.find((x) => x.columnId === r.columnId);
-                  const d = row ? diagnoseColumn(row, mismatchRuleSet) : undefined;
                   return (
                     <th
                       key={r.columnId}
@@ -309,9 +239,9 @@ export function ExportPreview({
                       style={{ color: headerFg }}
                     >
                       <div>{r.label}</div>
-                      {d && (
-                        <div className={`mt-0.5 text-[9px] font-normal normal-case tracking-normal ${d.mismatch ? "text-amber-200" : "opacity-70"}`}>
-                          from: {d.sourceCaption}
+                      {row && (
+                        <div className="mt-0.5 text-[9px] font-normal normal-case tracking-normal opacity-70">
+                          from: {describeField(row.fieldKey)}
                         </div>
                       )}
                     </th>
@@ -348,43 +278,10 @@ export function ExportPreview({
   );
 }
 
-export function MismatchRuleSetControl({
-  value,
-  onChange,
-  disabled,
-}: {
-  value: MismatchRuleSetId;
-  onChange: (v: MismatchRuleSetId) => void;
-  disabled?: boolean;
-}) {
-  return (
-    <label
-      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground"
-      title="Template-specific mismatch behavior for Fix all"
-    >
-      <span className="hidden sm:inline">Mismatch</span>
-      <select
-        value={value}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.value as MismatchRuleSetId)}
-        className="max-w-44 rounded border border-white/10 bg-background px-1.5 py-1 text-[10px] text-foreground outline-none focus:border-accent disabled:opacity-60"
-        aria-label="Mismatch rule set"
-      >
-        {MISMATCH_RULE_SETS.map((rule) => (
-          <option key={rule.id} value={rule.id} className="bg-background">
-            {rule.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function SortableRow({
   id,
   label,
   fieldKey,
-  diagnostic,
   hidden,
   onLabelChange,
   onFieldKeyChange,
@@ -394,7 +291,6 @@ function SortableRow({
   id: string;
   label: string;
   fieldKey: string;
-  diagnostic?: ReturnType<typeof diagnoseColumn>;
   hidden: boolean;
   onLabelChange: (v: string) => void;
   onFieldKeyChange: (k: string) => void;
@@ -413,9 +309,7 @@ function SortableRow({
       ref={setNodeRef}
       style={style}
       className={`flex flex-col gap-1 rounded-lg border px-2 py-1.5 ${
-        diagnostic?.mismatch
-          ? "border-amber-400/40 bg-amber-500/[0.06]"
-          : "border-white/5 " + (hidden ? "bg-white/[0.01] opacity-60" : "bg-white/[0.03]")
+        "border-white/5 " + (hidden ? "bg-white/[0.01] opacity-60" : "bg-white/[0.03]")
       }`}
     >
       <div className="flex items-center gap-1.5">
@@ -455,9 +349,7 @@ function SortableRow({
         <select
           value={currentValue}
           onChange={(e) => onFieldKeyChange(e.target.value)}
-          className={`flex-1 rounded border bg-transparent px-1 py-0.5 text-[10px] outline-none focus:border-accent ${
-            diagnostic?.mismatch ? "border-amber-400/50 text-amber-100" : "border-white/10 text-muted-foreground"
-          }`}
+          className="flex-1 rounded border border-white/10 bg-transparent px-1 py-0.5 text-[10px] text-muted-foreground outline-none focus:border-accent"
         >
           {CANDIDATE_FIELDS.map((f) => (
             <option key={f.key} value={f.key} className="bg-background">
@@ -466,16 +358,6 @@ function SortableRow({
           ))}
           <option value="__custom" className="bg-background">Custom (no field)</option>
         </select>
-        {diagnostic?.mismatch && diagnostic.suggestedKey && (
-          <button
-            type="button"
-            onClick={() => onFieldKeyChange(diagnostic.suggestedKey!)}
-            className="rounded bg-amber-400/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-amber-100 hover:bg-amber-400/30"
-            title={`Map to ${diagnostic.suggestedLabel}`}
-          >
-            Map → {diagnostic.suggestedLabel}
-          </button>
-        )}
       </div>
     </li>
   );

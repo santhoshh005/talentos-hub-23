@@ -2,11 +2,18 @@ import type { CandidateRecord } from "./candidate-schemas";
 import { candidateFieldValue } from "./candidate-schemas";
 import type { ClientTemplate, TemplateColumn } from "./templates/template-types";
 import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "./templates/template-types";
+import { suggestFieldKeyForLabel } from "./templates/excel-import";
+
+export function effectiveTemplateFieldKey(col: Pick<TemplateColumn, "fieldKey" | "label">): string {
+  if (!col.fieldKey || col.fieldKey.startsWith("__")) return col.fieldKey;
+  return suggestFieldKeyForLabel(col.label, "conservative-client") ?? col.fieldKey;
+}
 
 function resolveCellValue(record: CandidateRecord, col: TemplateColumn): string {
   if (col.hidden) return "";
-  if (col.fieldKey.startsWith("__")) return col.defaultValue ?? "";
-  const value = candidateFieldValue(record, col.fieldKey);
+  const fieldKey = effectiveTemplateFieldKey(col);
+  if (!fieldKey || fieldKey.startsWith("__")) return col.defaultValue ?? "";
+  const value = candidateFieldValue(record, fieldKey);
   return value || col.defaultValue || "";
 }
 
@@ -104,34 +111,6 @@ function applyHeaderStyle(
     const cell = sheet[addr];
     if (cell) cell.s = style;
   }
-}
-
-/**
- * Export multiple candidate records into one .xlsx using the given template.
- * Header row uses the template's chosen header color.
- */
-export async function exportBulkXlsx(
-  records: CandidateRecord[],
-  template: ClientTemplate,
-  overrideRowsPerRecord?: PreviewRow[][],
-  headerColorOverride?: string,
-): Promise<void> {
-  const XLSX = await loadXlsx();
-  const perRecord = overrideRowsPerRecord ?? records.map((r) => buildPreviewRow(r, template));
-  const first = perRecord[0] ?? buildPreviewRow(records[0] ?? ({} as CandidateRecord), template);
-  const header = first.map((r) => r.label);
-  const dataRows = perRecord.map((row) => row.map((c) => c.value));
-  const aoa: string[][] = [header, ...dataRows];
-  const sheet = XLSX.utils.aoa_to_sheet(aoa);
-  applyHeaderStyle(XLSX, sheet, header.length, template, headerColorOverride);
-  sheet["!cols"] = header.map((h, i) => {
-    const maxLen = Math.max(h.length, ...dataRows.map((r) => (r[i] ?? "").length));
-    return { wch: Math.min(48, Math.max(14, maxLen + 2)) };
-  });
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, sheet, template.export?.sheetName || "Candidates");
-  const name = `candidates-${slug(template.name)}-${records.length}-${timestamp()}.xlsx`;
-  XLSX.writeFile(wb, name);
 }
 
 export async function exportToCsv(
