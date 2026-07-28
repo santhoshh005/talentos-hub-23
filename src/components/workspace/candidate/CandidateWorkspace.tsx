@@ -305,7 +305,14 @@ export function CandidateWorkspace() {
               onAddMore={(files) => void promoteAndAppend(files)}
             />
             {selectedTemplate && (
-              <ExportPreview record={record} template={selectedTemplate} />
+              <ExportPreview
+                record={record}
+                template={selectedTemplate}
+                onUpdateTemplate={(patch) => {
+                  repo.update(selectedTemplate.id, patch);
+                  toast.success("Template updated");
+                }}
+              />
             )}
           </motion.div>
         )}
@@ -337,7 +344,14 @@ export function CandidateWorkspace() {
 
             {selectedTemplate && (
               <div className="lg:col-span-2">
-                <ExportPreview record={record} template={selectedTemplate} />
+                <ExportPreview
+                  record={record}
+                  template={selectedTemplate}
+                  onUpdateTemplate={(patch) => {
+                    repo.update(selectedTemplate.id, patch);
+                    toast.success("Template updated");
+                  }}
+                />
               </div>
             )}
           </motion.div>
