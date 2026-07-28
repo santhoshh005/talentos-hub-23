@@ -1,16 +1,18 @@
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { RotateCcw, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { extractCandidateRecord } from "@/lib/candidate-extract.functions";
-import {
-  emptyCandidateRecord,
-  type CandidateRecord,
-} from "@/lib/candidate-schemas";
+import type { CandidateRecord } from "@/lib/candidate-schemas";
 import { parseCandidateText, mergeCandidate } from "@/lib/candidate-parse";
 import { CandidateRecordSchema } from "@/lib/candidate-schemas";
+import {
+  clearCandidateState,
+  setCandidateState,
+  useCandidateState,
+} from "@/lib/candidate-store";
 import { CandidateUpload } from "./CandidateUpload";
 import { CandidateWorkspaceSkeleton } from "./CandidateWorkspaceSkeleton";
 import { CandidateSnapshot } from "./CandidateSnapshot";
@@ -18,31 +20,27 @@ import { CandidateRecordEditor } from "./CandidateRecordEditor";
 import { CandidateCompleteness } from "./CandidateCompleteness";
 import { ExportPreview } from "./ExportPreview";
 
-type Phase = "upload" | "extracting" | "snapshot" | "edit";
-
 export function CandidateWorkspace() {
   const extract = useServerFn(extractCandidateRecord);
-
-  const [phase, setPhase] = useState<Phase>("upload");
-  const [record, setRecord] = useState<CandidateRecord>(emptyCandidateRecord());
+  const { phase, record } = useCandidateState();
 
   const onExtracted = useCallback(
     async (resumeText: string) => {
-      setPhase("extracting");
+      setCandidateState({ phase: "extracting" });
 
       // Deterministic parse first — recruiter sees something even if LLM fails.
       const seed = parseCandidateText(resumeText);
       const optimistic = CandidateRecordSchema.parse(mergeCandidate(seed, {}));
-      setRecord(optimistic);
+      setCandidateState({ record: optimistic });
 
       try {
         const next = await extract({ data: { resumeText, seed } });
-        setRecord(next);
-        setTimeout(() => setPhase("snapshot"), 350);
+        setCandidateState({ record: next });
+        setTimeout(() => setCandidateState({ phase: "snapshot" }), 350);
       } catch (err) {
         console.error(err);
         toast.error("AI extraction failed. Showing parsed fields — edit anything before export.");
-        setPhase("snapshot");
+        setCandidateState({ phase: "snapshot" });
       }
     },
     [extract],
@@ -50,14 +48,11 @@ export function CandidateWorkspace() {
 
   const update = useCallback(
     <K extends keyof CandidateRecord>(key: K, value: CandidateRecord[K]) =>
-      setRecord((r) => ({ ...r, [key]: value })),
-    [],
+      setCandidateState({ record: { ...record, [key]: value } }),
+    [record],
   );
 
-  const reset = () => {
-    setRecord(emptyCandidateRecord());
-    setPhase("upload");
-  };
+  const reset = () => clearCandidateState();
 
   return (
     <div className="space-y-6">
@@ -90,7 +85,11 @@ export function CandidateWorkspace() {
             exit={{ opacity: 0 }}
             className="space-y-6"
           >
-            <CandidateSnapshot record={record} onContinue={() => setPhase("edit")} onReset={reset} />
+            <CandidateSnapshot
+              record={record}
+              onContinue={() => setCandidateState({ phase: "edit" })}
+              onReset={reset}
+            />
             <ExportPreview record={record} />
           </motion.div>
         )}
