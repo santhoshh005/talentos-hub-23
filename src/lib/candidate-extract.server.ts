@@ -2,11 +2,13 @@ import { generateText } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
 import { CandidateRecordSchema, type CandidateRecord } from "./candidate-schemas";
+import { mergeCandidate } from "./candidate-parse";
 
 const MODEL = "google/gemini-3.6-flash";
 
 export const CandidateExtractInputSchema = z.object({
   resumeText: z.string().min(20, "Resume text is too short"),
+  seed: z.record(z.string(), z.unknown()).optional(),
 });
 
 const SYSTEM = [
@@ -60,9 +62,16 @@ RESUME TEXT:
 ${resumeText.slice(0, 28000)}`;
 }
 
-export async function runExtractCandidate(resumeText: string): Promise<CandidateRecord> {
+export async function runExtractCandidate(
+  resumeText: string,
+  seed?: Partial<CandidateRecord>,
+): Promise<CandidateRecord> {
+  const seedRecord = seed ?? {};
+  const seedMerged = (llm: Partial<CandidateRecord>): CandidateRecord =>
+    CandidateRecordSchema.parse(mergeCandidate(llm, seedRecord));
+
   const key = process.env.LOVABLE_API_KEY;
-  if (!key) return CandidateRecordSchema.parse({});
+  if (!key) return seedMerged({});
   const gateway = createLovableAiGatewayProvider(key);
   const model = gateway(MODEL);
 
@@ -75,7 +84,7 @@ export async function runExtractCandidate(resumeText: string): Promise<Candidate
         { role: "user", content: buildPrompt(resumeText.trim()) },
       ],
     });
-    return coerce(parseJsonObject(text));
+    return seedMerged(coerce(parseJsonObject(text)));
   };
 
   try {
@@ -86,16 +95,16 @@ export async function runExtractCandidate(resumeText: string): Promise<Candidate
       return await call();
     } catch (err2) {
       console.error("[candidate-extract] failed twice", err2);
-      return CandidateRecordSchema.parse({});
+      return seedMerged({});
     }
   }
 }
 
-function coerce(raw: unknown): CandidateRecord {
+function coerce(raw: unknown): Partial<CandidateRecord> {
   // Zod schema is fully defaulted, but sanitize obvious nulls first.
   const safe = walkNullToEmpty(raw);
   const parsed = CandidateRecordSchema.safeParse(safe);
-  return parsed.success ? parsed.data : CandidateRecordSchema.parse({});
+  return parsed.success ? parsed.data : {};
 }
 
 function walkNullToEmpty(value: unknown): unknown {

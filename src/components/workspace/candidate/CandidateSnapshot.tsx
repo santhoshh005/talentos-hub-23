@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { ArrowRight, Building2, MapPin, Sparkles, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
+import { display } from "@/lib/candidate-display";
 
 export function CandidateSnapshot({
   record,
@@ -36,9 +37,9 @@ export function CandidateSnapshot({
         </div>
 
         <dl className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <Stat icon={Building2} label="Current company" value={record.currentCompany} />
-          <Stat icon={User} label="Email" value={record.email} />
-          <Stat icon={MapPin} label="Location" value={record.currentLocation} />
+          <Stat icon={Building2} label="Current company" value={display(record.currentCompany)} />
+          <Stat icon={User} label="Email" value={display(record.email)} />
+          <Stat icon={MapPin} label="Location" value={display(record.currentLocation)} />
         </dl>
 
         {skills.length > 0 && (
@@ -96,7 +97,7 @@ function Stat({
       <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
         <Icon className="h-3.5 w-3.5" /> {label}
       </div>
-      <div className="mt-1 text-sm text-foreground/90">{value || "—"}</div>
+      <div className="mt-1 text-sm text-foreground/90">{value || "NA"}</div>
     </div>
   );
 }

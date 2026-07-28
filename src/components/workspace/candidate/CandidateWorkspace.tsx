@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -9,10 +9,12 @@ import {
   emptyCandidateRecord,
   type CandidateRecord,
 } from "@/lib/candidate-schemas";
+import { parseCandidateText, mergeCandidate } from "@/lib/candidate-parse";
+import { CandidateRecordSchema } from "@/lib/candidate-schemas";
 import { useTemplates } from "@/lib/templates/use-templates";
 import type { ClientTemplate } from "@/lib/templates/template-types";
 import { CandidateUpload } from "./CandidateUpload";
-import { CandidateExtractionProgress } from "./CandidateExtractionProgress";
+import { CandidateWorkspaceSkeleton } from "./CandidateWorkspaceSkeleton";
 import { CandidateSnapshot } from "./CandidateSnapshot";
 import { CandidateRecordEditor } from "./CandidateRecordEditor";
 import { CandidateCompleteness } from "./CandidateCompleteness";
@@ -27,18 +29,7 @@ export function CandidateWorkspace() {
 
   const [phase, setPhase] = useState<Phase>("upload");
   const [record, setRecord] = useState<CandidateRecord>(emptyCandidateRecord());
-  const [activeStep, setActiveStep] = useState(0);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
-  const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const clearTimer = () => {
-    if (stepTimerRef.current) {
-      clearInterval(stepTimerRef.current);
-      stepTimerRef.current = null;
-    }
-  };
-
-  useEffect(() => () => clearTimer(), []);
 
   // Preselect first template once available
   useEffect(() => {
@@ -50,24 +41,20 @@ export function CandidateWorkspace() {
   const onExtracted = useCallback(
     async (resumeText: string) => {
       setPhase("extracting");
-      setActiveStep(0);
-      clearTimer();
-      stepTimerRef.current = setInterval(() => {
-        setActiveStep((s) => (s < 3 ? s + 1 : s));
-      }, 800);
+
+      // Deterministic parse first — recruiter sees something even if LLM fails.
+      const seed = parseCandidateText(resumeText);
+      const optimistic = CandidateRecordSchema.parse(mergeCandidate(seed, {}));
+      setRecord(optimistic);
 
       try {
-        const next = await extract({ data: { resumeText } });
-        clearTimer();
-        setActiveStep(4);
+        const next = await extract({ data: { resumeText, seed } });
         setRecord(next);
         setTimeout(() => setPhase("snapshot"), 350);
       } catch (err) {
-        clearTimer();
         console.error(err);
-        toast.error("Extraction failed. You can still edit fields manually.");
-        setRecord(emptyCandidateRecord());
-        setPhase("edit");
+        toast.error("AI extraction failed. Showing parsed fields — edit anything before export.");
+        setPhase("snapshot");
       }
     },
     [extract],
@@ -112,13 +99,22 @@ export function CandidateWorkspace() {
 
         {phase === "extracting" && (
           <motion.div key="extracting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <CandidateExtractionProgress activeStep={activeStep} />
+            <CandidateWorkspaceSkeleton />
           </motion.div>
         )}
 
         {phase === "snapshot" && (
-          <motion.div key="snapshot" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+          <motion.div
+            key="snapshot"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="space-y-6"
+          >
             <CandidateSnapshot record={record} onContinue={() => setPhase("edit")} onReset={reset} />
+            {selectedTemplate && (
+              <ExportPreview record={record} template={selectedTemplate} />
+            )}
           </motion.div>
         )}
 

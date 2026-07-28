@@ -10,5 +10,8 @@ export type { CandidateRecord };
 export const extractCandidateRecord = createServerFn({ method: "POST" })
   .inputValidator((data: unknown) => CandidateExtractInputSchema.parse(data))
   .handler(async ({ data }): Promise<CandidateRecord> => {
-    return runExtractCandidate(data.resumeText);
+    return runExtractCandidate(
+      data.resumeText,
+      data.seed as Partial<CandidateRecord> | undefined,
+    );
   });
