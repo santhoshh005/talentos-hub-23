@@ -271,3 +271,31 @@ function SortableRow({
     </li>
   );
 }
+
+export function HeaderColorControl({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label
+      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground"
+      title="Header background color (preview + export)"
+    >
+      <span className="hidden sm:inline">Header</span>
+      <span
+        className="inline-block h-4 w-4 rounded border border-white/20"
+        style={{ background: value }}
+      />
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0"
+        aria-label="Header background color"
+      />
+    </label>
+  );
+}
