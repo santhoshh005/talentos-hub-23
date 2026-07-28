@@ -12,6 +12,7 @@ import type { MatchingResult } from "./matching-engine";
 import type { SkillEvidence } from "./evidence-engine";
 import type { ScoringResult } from "./scoring-engine";
 import { extractYearsFromExperience, seniorityFromYears } from "./token-sanitizer";
+import type { ParsedJDV3, ParsedResumeV3 } from "./intelligence-schemas";
 
 export type SkillCategory =
   | "Frontend" | "Backend" | "Cloud" | "DevOps" | "Data" | "AI/ML"
@@ -146,16 +147,27 @@ export interface RecruiterIntelligenceInput {
   matching: MatchingResult;
   evidence: SkillEvidence[];
   scoring: ScoringResult;
+  resumeV3?: ParsedResumeV3;
+  jdV3?: ParsedJDV3;
 }
 
 export function buildRecruiterIntelligence(input: RecruiterIntelligenceInput): RecruiterIntelligence {
-  const { resume, jd, matching, evidence, scoring } = input;
+  const { resume, jd, matching, evidence, scoring, resumeV3, jdV3 } = input;
 
-  const candidateYears = extractYearsFromExperience(resume.experience);
-  const requiredYears = parseRequiredYears(jd.experienceRequired);
+  const candidateYears = resumeV3 && resumeV3.totalYears > 0
+    ? resumeV3.totalYears
+    : extractYearsFromExperience(resume.experience);
+  const requiredYears = jdV3 && (jdV3.minYears > 0 || jdV3.maxYears > 0)
+    ? { min: jdV3.minYears || jdV3.maxYears, max: jdV3.maxYears || jdV3.minYears + 3 }
+    : parseRequiredYears(jd.experienceRequired);
   const alignment = computeAlignment(candidateYears, requiredYears);
-  const inferredSeniorityCandidate = seniorityFromYears(candidateYears);
-  const inferredDomain = inferDomain(jd, resume);
+  const inferredSeniorityCandidate =
+    (resumeV3?.inferredSeniority && resumeV3.inferredSeniority.trim()) ||
+    seniorityFromYears(candidateYears);
+  const inferredDomain =
+    (jdV3?.domain && jdV3.domain.trim()) ||
+    (resumeV3?.inferredDomain && resumeV3.inferredDomain.trim()) ||
+    inferDomain(jd, resume);
 
   const recommendation = recommendationFor(scoring.matchPercentage);
   const missingByCategory = groupByCategory(matching.missingSkills);
@@ -167,25 +179,31 @@ export function buildRecruiterIntelligence(input: RecruiterIntelligenceInput): R
     .sort((a, b) => (b.ev + b.confidence) - (a.ev + a.confidence));
 
   const strengths: string[] = [];
-  if (candidateYears > 0) {
+  if (resumeV3?.strengths && resumeV3.strengths.length > 0) {
+    strengths.push(...resumeV3.strengths.slice(0, 6));
+  }
+  if (candidateYears > 0 && !strengths.some((s) => /years/i.test(s))) {
     strengths.push(`${candidateYears} years of overall experience — profile trends ${inferredSeniorityCandidate}.`);
   }
   const topSkills = strongMatches.slice(0, 5).map((m) => m.skill);
-  if (topSkills.length) {
+  if (topSkills.length && strengths.length < 6) {
     strengths.push(`Core skill overlap: ${topSkills.join(", ")}.`);
   }
   const evidencedSkills = strongMatches.filter((m) => m.ev >= 60).map((m) => m.skill).slice(0, 4);
-  if (evidencedSkills.length) {
+  if (evidencedSkills.length && strengths.length < 6) {
     strengths.push(`Deep evidence for ${evidencedSkills.join(", ")} across resume sections.`);
   }
-  if (alignment === "Aligned") {
+  if (alignment === "Aligned" && strengths.length < 6) {
     strengths.push(`Experience aligns with the JD's ${jd.experienceRequired} requirement.`);
   }
-  if (resume.certifications && resume.certifications.length > 0) {
+  if (resume.certifications && resume.certifications.length > 0 && strengths.length < 6) {
     strengths.push(`Holds ${resume.certifications.length} relevant certification${resume.certifications.length === 1 ? "" : "s"}.`);
   }
 
   const risks: string[] = [];
+  if (resumeV3?.risks && resumeV3.risks.length > 0) {
+    risks.push(...resumeV3.risks.slice(0, 4));
+  }
   if (matching.missingSkills.length > 0) {
     const topMissing = matching.missingSkills.slice(0, 5).join(", ");
     risks.push(`Missing ${matching.missingSkills.length} required skill${matching.missingSkills.length === 1 ? "" : "s"}: ${topMissing}${matching.missingSkills.length > 5 ? "…" : ""}.`);
@@ -208,13 +226,16 @@ export function buildRecruiterIntelligence(input: RecruiterIntelligenceInput): R
   const seniorityLabel =
     jd.seniorityLevel && jd.seniorityLevel !== "Not Found" ? jd.seniorityLevel : inferredSeniorityCandidate;
 
-  const summary = [
-    `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany}`,
-    candidateYears > 0 ? `with ${candidateYears} years of experience` : "with unspecified tenure",
-    `applying for a ${seniorityLabel} ${inferredDomain} role.`,
-    `Skill coverage: ${scoring.skillCoverage}% (${matching.similarity.matchedRequiredSkills}/${matching.similarity.totalRequiredSkills} required), evidence strength: ${scoring.evidenceScore}%.`,
-    `Overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`,
-  ].join(" ");
+  const llmSummary = resumeV3?.summary?.trim();
+  const summary = llmSummary
+    ? `${llmSummary} Skill coverage ${scoring.skillCoverage}% (${matching.similarity.matchedRequiredSkills}/${matching.similarity.totalRequiredSkills}), evidence ${scoring.evidenceScore}%, overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`
+    : [
+        `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany}`,
+        candidateYears > 0 ? `with ${candidateYears} years of experience` : "with unspecified tenure",
+        `applying for a ${seniorityLabel} ${inferredDomain} role.`,
+        `Skill coverage: ${scoring.skillCoverage}% (${matching.similarity.matchedRequiredSkills}/${matching.similarity.totalRequiredSkills} required), evidence strength: ${scoring.evidenceScore}%.`,
+        `Overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`,
+      ].join(" ");
 
   return {
     inferredDomain,
