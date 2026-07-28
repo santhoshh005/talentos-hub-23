@@ -41,8 +41,22 @@ export function ExportPreview({ record }: { record: CandidateRecord }) {
   const [customColor, setCustomColor] = useState<string>("#2563EB");
 
   useEffect(() => {
-    setRows(initial);
-    setHidden(new Set());
+    // Preserve user's column order, labels, custom columns, and hidden state
+    // across uploads. Only refresh values for known default columns from the
+    // newly extracted record; append any default columns that don't exist yet.
+    setRows((prev) => {
+      if (prev.length === 0) return initial;
+      const initialById = new Map(initial.map((r) => [r.columnId, r]));
+      const merged = prev.map((r) => {
+        const fresh = initialById.get(r.columnId);
+        return fresh ? { ...r, value: fresh.value } : r;
+      });
+      const existingIds = new Set(prev.map((r) => r.columnId));
+      for (const r of initial) {
+        if (!existingIds.has(r.columnId)) merged.push(r);
+      }
+      return merged;
+    });
   }, [initial]);
 
   const updateValue = (i: number, v: string) =>
