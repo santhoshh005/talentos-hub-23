@@ -1,6 +1,7 @@
 import { generateText } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { isCleanSkillToken } from "./token-sanitizer";
 
 // ---------------------------------------------------------------------------
 // JD Intelligence Engine
@@ -372,7 +373,7 @@ function isValidToken(value: string): boolean {
   if (IGNORED_HEADINGS.has(lower)) return false;
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount > 8 && /[.!?]$/.test(trimmed)) return false;
-  return true;
+  return isCleanSkillToken(trimmed);
 }
 
 function stripBullet(value: string): string {
