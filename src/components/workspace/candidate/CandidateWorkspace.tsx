@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -26,15 +26,62 @@ import { BulkCandidateTable, type BulkItem } from "./BulkCandidateTable";
 type Phase = "upload" | "extracting" | "snapshot" | "edit" | "bulk";
 
 const BULK_CONCURRENCY = 3;
+const STORAGE_KEY = "talentos:candidate-workspace:v1";
+
+interface PersistedState {
+  phase: Phase;
+  record: CandidateRecord;
+  bulkItems: BulkItem[];
+  selectedTemplateId?: string;
+}
+
+function loadPersisted(): PersistedState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as PersistedState;
+    // Any in-flight items no longer have their File; mark as failed so recruiter can re-upload.
+    const bulkItems = (parsed.bulkItems ?? []).map((i) =>
+      i.status === "done" || i.status === "failed"
+        ? i
+        : { ...i, status: "failed" as const, error: "Interrupted — re-upload to retry" },
+    );
+    return { ...parsed, bulkItems };
+  } catch {
+    return null;
+  }
+}
+
+function savePersisted(state: PersistedState) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* quota — ignore */
+  }
+}
+
+function clearPersisted() {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 export function CandidateWorkspace() {
   const extract = useServerFn(extractCandidateRecord);
   const { templates, repo } = useTemplates();
 
-  const [phase, setPhase] = useState<Phase>("upload");
-  const [record, setRecord] = useState<CandidateRecord>(emptyCandidateRecord());
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
-  const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
+  const initial = useRef<PersistedState | null>(loadPersisted());
+  const [phase, setPhase] = useState<Phase>(initial.current?.phase ?? "upload");
+  const [record, setRecord] = useState<CandidateRecord>(initial.current?.record ?? emptyCandidateRecord());
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(
+    initial.current?.selectedTemplateId,
+  );
+  const [bulkItems, setBulkItems] = useState<BulkItem[]>(initial.current?.bulkItems ?? []);
 
   // Preselect first template once available
   useEffect(() => {
@@ -42,6 +89,15 @@ export function CandidateWorkspace() {
       setSelectedTemplateId(templates[0].id);
     }
   }, [templates, selectedTemplateId]);
+
+  // Persist workspace state so navigating to Templates and back does not wipe the batch.
+  useEffect(() => {
+    if (phase === "upload" && bulkItems.length === 0 && !record.fullName) {
+      clearPersisted();
+      return;
+    }
+    savePersisted({ phase, record, bulkItems, selectedTemplateId });
+  }, [phase, record, bulkItems, selectedTemplateId]);
 
   const onExtracted = useCallback(
     async (resumeText: string) => {
@@ -75,6 +131,7 @@ export function CandidateWorkspace() {
     setRecord(emptyCandidateRecord());
     setBulkItems([]);
     setPhase("upload");
+    clearPersisted();
   };
 
   const selectedTemplate: ClientTemplate | undefined = templates.find(
@@ -100,17 +157,8 @@ export function CandidateWorkspace() {
     [],
   );
 
-  const runBulk = useCallback(
-    async (files: File[]) => {
-      const seeded: BulkItem[] = files.map((f, idx) => ({
-        id: `${Date.now()}_${idx}_${f.name}`,
-        fileName: f.name,
-        status: "queued",
-        record: emptyCandidateRecord(),
-      }));
-      setBulkItems(seeded);
-      setPhase("bulk");
-
+  const processFiles = useCallback(
+    async (pairs: { item: BulkItem; file: File }[]) => {
       const processOne = async (item: BulkItem, file: File) => {
         try {
           patchBulkItem(item.id, { status: "parsing" });
@@ -138,8 +186,7 @@ export function CandidateWorkspace() {
           });
         }
       };
-
-      const queue = seeded.map((item, idx) => ({ item, file: files[idx] }));
+      const queue = [...pairs];
       const workers = Array.from({ length: Math.min(BULK_CONCURRENCY, queue.length) }, async () => {
         while (queue.length) {
           const next = queue.shift();
@@ -148,9 +195,56 @@ export function CandidateWorkspace() {
         }
       });
       await Promise.all(workers);
-      toast.success("Bulk extraction complete");
     },
     [extract, patchBulkItem],
+  );
+
+  const seedFrom = (files: File[]): BulkItem[] =>
+    files.map((f, idx) => ({
+      id: `${Date.now()}_${idx}_${f.name}`,
+      fileName: f.name,
+      status: "queued",
+      record: emptyCandidateRecord(),
+    }));
+
+  const runBulk = useCallback(
+    async (files: File[]) => {
+      const seeded = seedFrom(files);
+      setBulkItems(seeded);
+      setPhase("bulk");
+      await processFiles(seeded.map((item, idx) => ({ item, file: files[idx] })));
+      toast.success("Bulk extraction complete");
+    },
+    [processFiles],
+  );
+
+  const appendBulk = useCallback(
+    async (files: File[]) => {
+      const seeded = seedFrom(files);
+      setBulkItems((items) => [...items, ...seeded]);
+      setPhase("bulk");
+      await processFiles(seeded.map((item, idx) => ({ item, file: files[idx] })));
+      toast.success(`Added ${files.length} resume${files.length === 1 ? "" : "s"}`);
+    },
+    [processFiles],
+  );
+
+  const promoteAndAppend = useCallback(
+    async (files: File[]) => {
+      // Convert current single record into first bulk item, then append and process new files.
+      const singleItem: BulkItem = {
+        id: `${Date.now()}_single`,
+        fileName: record.fullName ? `${record.fullName}.pdf` : "Current candidate",
+        status: "done",
+        record,
+      };
+      const seeded = seedFrom(files);
+      setBulkItems([singleItem, ...seeded]);
+      setPhase("bulk");
+      await processFiles(seeded.map((item, idx) => ({ item, file: files[idx] })));
+      toast.success(`Added ${files.length} resume${files.length === 1 ? "" : "s"}`);
+    },
+    [processFiles, record],
   );
 
   return (
@@ -191,6 +285,7 @@ export function CandidateWorkspace() {
               template={selectedTemplate}
               onReset={reset}
               onEditRecord={editBulkRecord}
+              onAddFiles={(files) => void appendBulk(files)}
             />
           </motion.div>
         )}
@@ -203,7 +298,12 @@ export function CandidateWorkspace() {
             exit={{ opacity: 0 }}
             className="space-y-6"
           >
-            <CandidateSnapshot record={record} onContinue={() => setPhase("edit")} onReset={reset} />
+            <CandidateSnapshot
+              record={record}
+              onContinue={() => setPhase("edit")}
+              onReset={reset}
+              onAddMore={(files) => void promoteAndAppend(files)}
+            />
             {selectedTemplate && (
               <ExportPreview record={record} template={selectedTemplate} />
             )}
@@ -220,9 +320,12 @@ export function CandidateWorkspace() {
             <div className="min-w-0 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold tracking-tight">Editable candidate record</h2>
-                <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
-                  <RotateCcw className="h-4 w-4" /> Start over
-                </Button>
+                <div className="flex gap-2">
+                  <AddMoreButton onAdd={(files) => void promoteAndAppend(files)} />
+                  <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+                    <RotateCcw className="h-4 w-4" /> Start over
+                  </Button>
+                </div>
               </div>
               <CandidateRecordEditor record={record} update={update} />
             </div>
