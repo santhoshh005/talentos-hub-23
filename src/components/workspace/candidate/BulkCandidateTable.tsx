@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, RotateCcw, Loader2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { Download, RotateCcw, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
+import { InlineSpinner } from "@/components/loader/InlineSpinner";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
@@ -34,6 +35,7 @@ export function BulkCandidateTable({
   onAddFiles?: (files: File[]) => void;
 }) {
   const [headerBg, setHeaderBg] = useState<string>(template.headerColor ?? DEFAULT_HEADER_COLOR);
+  const [exporting, setExporting] = useState(false);
   useEffect(() => {
     setHeaderBg(template.headerColor ?? DEFAULT_HEADER_COLOR);
   }, [template.headerColor]);
@@ -49,12 +51,15 @@ export function BulkCandidateTable({
   const header = rowsPerRecord[0]?.map((r) => r.label) ?? template.columns.filter((c) => !c.hidden).map((c) => c.label);
 
   const doExport = async () => {
+    setExporting(true);
     try {
       await exportBulkXlsx(doneItems.map((i) => i.record), template, rowsPerRecord, headerBg);
       toast.success(`Exported ${doneItems.length} candidate${doneItems.length === 1 ? "" : "s"}`);
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -91,10 +96,10 @@ export function BulkCandidateTable({
           <Button
             type="button"
             onClick={doExport}
-            disabled={stillWorking || doneItems.length === 0}
+            disabled={stillWorking || doneItems.length === 0 || exporting}
             className="rounded-lg bg-gradient-to-r from-primary to-accent shadow-2xl shadow-primary/30 disabled:opacity-50"
           >
-            <Download className="h-4 w-4" /> Export .xlsx ({doneItems.length})
+            {exporting ? <InlineSpinner context="export" /> : <Download className="h-4 w-4" />} Export .xlsx ({doneItems.length})
           </Button>
         </div>
       </div>
@@ -188,7 +193,7 @@ function StatusIcon({ status }: { status: BulkStatus }) {
   if (status === "done") return <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />;
   if (status === "failed") return <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />;
   if (status === "queued") return <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />;
-  return <Loader2 className="h-4 w-4 shrink-0 animate-spin text-accent" />;
+  return <InlineSpinner context="bulk-extract" className="shrink-0" />;
 }
 
 function StatusLabel({ status }: { status: BulkStatus }) {

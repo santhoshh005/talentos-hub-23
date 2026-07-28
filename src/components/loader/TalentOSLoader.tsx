@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { LoaderBackground } from "./LoaderBackground";
 import { LoaderLogo } from "./LoaderLogo";
+import { NeuralOrbit } from "./NeuralOrbit";
 import { LoadingMessageRotator } from "./LoadingMessageRotator";
 import { RecruitmentWorkflow } from "./RecruitmentWorkflow";
 import { LoaderProgress } from "./LoaderProgress";
@@ -67,6 +68,7 @@ export function TalentOSLoader({
         >
           <LoaderBackground />
           <div className="relative flex min-h-screen flex-col items-center justify-center gap-8 px-6">
+            <NeuralOrbit size="xl" variant="bare" context="first-visit" showMessages={false} />
             <LoaderLogo />
             <LoadingMessageRotator />
             <RecruitmentWorkflow progress={value} />
