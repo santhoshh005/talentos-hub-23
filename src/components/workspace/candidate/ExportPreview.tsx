@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, FileSpreadsheet, Trash2, Plus, GripVertical, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { InlineSpinner } from "@/components/loader/InlineSpinner";
 import {
   DndContext,
   PointerSensor,
@@ -36,6 +37,7 @@ export function ExportPreview({
   const [headerBgOverride, setHeaderBgOverride] = useState<string>(
     template.headerColor ?? DEFAULT_HEADER_COLOR,
   );
+  const [exporting, setExporting] = useState<null | "xlsx" | "csv">(null);
 
   useEffect(() => {
     setRows(initial);
@@ -85,21 +87,27 @@ export function ExportPreview({
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
 
   const doXlsx = async () => {
+    setExporting("xlsx");
     try {
       await exportToXlsx(record, template, visibleRows, headerBg);
       toast.success("Excel exported");
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
+    } finally {
+      setExporting(null);
     }
   };
   const doCsv = async () => {
+    setExporting("csv");
     try {
       await exportToCsv(record, template, visibleRows);
       toast.success("CSV exported");
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
+    } finally {
+      setExporting(null);
     }
   };
 
@@ -117,15 +125,16 @@ export function ExportPreview({
           <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
-          <Button type="button" variant="outline" onClick={doCsv} className="rounded-lg border-white/10 bg-white/[0.03]">
-            <FileSpreadsheet className="h-4 w-4" /> CSV
+          <Button type="button" variant="outline" onClick={doCsv} disabled={!!exporting} className="rounded-lg border-white/10 bg-white/[0.03]">
+            {exporting === "csv" ? <InlineSpinner context="export" /> : <FileSpreadsheet className="h-4 w-4" />} CSV
           </Button>
           <Button
             type="button"
             onClick={doXlsx}
+            disabled={!!exporting}
             className="rounded-lg bg-gradient-to-r from-primary to-accent shadow-2xl shadow-primary/30"
           >
-            <Download className="h-4 w-4" /> Export .xlsx
+            {exporting === "xlsx" ? <InlineSpinner context="export" /> : <Download className="h-4 w-4" />} Export .xlsx
           </Button>
         </div>
       </div>

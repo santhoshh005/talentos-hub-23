@@ -35,6 +35,7 @@ export function BulkCandidateTable({
   onAddFiles?: (files: File[]) => void;
 }) {
   const [headerBg, setHeaderBg] = useState<string>(template.headerColor ?? DEFAULT_HEADER_COLOR);
+  const [exporting, setExporting] = useState(false);
   useEffect(() => {
     setHeaderBg(template.headerColor ?? DEFAULT_HEADER_COLOR);
   }, [template.headerColor]);
@@ -50,12 +51,15 @@ export function BulkCandidateTable({
   const header = rowsPerRecord[0]?.map((r) => r.label) ?? template.columns.filter((c) => !c.hidden).map((c) => c.label);
 
   const doExport = async () => {
+    setExporting(true);
     try {
       await exportBulkXlsx(doneItems.map((i) => i.record), template, rowsPerRecord, headerBg);
       toast.success(`Exported ${doneItems.length} candidate${doneItems.length === 1 ? "" : "s"}`);
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -92,10 +96,10 @@ export function BulkCandidateTable({
           <Button
             type="button"
             onClick={doExport}
-            disabled={stillWorking || doneItems.length === 0}
+            disabled={stillWorking || doneItems.length === 0 || exporting}
             className="rounded-lg bg-gradient-to-r from-primary to-accent shadow-2xl shadow-primary/30 disabled:opacity-50"
           >
-            <Download className="h-4 w-4" /> Export .xlsx ({doneItems.length})
+            {exporting ? <InlineSpinner context="export" /> : <Download className="h-4 w-4" />} Export .xlsx ({doneItems.length})
           </Button>
         </div>
       </div>
