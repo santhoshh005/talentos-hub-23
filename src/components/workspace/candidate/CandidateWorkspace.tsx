@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -11,32 +11,20 @@ import {
 } from "@/lib/candidate-schemas";
 import { parseCandidateText, mergeCandidate } from "@/lib/candidate-parse";
 import { CandidateRecordSchema } from "@/lib/candidate-schemas";
-import { useTemplates } from "@/lib/templates/use-templates";
-import type { ClientTemplate } from "@/lib/templates/template-types";
 import { CandidateUpload } from "./CandidateUpload";
 import { CandidateWorkspaceSkeleton } from "./CandidateWorkspaceSkeleton";
 import { CandidateSnapshot } from "./CandidateSnapshot";
 import { CandidateRecordEditor } from "./CandidateRecordEditor";
 import { CandidateCompleteness } from "./CandidateCompleteness";
-import { TemplateSelector } from "./TemplateSelector";
 import { ExportPreview } from "./ExportPreview";
 
 type Phase = "upload" | "extracting" | "snapshot" | "edit";
 
 export function CandidateWorkspace() {
   const extract = useServerFn(extractCandidateRecord);
-  const { templates, repo } = useTemplates();
 
   const [phase, setPhase] = useState<Phase>("upload");
   const [record, setRecord] = useState<CandidateRecord>(emptyCandidateRecord());
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
-
-  // Preselect first template once available
-  useEffect(() => {
-    if (!selectedTemplateId && templates.length > 0) {
-      setSelectedTemplateId(templates[0].id);
-    }
-  }, [templates, selectedTemplateId]);
 
   const onExtracted = useCallback(
     async (resumeText: string) => {
@@ -71,15 +59,6 @@ export function CandidateWorkspace() {
     setPhase("upload");
   };
 
-  const selectedTemplate: ClientTemplate | undefined = templates.find(
-    (t) => t.id === selectedTemplateId,
-  );
-
-  const selectTemplate = (t: ClientTemplate) => {
-    setSelectedTemplateId(t.id);
-    repo.markRecent(t.id);
-  };
-
   return (
     <div className="space-y-6">
       <AnimatePresence mode="wait">
@@ -112,9 +91,7 @@ export function CandidateWorkspace() {
             className="space-y-6"
           >
             <CandidateSnapshot record={record} onContinue={() => setPhase("edit")} onReset={reset} />
-            {selectedTemplate && (
-              <ExportPreview record={record} template={selectedTemplate} />
-            )}
+            <ExportPreview record={record} />
           </motion.div>
         )}
 
@@ -137,14 +114,11 @@ export function CandidateWorkspace() {
 
             <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
               <CandidateCompleteness record={record} />
-              <TemplateSelector selectedId={selectedTemplateId} onSelect={selectTemplate} />
             </aside>
 
-            {selectedTemplate && (
-              <div className="lg:col-span-2">
-                <ExportPreview record={record} template={selectedTemplate} />
-              </div>
-            )}
+            <div className="lg:col-span-2">
+              <ExportPreview record={record} />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
