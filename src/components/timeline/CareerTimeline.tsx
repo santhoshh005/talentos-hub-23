@@ -1,6 +1,10 @@
 import { motion, useScroll, useSpring } from "framer-motion";
 import { useRef } from "react";
-import { Briefcase, TrendingUp, Code2, Rocket, ChevronDown } from "lucide-react";
+import { Briefcase, TrendingUp, Code2, Sparkles, ChevronDown, ExternalLink } from "lucide-react";
+import rubixeLogo from "@/assets/companies/rubixe.png.asset.json";
+import xevyteLogo from "@/assets/companies/xevyte.png.asset.json";
+import hardwinLogo from "@/assets/companies/hardwin.svg.asset.json";
+import talentosLogo from "@/assets/companies/talentos-ai.png";
 
 interface TimelineItem {
   id: string;
@@ -11,6 +15,8 @@ interface TimelineItem {
   icon: React.ElementType;
   color: string;
   glow: string;
+  logo?: string;
+  href?: string;
 }
 
 const timelineItems: TimelineItem[] = [
@@ -23,6 +29,8 @@ const timelineItems: TimelineItem[] = [
     icon: TrendingUp,
     color: "oklch(0.65 0.2 250)",
     glow: "shadow-[oklch(0.65_0.2_250)/0.4]",
+    logo: rubixeLogo.url,
+    href: "https://rubixe.com/",
   },
   {
     id: "xevyte",
@@ -33,16 +41,20 @@ const timelineItems: TimelineItem[] = [
     icon: Briefcase,
     color: "oklch(0.7 0.18 220)",
     glow: "shadow-[oklch(0.7_0.18_220)/0.4]",
+    logo: xevyteLogo.url,
+    href: "https://xevyte.com/",
   },
   {
     id: "hardwin",
     period: "Jul 2026 – Present",
     company: "Hardwin Software Solutions",
-    role: "Technical Recruiter",
+    role: "Talent Acquisition Specialist",
     description: "Leading specialized hiring for product and platform engineering teams. Focusing on high-growth startups, AI-driven sourcing, and recruiter workflow automation.",
     icon: Code2,
     color: "oklch(0.75 0.15 200)",
     glow: "shadow-[oklch(0.75_0.15_200)/0.4]",
+    logo: hardwinLogo.url,
+    href: "https://www.hardwinsoftware.com/",
   },
   {
     id: "future",
@@ -50,9 +62,10 @@ const timelineItems: TimelineItem[] = [
     company: "TalentOS",
     role: "Building AI Recruitment Products",
     description: "Combining recruitment expertise with AI to build tools that help recruiters generate JDs, analyze resumes, score candidates, and hire faster.",
-    icon: Rocket,
+    icon: Sparkles,
     color: "oklch(0.55 0.22 264)",
     glow: "shadow-[oklch(0.55_0.22_264)/0.5]",
+    logo: talentosLogo,
   },
 ];
 
