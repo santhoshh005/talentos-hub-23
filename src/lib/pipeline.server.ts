@@ -141,12 +141,9 @@ export const defaultPipelineStages: PipelineStage[] = [
       requireStage(ctx.resumeV3, "resumeParser");
       requireStage(ctx.jdV3, "jdIntelligence");
       requireStage(ctx.normalizedSkills, "skillNormalization");
-      ctx.semantic = await runSemanticMatch(ctx.resumeV3, ctx.jdV3);
-      ctx.matching = adaptSemanticToMatchingResult(
-        ctx.semantic,
-        ctx.resumeV3,
-        ctx.jdV3,
-      );
+      const semantic = await runSemanticMatch(ctx.resumeV3, ctx.jdV3);
+      ctx.semantic = semantic;
+      ctx.matching = adaptSemanticToMatchingResult(semantic, ctx.resumeV3, ctx.jdV3);
     },
   },
   {
