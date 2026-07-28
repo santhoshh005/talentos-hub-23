@@ -386,13 +386,73 @@ function extractExperience(text: string, experienceLines: string[]): string {
 }
 
 function extractCurrentCompany(experienceLines: string[]): string {
-  const companyLine = experienceLines.find((line) => /\b(?:at|@|company|technologies|software|solutions|systems|labs|pvt|ltd|inc)\b/i.test(line));
+  // 1) Try to split the first employment entry (newest first) on common
+  //    "Designation — Company (Duration)" separators.
+  const first = experienceLines[0];
+  if (first) {
+    const parts = first.split(/\s+(?:—|–|-|@|at|\|)\s+/i).map((p) => p.trim()).filter(Boolean);
+    for (const part of parts) {
+      if (looksLikeCompany(part)) return cleanCompany(part);
+    }
+  }
+  // 2) Known-company match anywhere in the experience section.
+  for (const line of experienceLines) {
+    const hit = KNOWN_COMPANIES.find((c) =>
+      new RegExp(`(^|\\W)${escapeRegExp(c)}(\\W|$)`, "i").test(line),
+    );
+    if (hit) return hit;
+  }
+  // 3) Legacy heuristic (at|@|suffix).
+  const companyLine = experienceLines.find((line) => COMPANY_SUFFIX_RE.test(line) || /\b(?:at|@)\b/i.test(line));
   if (!companyLine) return "";
   const atMatch = companyLine.match(/(?:at|@)\s+(.+)$/i)?.[1]?.trim();
-  return (atMatch ?? companyLine).replace(/^[-•]\s*/, "").slice(0, 90);
+  return cleanCompany(atMatch ?? companyLine);
 }
 
-const DESIGNATION_HINTS = /\b(engineer|developer|manager|analyst|recruiter|specialist|consultant|architect|designer|lead|head|director|officer|executive|associate|coordinator|administrator|accountant|nurse|doctor|technician|operator|supervisor|assistant|intern|trainee|scientist|researcher|advisor|representative|agent|clerk|planner|strategist|marketer|salesperson|counsel|lawyer|paralegal|therapist|pharmacist|surveyor|inspector|foreman|principal|vp|vice president|cxo|ceo|cto|cfo|coo|chro)\b/i;
+function looksLikeCompany(part: string): boolean {
+  const s = part.trim();
+  if (!s || s.length > 90) return false;
+  if (DESIGNATION_HINTS.test(s)) return false;
+  if (/\b(19|20)\d{2}\b/.test(s)) return false;
+  if (KNOWN_COMPANIES.some((c) => c.toLowerCase() === s.toLowerCase())) return true;
+  if (COMPANY_SUFFIX_RE.test(s)) return true;
+  // Title-cased 2–4 word proper noun with no lowercase-first-letter words.
+  const words = s.split(/\s+/);
+  if (words.length >= 1 && words.length <= 4 && words.every((w) => /^[A-Z][A-Za-z0-9&'.-]*$/.test(w))) return true;
+  return false;
+}
+
+function cleanCompany(v: string): string {
+  return v
+    .replace(/^[-•]\s*/, "")
+    .replace(/\([^)]*\)\s*$/, "")
+    .replace(/\b\d{4}\s*[-–to]+\s*(?:\d{4}|present|current)\b.*$/i, "")
+    .trim()
+    .slice(0, 90);
+}
+
+const DESIGNATION_HINTS = /\b(engineer|developer|manager|analyst|recruiter|sourcer|specialist|consultant|architect|designer|lead|head|director|officer|executive|associate|coordinator|administrator|accountant|controller|nurse|physician|surgeon|doctor|technician|operator|supervisor|assistant|intern|trainee|scientist|researcher|advisor|representative|agent|clerk|planner|strategist|marketer|salesperson|counsel|lawyer|paralegal|therapist|pharmacist|surveyor|inspector|foreman|principal|vp|vice president|cxo|ceo|cto|cfo|coo|chro|salesforce (?:developer|admin|administrator|consultant|architect|platform developer)|sap consultant|data (?:scientist|engineer|analyst)|devops|sre|platform engineer|product (?:manager|owner)|talent acquisition|financial analyst|mechanical|electrical|civil|design engineer|qa|sdet|automation engineer|security (?:analyst|engineer|architect))\b/i;
+
+// Deterministic company detection — used when the AI parser misses the field.
+const KNOWN_COMPANIES = [
+  "Accenture", "Infosys", "TCS", "Tata Consultancy Services", "Wipro",
+  "Cognizant", "Capgemini", "Deloitte", "IBM", "HCL", "HCLTech",
+  "Tech Mahindra", "LTIMindtree", "L&T Infotech", "Persistent", "Mphasis",
+  "Amazon", "Microsoft", "Google", "Meta", "Facebook", "Apple", "Netflix",
+  "Salesforce", "Oracle", "SAP", "Adobe", "Cisco", "Intel", "Nvidia",
+  "JPMorgan", "JP Morgan", "Goldman Sachs", "Morgan Stanley", "HSBC",
+  "Citi", "Citigroup", "Barclays", "HDFC", "ICICI", "Kotak", "Axis Bank",
+  "Reliance", "Tata", "Mahindra", "Bajaj", "Airtel", "Jio",
+  "Apollo", "Fortis", "Manipal", "Pfizer", "GSK", "Novartis", "Cipla",
+  "PayPal", "Stripe", "Uber", "Airbnb", "Zomato", "Swiggy", "Flipkart",
+  "Paytm", "PhonePe", "Razorpay", "Freshworks", "Zoho", "Byju's",
+  "EY", "Ernst & Young", "PwC", "PricewaterhouseCoopers", "KPMG",
+  "McKinsey", "BCG", "Bain",
+  "Xevyte", "Rubixe", "Hardwin",
+];
+
+const COMPANY_SUFFIX_RE =
+  /\b(?:Inc|Ltd|Pvt|LLP|LLC|GmbH|Technologies|Solutions|Systems|Labs|Consulting|Services|Group|Bank|Hospital|University|Motors|Pharma|Software|Corp|Corporation|Company|Enterprises|Industries|Global)\b/i;
 
 function extractCurrentDesignation(experienceLines: string[]): string {
   const line = experienceLines.find((entry) => DESIGNATION_HINTS.test(entry));

@@ -244,7 +244,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
           </ol>
           <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4 text-xs text-muted-foreground">
             <span>Pipeline v{metadata.version}</span>
-            <span>Total: {Math.round(metadata.totalDurationMs)} ms</span>
+            <span>Total: {formatMs(metadata.totalDurationMs)}</span>
           </div>
         </GlassCard>
       </motion.div>

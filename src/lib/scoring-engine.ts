@@ -56,6 +56,20 @@ export function scoreMatch(input: ScoringInput): ScoringResult {
 
   const matchPercentage = Math.round(0.7 * skillCoverage + 0.3 * effectiveEvidence);
 
+  // Dev-only diagnostic: catches accuracy regressions where the matcher
+  // finds most required skills but the score still tanks.
+  if (
+    typeof process !== "undefined" &&
+    process.env?.NODE_ENV !== "production" &&
+    totalRequired > 0 &&
+    matched.length / totalRequired >= 0.7 &&
+    matchPercentage < 40
+  ) {
+    console.warn(
+      `[Scoring] Suspicious low score: matched ${matched.length}/${totalRequired} required but score ${matchPercentage}%.`,
+    );
+  }
+
   return {
     matchPercentage: clamp(matchPercentage, 0, 100),
     skillCoverage: Math.round(skillCoverage),
