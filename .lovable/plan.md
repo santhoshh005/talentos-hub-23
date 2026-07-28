@@ -1,125 +1,128 @@
-# Resume Analyzer v3 — Hybrid Rebuild
 
-The current deterministic engines can't reach recruiter-grade accuracy across every domain. Regex tokenizers and hand-tuned alias tables will always miss context ("Sales Cloud" vs "Salesforce Sales Cloud consultant"), lose seniority nuance, and mis-identify companies/domains. The fix is to move **understanding** to an LLM (which is genuinely domain-agnostic) and keep **scoring** deterministic (so results are explainable, reproducible, and cheap to render).
+# TalentOS Pivot — Recruiter Workspace + Candidate Workspace
 
-## Recommended stack
+Product evolution, not a rewrite. Turn `/ai-lab` into `/workspace` (Recruiter Workspace), promote a new **Candidate Workspace** flow to flagship, and keep the existing Resume Intelligence pipeline intact under `/workspace/intelligence`.
 
-**Best coding platform for this = what you already have.** TanStack Start on Lovable Cloud is the right home:
+## 1. Routes & Navigation
 
-- **AI SDK (`ai` + `@ai-sdk/openai-compatible`)** via the **Lovable AI Gateway** — one key, structured output, streaming, tool-calling. No provider lock-in.
-- **Model**: `google/gemini-3.6-flash` for extraction (fast, cheap, huge context, strong JSON adherence). Upgrade path to `google/gemini-3.1-pro-preview` for hard resumes if needed.
-- **`createServerFn`** stays the orchestration surface — same pipeline shape as today.
-- **Zod** for strict JSON schemas.
-- **Deterministic scoring/evidence/PDF** stays in TS. Not moving those.
+New route files (each with own `head()` metadata + JSON-LD-free minimal SEO):
+- `src/routes/workspace.tsx` — layout route, renders header + sub-nav + `<Outlet />`. Default redirects to `/workspace/candidate`.
+- `src/routes/workspace.index.tsx` — redirects to `/workspace/candidate` via `beforeLoad` throwing `redirect({ to: "/workspace/candidate" })`.
+- `src/routes/workspace.candidate.tsx` — Candidate Workspace (primary).
+- `src/routes/workspace.intelligence.tsx` — hosts existing `ResumeAnalyzerModal` flow inline (no modal-only entry).
+- `src/routes/workspace.jd.tsx`, `workspace.boolean.tsx`, `workspace.interview.tsx` — "Coming soon" placeholders reusing existing tab visuals.
+- `src/routes/workspace.templates.tsx` — Client Templates manager.
+- `src/routes/ai-lab.tsx` — replaced with a redirect stub (`beforeLoad → redirect("/workspace")`) so old links keep working.
 
-No new frameworks. No Python. No external vector DB. Everything runs on the existing Cloudflare Worker runtime.
+Nav updates in `Navbar.tsx`, `Footer.tsx`, homepage hero (`src/routes/index.tsx`), and any button copy: **AI Lab → Recruiter Workspace**. Metadata/titles/descriptions updated in each new route's `head()`.
 
-## What we keep vs rebuild
+Sub-navigation inside `/workspace` uses a glass tab strip that links between the six sub-routes, active state via `<Link activeProps>`.
 
-| Layer | Today | v3 |
-|---|---|---|
-| Resume parsing (regex + AI hybrid) | brittle | **Rebuild** — pure LLM extraction to strict schema |
-| JD intelligence | partly working | **Rebuild** — same LLM pass, same schema shape |
-| Skill normalization (alias table) | small, IT-only | **Replace** — LLM emits canonical + aliases + category per skill |
-| Matching engine | string + adjacency map | **Rebuild** — semantic match (LLM judges each JD requirement against the full resume skill set, returns match/partial/miss + reason) |
-| Evidence engine | works, 9/10 | **Keep** — feed it normalized skills from new parser |
-| Scoring engine (70/30) | works | **Keep** — plug new matcher output in |
-| Recruiter intelligence (domain/seniority/summary) | weak inference | **Rebuild** — domain, seniority, strengths, risks, summary all come from the extraction LLM call |
-| Pipeline orchestrator | good | **Keep** — swap stage implementations, timings stay |
-| Recruiter report UI + PDF | good | **Keep** — pure renderers, inherit new data |
+## 2. Candidate Workspace flow
 
-## New architecture
+Directory `src/components/workspace/candidate/` with small composable pieces:
 
-```text
-                ┌─────────────────────────────────────────┐
-Resume text ───►│  extractResume (LLM, strict JSON)       │──► ParsedResume v3
-                └─────────────────────────────────────────┘   (identity, current
-                                                              company/title, years,
-                                                              skills[{canonical,
-                                                              aliases[], category,
-                                                              years, evidence[]}],
-                                                              certifications, domain
-                                                              hint, seniority hint)
+- `CandidateUpload.tsx` — drag & drop + browse (PDF/DOCX), single file. Reuses `extractResumeText` from `src/lib/resume-extract.ts`.
+- `CandidateExtractionProgress.tsx` — animated stepper while extraction runs.
+- `CandidateSnapshot.tsx` — post-extract summary card (name, headline designation, years, current company, top 4 skills) + "Continue Editing" button.
+- `CandidateRecordEditor.tsx` — orchestrator that composes the sections below (no giant form).
+- Section components (each ~<150 LOC):
+  - `CandidateIdentity.tsx`
+  - `CandidateContact.tsx`
+  - `CandidateCurrentEmployment.tsx`
+  - `CandidatePreviousEmployment.tsx` (array; add/remove/reorder/duplicate via dnd-kit)
+  - `CandidateExperience.tsx`
+  - `CandidateSkills.tsx` (primary + secondary chips; add/remove/reorder)
+  - `CandidateEducation.tsx` (array)
+  - `CandidateCertifications.tsx` (array)
+  - `CandidateCompensation.tsx`
+  - `CandidateDocuments.tsx` (PAN, Passport, Visa)
+  - `CandidateNotes.tsx` — dedicated recruiter notes (multi-line, exported)
+- `CandidateCompleteness.tsx` — computes % complete and lists missing key fields.
+- `TemplateSelector.tsx` — pick from Recent / Favorites / All templates; link to Templates manager.
+- `ExportPreview.tsx` — spreadsheet-style grid (glass table) built from `CandidateRecord × ClientTemplate`. Edit cells, add/remove/reorder columns, rename labels inline.
+- `ExportActions.tsx` — Export `.xlsx` and `.csv`; filename `candidate-{lastName}-{templateSlug}-{yyyyMMdd}.{ext}`.
 
-                ┌─────────────────────────────────────────┐
-JD text ───────►│  extractJD (LLM, strict JSON)           │──► ParsedJD v3
-                └─────────────────────────────────────────┘   (title, seniority,
-                                                              domain, required[],
-                                                              preferred[], each
-                                                              with canonical +
-                                                              category + weight)
+State lives in a `useCandidateRecord` hook (React state, no global store needed). Extraction/edit state resets per upload.
 
-ParsedResume + ParsedJD
-        │
-        ▼
-┌───────────────────────────────────┐
-│ semanticMatch (LLM, strict JSON)  │──► per JD skill:
-│  "For each required skill, does   │     { status: exact|equivalent|related|missing,
-│   the candidate have it, and      │       matchedResumeSkill, confidence 0-100,
-│   why?" — sees BOTH full lists    │       reason }
-└───────────────────────────────────┘
-        │
-        ▼
-┌───────────────────────────────────┐
-│ Evidence engine (deterministic)   │  unchanged
-│ Scoring engine   (deterministic)  │  unchanged (70/30)
-│ Recruiter report / PDF            │  unchanged
-└───────────────────────────────────┘
-```
+## 3. Candidate extraction (server)
 
-**Why this actually solves the accuracy problems:**
+- `src/lib/candidate-schemas.ts` — Zod `CandidateRecordSchema` covering every field in the brief; all optional/defaulted so missing values become `""` / `[]` and never crash.
+- `src/lib/candidate-extract.server.ts` — thin wrapper around existing `ai-gateway.server.ts`, structured-output prompt returning `CandidateRecord`. Retry once, fall back to partial record.
+- `src/lib/candidate-extract.functions.ts` — `extractCandidateRecord = createServerFn({ method: "POST" }).inputValidator(...).handler(...)`.
+- Called from `CandidateWorkspace` via `useServerFn`.
 
-- Multi-word skills, aliases, ontology → the LLM emits `{canonical: "Sales Cloud", aliases: ["SFDC Sales Cloud"], category: "Salesforce"}` directly. No tokenizer, no adjacency map.
-- Company/designation extraction → LLM reads the whole resume in context; no `at|@|Technologies` regex.
-- Domain inference → LLM sees title + skills + experience together and returns a domain label.
-- Seniority coherence → single LLM decision using years + titles + scope. One value, used everywhere.
-- Cross-labeled skills (Kotlin ↔ Android, LWC ↔ Salesforce Platform) → the semantic-match LLM understands the relationship natively, with a reason string we surface in the UI.
-- Domain-agnostic by construction — same prompt works for Salesforce, SAP, TA, Finance, Healthcare, Mechanical.
+Reuses text extraction (`resume-extract.ts`) and AI Gateway — no duplication of pipeline logic.
 
-## Determinism guardrails
+## 4. Client Templates (localStorage now, Cloud-ready)
 
-LLMs drift, so we constrain them:
+Directory `src/lib/templates/`:
 
-- Strict Zod schemas via `Output.object`, provider built with `structuredOutputs: true` for OpenAI models; Gemini uses default schema mode.
-- Temperature 0 for extraction and matching.
-- Post-parse validation clamps confidence 0–100, dedupes skills by canonical (case-insensitive), drops empty strings.
-- `NoObjectGeneratedError` fallback: retry once, then downgrade the affected stage to a minimal deterministic parse so the pipeline never crashes the report.
-- Every LLM output is echoed into the existing Pipeline Transparency panel with token count + duration → recruiter can audit what the model said.
+- `template-types.ts` — `ClientTemplate`, `TemplateColumn`, `ExportSettings`, `TemplateSummary`.
+- `template-repository.ts` — `TemplateRepository` interface: `list`, `get`, `create`, `update`, `duplicate`, `delete`, `toggleFavorite`, `markRecent`, `listRecent`, `listFavorites`.
+- `local-template-repository.ts` — `localStorage` implementation (`talentos:templates:v1`, `talentos:templates:recent:v1`). UI never touches localStorage directly.
+- `seed-templates.ts` — Templates A / B / C seeded on first load if store empty.
+- `use-templates.ts` — React hook exposing repo + reactive state (via `useSyncExternalStore`).
+- Swapping to Cloud later = replace one file.
 
-## Files
+Templates manager UI (`/workspace/templates`):
+- List with Recent, Favorites, All tabs.
+- Create / Edit / Duplicate / Delete / Favorite.
+- `TemplateEditor.tsx` — column list with dnd-kit drag-reorder, hide toggle, custom label, default value, per-template notes, export settings (sheet name).
+- "Import from existing Excel" panel:
+  - `src/lib/templates/excel-import.ts` — `parseTemplateHeaders(file)` reads row 1 via `xlsx`.
+  - `suggestFieldMapping(headers)` — small keyword table for now; leaves unknown headers unmapped.
+  - Recruiter manually confirms mapping → saves as new template.
+  - Architecture ready for future LLM auto-mapping.
 
-**New**
-- `src/lib/llm-extract.server.ts` — `extractResume`, `extractJD` (strict Zod schemas, Gemini call, retry+fallback).
-- `src/lib/semantic-match.server.ts` — `semanticMatch` (JD × resume → per-requirement verdict).
-- `src/lib/intelligence-schemas.ts` — shared Zod types (`ParsedResumeV3`, `ParsedJDV3`, `SemanticMatchV3`).
+## 5. Export
 
-**Rewritten (same exports, new internals)**
-- `src/lib/resume-analyzer.server.ts` → thin wrapper around `extractResume`.
-- `src/lib/jd-intelligence.server.ts` → thin wrapper around `extractJD`.
-- `src/lib/skill-normalizer.ts` → deleted; normalization now lives in the LLM output. Pipeline stage becomes a no-op adapter that maps v3 skills to the shape evidence/scoring expects.
-- `src/lib/matching-engine.ts` → replaced by adapter over `semanticMatch` output; keeps `MatchingResult` type so scoring/evidence/UI don't move.
-- `src/lib/recruiter-intelligence.ts` → domain/seniority/strengths/risks/summary read directly from extraction output; `inferDomain`/`inferSeniority` deleted.
+- `src/lib/candidate-export.ts` — builds a single-row worksheet from `CandidateRecord` + `ClientTemplate`, respecting column order, custom labels, defaults, hidden columns. Notes column is included when present in template.
+- Uses SheetJS (`xlsx`) for both `.xlsx` and `.csv`. Architected to accept `CandidateRecord[]` in future for bulk.
+
+## 6. Resume Intelligence tab (unchanged)
+
+- `src/routes/workspace.intelligence.tsx` mounts the existing analyzer flow — either lifts `ResumeAnalyzerModal` internals into an inline component or opens it automatically. Pipeline, scoring, evidence, `RecruiterReport`, PDF export stay exactly as-is; only container + labels change.
+- No changes under `src/lib/pipeline.server.ts`, `scoring-engine.ts`, `evidence-engine.ts`, `recruiter-report-pdf.ts`.
+
+## 7. Placeholder tabs
+
+`/workspace/jd`, `/workspace/boolean`, `/workspace/interview` render a shared `ComingSoonPanel` (reuses existing hero styling + icons already defined in `AiLabWorkspace.tsx`).
+
+## 8. Design
+
+- Dark, glass, spreadsheet-inspired. Reuses existing tokens (`bg-white/[0.02]`, `border-white/10`, primary/accent gradient).
+- Sub-nav = pill tabs w/ layoutId slide.
+- Export preview = compact zebra-striped glass table.
+- Fully responsive (stacked sections on mobile, two-column on ≥md, three-column on ≥xl).
+
+## 9. Dependencies
+
+Add:
+- `xlsx` (SheetJS) — Excel/CSV read+write.
+- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` — column + array reordering.
+
+## 10. Non-goals (architected, not built)
+
+- Bulk resume upload (repository + schema accept arrays; UI stub only).
+- Cloud template sync (repo swap).
+- AI header auto-mapping (`suggestFieldMapping` hook point).
+- Candidate history, ATS integration, shared team templates.
+
+## Files summary
+
+**Add**
+- Routes: `workspace.tsx`, `workspace.index.tsx`, `workspace.candidate.tsx`, `workspace.intelligence.tsx`, `workspace.jd.tsx`, `workspace.boolean.tsx`, `workspace.interview.tsx`, `workspace.templates.tsx`.
+- `src/components/workspace/` (WorkspaceLayout, SubNav, ComingSoonPanel) + `candidate/*` (all section + flow components) + `templates/*` (Manager, Editor, ExcelImport).
+- `src/lib/candidate-schemas.ts`, `candidate-extract.server.ts`, `candidate-extract.functions.ts`, `candidate-export.ts`.
+- `src/lib/templates/*` (types, repository, local impl, excel-import, seed, hook).
+
+**Modify**
+- `src/routes/ai-lab.tsx` → redirect stub.
+- `src/routes/index.tsx` hero CTA copy.
+- `src/components/layout/Navbar.tsx`, `Footer.tsx` — rename AI Lab → Recruiter Workspace, point to `/workspace`.
+- `src/components/loader/*` copy references (if any).
+- `README.md` positioning line.
 
 **Untouched**
-- `evidence-engine.ts`, `scoring-engine.ts`, `pipeline.server.ts` (only the stage bodies change), `RecruiterReport.tsx`, `recruiter-report-pdf.ts`, `report-store.ts`, `AiLabWorkspace.tsx`, `ResumeAnalyzerModal.tsx`.
-
-## Cost & latency
-
-Per analysis: 3 LLM calls (resume extract, JD extract, semantic match). Gemini 3.6 Flash on typical resume+JD ≈ 4–8k input tokens, ~2k output tokens per call, ~2–5s total. Fully within Lovable AI Gateway credits — no new billing setup.
-
-## Verification (before shipping)
-
-Run the four-domain matrix from the previous sprint's plan:
-1. **Salesforce** (Priya Reddy, Accenture) → domain `Salesforce CRM`, company `Accenture`, seniority `Senior`, `Sales Cloud`/`LWC` unified, score 85–92%.
-2. **Data Engineer** (Spark/Airflow/dbt) → domain `Data Engineering`, score matches skill overlap.
-3. **Talent Acquisition** (Naukri/Boolean/Greenhouse) → domain `Talent Acquisition`, no IT bleed-through.
-4. **Financial Analyst** (SAP FICO/Modeling/GAAP) → domain `Finance`, seniority from years, no "Not Found".
-
-Each must show: correct domain, correct company, correct seniority, multi-word skills unified, per-skill match reason visible in transparency panel, realistic score band, real pipeline timings.
-
-## Non-goals
-
-- No vector DB, no embeddings, no RAG.
-- No new UI or PDF work — pure renderers inherit the improvements.
-- No changes to Home/Dashboard/Timeline/Content/Certifications/Contact.
-- No mock data — real LLM calls only.
+- `pipeline.server.ts`, `scoring-engine.ts`, `evidence-engine.ts`, `matching-engine.ts`, `semantic-match.server.ts`, `llm-extract.server.ts`, `recruiter-report-pdf.ts`, `resume-analyzer.*`, existing `RecruiterReport.tsx`. Composed, not rewritten.

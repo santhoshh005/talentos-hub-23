@@ -6,7 +6,7 @@ const columns = [
     title: "Platform",
     links: [
       { to: "/dashboard", label: "Dashboard" },
-      { to: "/ai-lab", label: "AI Lab" },
+      { to: "/workspace", label: "Recruiter Workspace" },
       { to: "/timeline", label: "Timeline" },
     ],
   },
