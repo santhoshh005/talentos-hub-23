@@ -6,14 +6,12 @@ import {
   FileText,
   SearchCode,
   MessageSquareQuote,
-  LayoutTemplate,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
   { to: "/workspace/candidate", label: "Candidate Workspace", icon: Users, status: "live" as const },
   { to: "/workspace/intelligence", label: "Resume Intelligence", icon: Brain, status: "live" as const },
-  { to: "/workspace/templates", label: "Client Templates", icon: LayoutTemplate, status: "live" as const },
   { to: "/workspace/jd", label: "JD Studio", icon: FileText, status: "soon" as const },
   { to: "/workspace/boolean", label: "Boolean Builder", icon: SearchCode, status: "soon" as const },
   { to: "/workspace/interview", label: "Interview Studio", icon: MessageSquareQuote, status: "soon" as const },
@@ -23,7 +21,7 @@ export function WorkspaceSubNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-1.5 backdrop-blur-xl">
-      <div className="grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-6">
+      <div className="grid grid-cols-2 gap-1 md:grid-cols-3 lg:grid-cols-5">
         {items.map((item) => {
           const active = pathname === item.to || pathname.startsWith(`${item.to}/`);
           const Icon = item.icon;
