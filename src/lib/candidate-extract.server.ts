@@ -79,10 +79,8 @@ export async function runExtractCandidate(
     const { text } = await generateText({
       model,
       temperature: 0,
-      messages: [
-        { role: "system", content: SYSTEM },
-        { role: "user", content: buildPrompt(resumeText.trim()) },
-      ],
+      instructions: SYSTEM,
+      prompt: buildPrompt(resumeText.trim()),
     });
     return seedMerged(coerce(parseJsonObject(text)));
   };
