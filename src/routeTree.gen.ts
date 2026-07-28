@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TimelineRouteImport } from './routes/timeline'
+import { Route as ReportRouteImport } from './routes/report'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContentRouteImport } from './routes/content'
 import { Route as ContactRouteImport } from './routes/contact'
@@ -20,6 +21,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const TimelineRoute = TimelineRouteImport.update({
   id: '/timeline',
   path: '/timeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportRoute = ReportRouteImport.update({
+  id: '/report',
+  path: '/report',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
+  '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
+  '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
   '/dashboard': typeof DashboardRoute
+  '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/content'
     | '/dashboard'
+    | '/report'
     | '/timeline'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/content'
     | '/dashboard'
+    | '/report'
     | '/timeline'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/content'
     | '/dashboard'
+    | '/report'
     | '/timeline'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   ContentRoute: typeof ContentRoute
   DashboardRoute: typeof DashboardRoute
+  ReportRoute: typeof ReportRoute
   TimelineRoute: typeof TimelineRoute
 }
 
@@ -128,6 +141,13 @@ declare module '@tanstack/react-router' {
       path: '/timeline'
       fullPath: '/timeline'
       preLoaderRoute: typeof TimelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report': {
+      id: '/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof ReportRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   ContentRoute: ContentRoute,
   DashboardRoute: DashboardRoute,
+  ReportRoute: ReportRoute,
   TimelineRoute: TimelineRoute,
 }
 export const routeTree = rootRouteImport
