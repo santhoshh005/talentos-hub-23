@@ -483,7 +483,7 @@ function PipelineStageCard({ name, durationMs, ok, index }: { name: string; dura
           {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <AlertTriangle className="h-4 w-4 text-rose-400" />}
         </div>
         <div className="mt-2 text-sm font-medium">{label}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{Math.round(durationMs)} ms</div>
+        <div className="mt-1 text-xs text-muted-foreground">{formatMs(durationMs)}</div>
         <div className="mt-2 text-[10px] uppercase tracking-widest text-emerald-300/80">Completed</div>
       </div>
     </motion.li>
@@ -491,6 +491,7 @@ function PipelineStageCard({ name, durationMs, ok, index }: { name: string; dura
 }
 
 const STAGE_LABELS: Record<string, string> = {
+  ...({} as Record<string, string>),
   resumeParser: "Resume Parser",
   jdIntelligence: "JD Intelligence",
   skillNormalization: "Skill Normalization",
@@ -508,3 +509,10 @@ const FUTURE_INSIGHTS = [
   { title: "Notice Period Risk", description: "Availability risk scoring and joining likelihood.", icon: Clock },
   { title: "Culture Fit", description: "Signals across communication, ownership, and values.", icon: ShieldCheck },
 ];
+
+function formatMs(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "<1 ms";
+  if (ms < 1) return "<1 ms";
+  if (ms < 10) return `${ms.toFixed(1)} ms`;
+  return `${Math.round(ms)} ms`;
+}
