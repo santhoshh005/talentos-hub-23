@@ -84,6 +84,115 @@ const RELATED_TECHNOLOGIES: Record<string, string[]> = {
   Screening: ["Recruitment"],
   "Candidate Sourcing": ["Recruitment", "Boolean Search"],
   "Boolean Search": ["Candidate Sourcing"],
+
+  // Salesforce ontology
+  "Salesforce Platform": [
+    "Apex", "Apex Triggers", "Lightning Web Components (LWC)", "Aura Components",
+    "Visualforce", "SOQL", "SOSL", "Sales Cloud", "Service Cloud",
+    "Experience Cloud", "Flows", "Validation Rules", "Salesforce Administration",
+  ],
+  Apex: ["Apex Triggers", "SOQL", "Salesforce Platform"],
+  "Apex Triggers": ["Apex"],
+  "Lightning Web Components (LWC)": ["Aura Components", "Visualforce", "Salesforce Platform"],
+  "Aura Components": ["Lightning Web Components (LWC)", "Visualforce"],
+  Visualforce: ["Lightning Web Components (LWC)", "Aura Components"],
+  SOQL: ["Apex", "SOSL"],
+  SOSL: ["SOQL"],
+  "Sales Cloud": ["Salesforce Platform", "Service Cloud"],
+  "Service Cloud": ["Salesforce Platform", "Sales Cloud"],
+  "Experience Cloud": ["Salesforce Platform"],
+  "Marketing Cloud": ["Salesforce Platform"],
+  OmniStudio: ["Salesforce Platform"],
+  "Salesforce CPQ": ["Salesforce Platform"],
+  MuleSoft: ["REST API", "SOAP API"],
+  Copado: ["CI/CD", "Git"],
+  Flows: ["Salesforce Platform", "Process Builder"],
+  "Validation Rules": ["Salesforce Platform"],
+  "Salesforce Administration": ["Salesforce Platform"],
+
+  // API family
+  "REST API": ["GraphQL", "gRPC", "SOAP API"],
+  "SOAP API": ["REST API"],
+  GraphQL: ["REST API"],
+  gRPC: ["REST API"],
+
+  // Mobile
+  Android: ["Kotlin", "Java", "Jetpack Compose"],
+  iOS: ["Swift", "SwiftUI"],
+  Kotlin: ["Android", "Java"],
+  Swift: ["iOS", "SwiftUI"],
+  "React Native": ["React", "iOS", "Android"],
+  Flutter: ["iOS", "Android"],
+
+  // SAP
+  SAP: ["SAP ABAP", "SAP FICO", "SAP MM", "SAP SD", "SAP HANA"],
+  "SAP ABAP": ["SAP"],
+  "SAP FICO": ["SAP"],
+  "SAP MM": ["SAP"],
+  "SAP SD": ["SAP"],
+  "SAP HANA": ["SAP", "SAP S/4HANA"],
+  "SAP S/4HANA": ["SAP HANA", "SAP"],
+
+  // Data ecosystem
+  "Data Engineering": ["Apache Spark", "Apache Airflow", "dbt", "Snowflake", "Databricks", "ETL"],
+  "Apache Spark": ["PySpark", "Databricks", "Hadoop"],
+  PySpark: ["Apache Spark", "Python"],
+  "Apache Airflow": ["ETL", "Data Engineering"],
+  Snowflake: ["SQL", "Data Engineering"],
+  Databricks: ["Apache Spark", "Data Engineering"],
+  "Apache Kafka": ["Data Engineering"],
+  ETL: ["ELT", "Data Engineering"],
+  BigQuery: ["SQL", "GCP"],
+  "Amazon Redshift": ["SQL", "AWS"],
+  "Power BI": ["Data Analytics", "Tableau"],
+  Tableau: ["Data Analytics", "Power BI"],
+
+  // ML/AI
+  LLM: ["LangChain", "RAG", "OpenAI", "Hugging Face"],
+  LangChain: ["LLM", "RAG"],
+  RAG: ["LLM", "Vector Database"],
+  "Hugging Face": ["LLM"],
+  OpenAI: ["LLM"],
+  TensorFlow: ["Machine Learning", "Deep Learning"],
+  PyTorch: ["Machine Learning", "Deep Learning"],
+
+  // DevOps
+  "CI/CD": ["Jenkins", "GitHub Actions", "GitLab CI", "Copado", "Argo CD"],
+  Jenkins: ["CI/CD"],
+  "GitHub Actions": ["CI/CD"],
+  "GitLab CI": ["CI/CD"],
+  "Argo CD": ["CI/CD", "Kubernetes"],
+  Terraform: ["AWS", "Azure", "GCP"],
+  Helm: ["Kubernetes"],
+
+  // Recruitment / ATS
+  ATS: ["Greenhouse", "Lever", "Workday", "Taleo", "iCIMS"],
+  Greenhouse: ["ATS"],
+  Lever: ["ATS"],
+  Taleo: ["ATS"],
+  iCIMS: ["ATS"],
+  "LinkedIn Recruiter": ["Candidate Sourcing", "Boolean Search"],
+  Naukri: ["Candidate Sourcing"],
+
+  // Product / Agile
+  "Product Management": ["Agile", "Scrum", "Jira", "Product Roadmap"],
+  Agile: ["Scrum", "Kanban", "SAFe"],
+  Scrum: ["Agile", "Jira"],
+  Jira: ["Agile", "Confluence"],
+
+  // Finance
+  "Financial Modeling": ["Forecasting", "Budgeting", "Variance Analysis"],
+  QuickBooks: ["Accounts Payable", "Accounts Receivable"],
+
+  // Marketing
+  SEO: ["SEM", "Content Marketing", "Google Analytics (GA4)"],
+  SEM: ["Google Ads", "SEO"],
+  HubSpot: ["CRM", "Marketo"],
+
+  // Testing
+  Selenium: ["Cypress", "Playwright", "TestNG"],
+  Cypress: ["Playwright", "Test Automation"],
+  Playwright: ["Cypress", "Test Automation"],
 };
 
 /**
