@@ -101,7 +101,7 @@ type SectionBucket =
   | "certifications";
 
 export async function runParseJobDescription(data: JdInput): Promise<ParsedJobDescription> {
-  const jd = cleanJobDescription(normalize(data.jobDescription));
+  const jd = normalize(data.jobDescription);
   const local = parseJdLocally(jd);
   const key = process.env.LOVABLE_API_KEY;
   if (!key) return finalize(local);
@@ -191,70 +191,10 @@ function isValidSkillCandidate(value: string): boolean {
   if (trimmed.length < 2 || trimmed.length > 80) return false;
   const lower = trimmed.toLowerCase().replace(/[:.\-–—]+$/g, "").trim();
   if (IGNORED_HEADINGS.has(lower)) return false;
-  if (GENERIC_JD_WORDS.has(lower)) return false;
-  // Reject if every token is a stopword / generic recruiter word.
-  const tokens = lower.split(/\s+/).filter(Boolean);
-  if (tokens.length > 0 && tokens.every((t) => STOP_WORDS.has(t) || GENERIC_JD_WORDS.has(t))) return false;
   // Reject if it's a full sentence (long + ends with period or contains many words that read like prose).
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount > 8 && /[.!?]$/.test(trimmed)) return false;
   return true;
-}
-
-// Generic recruiter/JD words that must NEVER be treated as skills.
-const GENERIC_JD_WORDS = new Set(
-  [
-    "position", "role", "location", "description", "summary", "responsibilities",
-    "requirement", "requirements", "about", "company", "current", "parser",
-    "extracting", "information", "change", "overview", "apply", "benefits",
-    "equal opportunity", "equal opportunity employer", "notice", "notice period",
-    "employment type", "job description", "developer", "engineer", "manager",
-    "job", "work", "team", "candidate", "candidates", "applicant", "applicants",
-    "opportunity", "salary", "compensation", "perks", "duties", "eeo",
-    "department", "reports to", "shift", "industry", "office", "remote",
-    "hybrid", "onsite", "full time", "full-time", "part time", "part-time",
-  ].map((s) => s.toLowerCase()),
-);
-
-const STOP_WORDS = new Set([
-  "a","an","the","and","or","of","to","in","on","for","with","by","at","from",
-  "as","is","are","be","will","should","must","have","has","had","this","that",
-  "these","those","we","you","our","your","their","they","he","she","it","its",
-  "into","via","per","etc","eg","ie","across","within","using","use","used",
-  "including","include","includes","strong","good","excellent","solid","proven",
-  "hands","on","experience","knowledge","ability","able","working","work",
-  "candidate","applicant","preferred","required","must-have","nice-to-have",
-]);
-
-// Stage 1: Clean the JD before any extraction — strip boilerplate lines, punctuation
-// noise, duplicate consecutive lines, and collapse whitespace.
-export function cleanJobDescription(text: string): string {
-  const boilerplate = [
-    /^\s*equal opportunity.*$/i,
-    /^\s*we are an equal.*$/i,
-    /^\s*apply (now|here|today).*$/i,
-    /^\s*how to apply.*$/i,
-    /^\s*to apply.*$/i,
-    /^\s*please (send|submit|apply).*$/i,
-    /^\s*disclaimer.*$/i,
-  ];
-  const seen = new Set<string>();
-  const lines: string[] = [];
-  for (const raw of text.split("\n")) {
-    let line = raw
-      .replace(/[\u2018\u2019]/g, "'")
-      .replace(/[\u201c\u201d]/g, '"')
-      .replace(/[*_#>]+/g, " ")
-      .replace(/[ \t]{2,}/g, " ")
-      .trim();
-    if (!line) { lines.push(""); continue; }
-    if (boilerplate.some((rx) => rx.test(line))) continue;
-    const key = line.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    lines.push(line);
-  }
-  return lines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
 function parseJdLocally(jd: string): ParsedJobDescription {
