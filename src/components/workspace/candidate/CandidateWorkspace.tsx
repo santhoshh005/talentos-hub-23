@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -20,63 +20,21 @@ import { CandidateRecordEditor } from "./CandidateRecordEditor";
 import { CandidateCompleteness } from "./CandidateCompleteness";
 import { TemplateSelector } from "./TemplateSelector";
 import { ExportPreview } from "./ExportPreview";
+import { extractResumeText } from "@/lib/resume-extract";
+import { BulkCandidateTable, type BulkItem } from "./BulkCandidateTable";
 
-type Phase = "upload" | "extracting" | "snapshot" | "edit";
+type Phase = "upload" | "extracting" | "snapshot" | "edit" | "bulk";
 
-const STORAGE_KEY = "talentos:candidate-workspace:v1";
-
-interface PersistedState {
-  phase: Phase;
-  record: CandidateRecord;
-  selectedTemplateId?: string;
-}
-
-function loadPersisted(): PersistedState | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.sessionStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PersistedState> & { phase?: string };
-    const record = CandidateRecordSchema.parse(parsed.record ?? {});
-    const phase: Phase = parsed.phase === "snapshot" || parsed.phase === "edit"
-      ? parsed.phase
-      : record.fullName
-      ? "snapshot"
-      : "upload";
-    return { phase, record, selectedTemplateId: parsed.selectedTemplateId };
-  } catch {
-    return null;
-  }
-}
-
-function savePersisted(state: PersistedState) {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    /* quota — ignore */
-  }
-}
-
-function clearPersisted() {
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.removeItem(STORAGE_KEY);
-  } catch {
-    /* ignore */
-  }
-}
+const BULK_CONCURRENCY = 3;
 
 export function CandidateWorkspace() {
   const extract = useServerFn(extractCandidateRecord);
   const { templates, repo } = useTemplates();
 
-  const initial = useRef<PersistedState | null>(loadPersisted());
-  const [phase, setPhase] = useState<Phase>(initial.current?.phase ?? "upload");
-  const [record, setRecord] = useState<CandidateRecord>(initial.current?.record ?? emptyCandidateRecord());
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(
-    initial.current?.selectedTemplateId,
-  );
+  const [phase, setPhase] = useState<Phase>("upload");
+  const [record, setRecord] = useState<CandidateRecord>(emptyCandidateRecord());
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | undefined>(undefined);
+  const [bulkItems, setBulkItems] = useState<BulkItem[]>([]);
 
   // Preselect first template once available
   useEffect(() => {
@@ -84,15 +42,6 @@ export function CandidateWorkspace() {
       setSelectedTemplateId(templates[0].id);
     }
   }, [templates, selectedTemplateId]);
-
-  // Persist the single-candidate workspace so navigating to Templates and back keeps the parsed record.
-  useEffect(() => {
-    if (phase === "upload" && !record.fullName) {
-      clearPersisted();
-      return;
-    }
-    savePersisted({ phase, record, selectedTemplateId });
-  }, [phase, record, selectedTemplateId]);
 
   const onExtracted = useCallback(
     async (resumeText: string) => {
@@ -124,8 +73,8 @@ export function CandidateWorkspace() {
 
   const reset = () => {
     setRecord(emptyCandidateRecord());
+    setBulkItems([]);
     setPhase("upload");
-    clearPersisted();
   };
 
   const selectedTemplate: ClientTemplate | undefined = templates.find(
@@ -137,6 +86,73 @@ export function CandidateWorkspace() {
     repo.markRecent(t.id);
   };
 
+  const patchBulkItem = useCallback(
+    (id: string, patch: Partial<BulkItem>) =>
+      setBulkItems((items) => items.map((i) => (i.id === id ? { ...i, ...patch } : i))),
+    [],
+  );
+
+  const editBulkRecord = useCallback(
+    (id: string, patch: Partial<CandidateRecord>) =>
+      setBulkItems((items) =>
+        items.map((i) => (i.id === id ? { ...i, record: { ...i.record, ...patch } } : i)),
+      ),
+    [],
+  );
+
+  const runBulk = useCallback(
+    async (files: File[]) => {
+      const seeded: BulkItem[] = files.map((f, idx) => ({
+        id: `${Date.now()}_${idx}_${f.name}`,
+        fileName: f.name,
+        status: "queued",
+        record: emptyCandidateRecord(),
+      }));
+      setBulkItems(seeded);
+      setPhase("bulk");
+
+      const processOne = async (item: BulkItem, file: File) => {
+        try {
+          patchBulkItem(item.id, { status: "parsing" });
+          const text = await extractResumeText(file);
+          patchBulkItem(item.id, { status: "extracting" });
+          const seed = parseCandidateText(text);
+          const optimistic = CandidateRecordSchema.parse(mergeCandidate(seed, {}));
+          patchBulkItem(item.id, { record: optimistic });
+          try {
+            const next = await extract({ data: { resumeText: text, seed } });
+            patchBulkItem(item.id, { record: next, status: "done" });
+          } catch (err) {
+            console.error(err);
+            patchBulkItem(item.id, {
+              status: "done",
+              record: optimistic,
+              error: "AI extraction failed — using parsed fields",
+            });
+          }
+        } catch (err) {
+          console.error(err);
+          patchBulkItem(item.id, {
+            status: "failed",
+            error: err instanceof Error ? err.message : "Could not read resume",
+          });
+        }
+      };
+
+      const queue = seeded.map((item, idx) => ({ item, file: files[idx] }));
+      const workers = Array.from({ length: Math.min(BULK_CONCURRENCY, queue.length) }, async () => {
+        while (queue.length) {
+          const next = queue.shift();
+          if (!next) return;
+          await processOne(next.item, next.file);
+        }
+      });
+      await Promise.all(workers);
+      toast.success("Bulk extraction complete");
+    },
+    [extract, patchBulkItem],
+  );
+
   return (
     <div className="space-y-6">
       <AnimatePresence mode="wait">
@@ -147,13 +163,35 @@ export function CandidateWorkspace() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
           >
-            <CandidateUpload busy={false} onExtracted={(text) => void onExtracted(text)} />
+            <CandidateUpload
+              busy={false}
+              onExtracted={(text) => void onExtracted(text)}
+              onBulk={(files) => void runBulk(files)}
+            />
           </motion.div>
         )}
 
         {phase === "extracting" && (
           <motion.div key="extracting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <CandidateWorkspaceSkeleton />
+          </motion.div>
+        )}
+
+        {phase === "bulk" && selectedTemplate && (
+          <motion.div
+            key="bulk"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="space-y-4"
+          >
+            <TemplateSelector selectedId={selectedTemplateId} onSelect={selectTemplate} />
+            <BulkCandidateTable
+              items={bulkItems}
+              template={selectedTemplate}
+              onReset={reset}
+              onEditRecord={editBulkRecord}
+            />
           </motion.div>
         )}
 
@@ -165,20 +203,9 @@ export function CandidateWorkspace() {
             exit={{ opacity: 0 }}
             className="space-y-6"
           >
-            <CandidateSnapshot
-              record={record}
-              onContinue={() => setPhase("edit")}
-              onReset={reset}
-            />
+            <CandidateSnapshot record={record} onContinue={() => setPhase("edit")} onReset={reset} />
             {selectedTemplate && (
-              <ExportPreview
-                record={record}
-                template={selectedTemplate}
-                onUpdateTemplate={(patch) => {
-                  repo.update(selectedTemplate.id, patch);
-                  toast.success("Template updated");
-                }}
-              />
+              <ExportPreview record={record} template={selectedTemplate} />
             )}
           </motion.div>
         )}
@@ -193,11 +220,9 @@ export function CandidateWorkspace() {
             <div className="min-w-0 space-y-4">
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold tracking-tight">Editable candidate record</h2>
-                <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
-                    <RotateCcw className="h-4 w-4" /> Start over
-                  </Button>
-                </div>
+                <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+                  <RotateCcw className="h-4 w-4" /> Start over
+                </Button>
               </div>
               <CandidateRecordEditor record={record} update={update} />
             </div>
@@ -209,14 +234,7 @@ export function CandidateWorkspace() {
 
             {selectedTemplate && (
               <div className="lg:col-span-2">
-                <ExportPreview
-                  record={record}
-                  template={selectedTemplate}
-                  onUpdateTemplate={(patch) => {
-                    repo.update(selectedTemplate.id, patch);
-                    toast.success("Template updated");
-                  }}
-                />
+                <ExportPreview record={record} template={selectedTemplate} />
               </div>
             )}
           </motion.div>

@@ -18,7 +18,7 @@ import { GripVertical, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
 import type { ClientTemplate, TemplateColumn } from "@/lib/templates/template-types";
-import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR, DEFAULT_MISMATCH_RULE_SET } from "@/lib/templates/template-types";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
 
 function uid() {
   return `col_${Math.random().toString(36).slice(2, 9)}`;
@@ -84,8 +84,6 @@ export function TemplateEditor({
       export: { sheetName: sheetName.trim() || "Candidates" },
       headerColor,
       headerTextColor,
-      mismatchRuleSet: DEFAULT_MISMATCH_RULE_SET,
-      needsReview: false,
     });
 
   return (

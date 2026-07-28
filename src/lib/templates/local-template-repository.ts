@@ -1,14 +1,10 @@
 import type { ClientTemplate } from "./template-types";
-import { DEFAULT_MISMATCH_RULE_SET, normalizeMismatchRuleSet } from "./template-types";
 import type { CreateTemplateInput, TemplateRepository } from "./template-repository";
 import { seedTemplates } from "./seed-templates";
-import { countMismatches } from "./column-diagnostics";
-import { suggestFieldKeyForLabel } from "./excel-import";
 
 const STORE_KEY = "talentos:templates:v1";
 const RECENT_KEY = "talentos:templates:recent:v1";
 const RECENT_LIMIT = 8;
-const MIGRATION_KEY = "talentos:templates:mismatch-migration:v1";
 
 function uid(): string {
   return `tpl_${Math.random().toString(36).slice(2, 10)}${Date.now().toString(36).slice(-4)}`;
@@ -23,48 +19,14 @@ function safeParse<T>(raw: string | null, fallback: T): T {
   }
 }
 
-function normalizeTemplate(template: ClientTemplate): ClientTemplate {
-  const mismatchRuleSet = normalizeMismatchRuleSet(template.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET);
-  const columns = template.columns.map((column) => {
-    if (!column.fieldKey || column.fieldKey.startsWith("__")) return column;
-    const suggested = suggestFieldKeyForLabel(column.label, "conservative-client");
-    return suggested && suggested !== column.fieldKey ? { ...column, fieldKey: suggested } : column;
-  });
-  return {
-    ...template,
-    columns,
-    mismatchRuleSet,
-    needsReview: countMismatches(columns, mismatchRuleSet) > 0,
-  };
-}
-
 function readAll(): ClientTemplate[] {
   if (typeof window === "undefined") return [];
   const stored = safeParse<ClientTemplate[] | null>(localStorage.getItem(STORE_KEY), null);
-  if (stored && stored.length > 0) {
-    const normalized = stored.map(normalizeTemplate);
-    if (JSON.stringify(stored) !== JSON.stringify(normalized)) {
-      localStorage.setItem(STORE_KEY, JSON.stringify(normalized));
-    }
-    return normalized;
-  }
+  if (stored && stored.length > 0) return stored;
   const seeded = seedTemplates();
   localStorage.setItem(STORE_KEY, JSON.stringify(seeded));
   return seeded;
 }
-
-function runMismatchMigrationOnce(): void {
-  if (typeof window === "undefined") return;
-  if (localStorage.getItem(MIGRATION_KEY)) return;
-  const stored = safeParse<ClientTemplate[] | null>(localStorage.getItem(STORE_KEY), null);
-  if (stored && stored.length > 0) {
-    const next = stored.map((t) => normalizeTemplate({ ...t, mismatchRuleSet: t.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET }));
-    localStorage.setItem(STORE_KEY, JSON.stringify(next));
-  }
-  localStorage.setItem(MIGRATION_KEY, "1");
-}
-
-runMismatchMigrationOnce();
 
 function writeAll(items: ClientTemplate[]): void {
   if (typeof window === "undefined") return;
@@ -105,10 +67,6 @@ class LocalTemplateRepository implements TemplateRepository {
       columns: input.columns.map((c) => ({ ...c, id: c.id || uid() })),
       notes: input.notes,
       export: input.export,
-      headerColor: input.headerColor,
-      headerTextColor: input.headerTextColor,
-      mismatchRuleSet: normalizeMismatchRuleSet(input.mismatchRuleSet ?? DEFAULT_MISMATCH_RULE_SET),
-      needsReview: input.needsReview ?? countMismatches(input.columns, normalizeMismatchRuleSet(input.mismatchRuleSet)) > 0,
       favorite: false,
       createdAt: now,
       updatedAt: now,
@@ -144,10 +102,6 @@ class LocalTemplateRepository implements TemplateRepository {
       columns: src.columns.map((c) => ({ ...c, id: uid() })),
       notes: src.notes,
       export: src.export,
-      headerColor: src.headerColor,
-      headerTextColor: src.headerTextColor,
-      mismatchRuleSet: src.mismatchRuleSet,
-      needsReview: src.needsReview,
     });
   }
 

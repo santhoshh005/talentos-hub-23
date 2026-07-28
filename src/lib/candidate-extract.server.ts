@@ -6,100 +6,6 @@ import { mergeCandidate } from "./candidate-parse";
 
 const MODEL = "google/gemini-3.6-flash";
 
-// Fields where our deterministic regex parser is more reliable than the LLM.
-// If the seed has a non-empty value for these, always use the seed's value.
-const HIGH_CONFIDENCE_SEED_FIELDS = [
-  "email",
-  "mobile",
-  "linkedin",
-  "github",
-  "portfolio",
-  "pan",
-  "passport",
-] as const;
-
-const EMAIL_LIKE = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i;
-const PHONE_LIKE = /^\+?[\d][\d\s()\-.]{6,}$/;
-const COMPANY_LIKE = /\b(ltd|llp|inc|solutions|technologies|systems|pvt|limited|corp|gmbh|consulting|services|labs|studios|group)\b/i;
-const CTC_LIKE = /\b(lpa|lakh|crore|inr|₹|usd|\$|salary|per\s*(annum|month|year)|k\/yr|per year)\b|^\d+(\.\d+)?\s*(lpa|lakh)?$/i;
-
-/**
- * Sanity pass: catch obvious value/field swaps the LLM makes and fix them.
- * Only moves a value when the destination field is empty, so we never destroy data.
- */
-function sanityCorrect(record: CandidateRecord): CandidateRecord {
-  const patch: Partial<Record<keyof CandidateRecord, string>> = {};
-  const scalarFields: (keyof CandidateRecord)[] = [
-    "currentCompany",
-    "currentDesignation",
-    "currentCTC",
-    "expectedCTC",
-    "noticePeriod",
-    "currentLocation",
-    "preferredLocation",
-    "employmentType",
-    "totalExperience",
-    "relevantExperience",
-  ];
-
-  const val = (k: keyof CandidateRecord): string => {
-    const v = (record as unknown as Record<string, unknown>)[k];
-    return typeof v === "string" ? v.trim() : "";
-  };
-  const targetEmpty = (k: keyof CandidateRecord): boolean =>
-    !(val(k) || patch[k]);
-
-  // 1. Rescue emails/phones that landed in text fields.
-  for (const f of scalarFields) {
-    const v = val(f);
-    if (!v) continue;
-    if (EMAIL_LIKE.test(v) && targetEmpty("email")) {
-      patch.email = (v.match(EMAIL_LIKE) ?? [""])[0];
-      patch[f] = "";
-      continue;
-    }
-    if (PHONE_LIKE.test(v) && !EMAIL_LIKE.test(v) && targetEmpty("mobile")) {
-      patch.mobile = v;
-      patch[f] = "";
-    }
-  }
-
-  // 2. Company-shaped strings sitting in CTC fields — move them to currentCompany if that's empty.
-  const isCompanyShaped = (s: string) =>
-    !!s && COMPANY_LIKE.test(s) && !CTC_LIKE.test(s) && !/\d{4,}/.test(s);
-
-  const ctcExpected = val("expectedCTC");
-  const ctcCurrent = val("currentCTC");
-  if (isCompanyShaped(ctcExpected) && targetEmpty("currentCompany")) {
-    patch.currentCompany = ctcExpected;
-    patch.expectedCTC = "";
-  }
-  if (isCompanyShaped(ctcCurrent) && targetEmpty("currentCompany")) {
-    patch.currentCompany = ctcCurrent;
-    patch.currentCTC = "";
-  }
-
-  // 3. Swap current<->expected CTC if only one is populated and it looks like a range or the other slot has clearly-not-CTC content.
-  // (No-op unless both are CTC-shaped; handled implicitly above.)
-
-  return { ...record, ...(patch as Partial<CandidateRecord>) };
-}
-
-/** Force high-confidence seed fields to win over the LLM when the seed has them. */
-function overlayStrongSeed(
-  merged: CandidateRecord,
-  seed: Partial<CandidateRecord>,
-): CandidateRecord {
-  const out: Record<string, unknown> = { ...merged };
-  for (const key of HIGH_CONFIDENCE_SEED_FIELDS) {
-    const s = seed[key];
-    if (typeof s === "string" && s.trim().length > 0) {
-      out[key] = s.trim();
-    }
-  }
-  return out as CandidateRecord;
-}
-
 export const CandidateExtractInputSchema = z.object({
   resumeText: z.string().min(20, "Resume text is too short"),
   seed: z.record(z.string(), z.unknown()).optional(),
@@ -109,12 +15,6 @@ const SYSTEM = [
   "You are TalentOS Candidate Extractor.",
   "You read a raw resume and extract structured recruiter fields as strict JSON.",
   "Never invent values. If a field is absent, use \"\" or []. Return ONLY raw JSON — no markdown, no prose.",
-  "CRITICAL: each field must contain ONLY the type of value its name describes.",
-  "email = an email address (contains @). mobile = a phone number (digits only, may start with +).",
-  "currentCompany = the employer's organisation name. currentDesignation = a job title.",
-  "currentCTC / expectedCTC = compensation amounts (e.g. \"18 LPA\", \"$120k\") — NEVER a company name, email, or phone.",
-  "noticePeriod = a duration (e.g. \"30 days\", \"Immediate\"). Never put a company or amount there.",
-  "If unsure which field a value belongs to, leave the wrong field empty rather than guessing.",
 ].join(" ");
 
 function buildPrompt(resumeText: string): string {
@@ -168,12 +68,7 @@ export async function runExtractCandidate(
 ): Promise<CandidateRecord> {
   const seedRecord = seed ?? {};
   const seedMerged = (llm: Partial<CandidateRecord>): CandidateRecord =>
-    sanityCorrect(
-      overlayStrongSeed(
-        CandidateRecordSchema.parse(mergeCandidate(llm, seedRecord)),
-        seedRecord,
-      ),
-    );
+    CandidateRecordSchema.parse(mergeCandidate(llm, seedRecord));
 
   const key = process.env.LOVABLE_API_KEY;
   if (!key) return seedMerged({});

@@ -14,7 +14,6 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppLayout } from "../components/layout/AppLayout";
 import { LoaderProvider } from "../components/loader/LoaderProvider";
 import { FirstVisitGate } from "../components/loader/FirstVisitGate";
-import { RouteProgress } from "../components/loader/RouteProgress";
 
 function NotFoundComponent() {
   return (
@@ -132,7 +131,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <LoaderProvider>
         <FirstVisitGate>
-          <RouteProgress />
           <Outlet />
         </FirstVisitGate>
       </LoaderProvider>

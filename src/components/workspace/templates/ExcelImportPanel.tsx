@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { CANDIDATE_FIELDS } from "@/lib/candidate-schemas";
 import { parseTemplateHeaders, suggestFieldMapping } from "@/lib/templates/excel-import";
 import { localTemplateRepository } from "@/lib/templates/local-template-repository";
-import { DEFAULT_MISMATCH_RULE_SET, type TemplateColumn } from "@/lib/templates/template-types";
+import type { TemplateColumn } from "@/lib/templates/template-types";
 
 export function ExcelImportPanel({
   onClose,
@@ -58,7 +58,6 @@ export function ExcelImportPanel({
       description: `Imported from ${fileName}`,
       columns: cleaned,
       export: { sheetName: "Candidates" },
-      mismatchRuleSet: DEFAULT_MISMATCH_RULE_SET,
     });
     toast.success("Template created from Excel");
     onCreated();

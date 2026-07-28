@@ -1,4 +1,4 @@
-import { DEFAULT_MISMATCH_RULE_SET, type ClientTemplate, type TemplateColumn } from "./template-types";
+import type { ClientTemplate, TemplateColumn } from "./template-types";
 import { CANDIDATE_FIELDS } from "../candidate-schemas";
 
 function col(fieldKey: string, label?: string, defaultValue?: string): TemplateColumn {
@@ -22,7 +22,6 @@ function template(id: string, name: string, description: string, columns: Templa
     createdAt: now,
     updatedAt: now,
     export: { sheetName: "Candidates" },
-    mismatchRuleSet: DEFAULT_MISMATCH_RULE_SET,
   };
 }
 

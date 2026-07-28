@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Download, FileSpreadsheet, Trash2, Plus, GripVertical, RotateCcw, Eye, EyeOff } from "lucide-react";
-import { InlineSpinner } from "@/components/loader/InlineSpinner";
 import {
   DndContext,
   PointerSensor,
@@ -21,60 +20,29 @@ import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import type { ClientTemplate } from "@/lib/templates/template-types";
 import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
-import { buildPreviewRow, effectiveTemplateFieldKey, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
+import { buildPreviewRow, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
-import { CANDIDATE_FIELDS, candidateFieldValue } from "@/lib/candidate-schemas";
-import { describeField } from "@/lib/templates/column-diagnostics";
 
 export function ExportPreview({
   record,
   template,
-  onUpdateTemplate,
 }: {
   record: CandidateRecord;
   template: ClientTemplate;
-  onUpdateTemplate?: (patch: Partial<Pick<ClientTemplate, "columns">>) => void;
 }) {
   const initial = useMemo(() => buildPreviewRow(record, template), [record, template]);
-  // Rows carry a fieldKey so we can show the source-field caption and remap inline.
-  type Row = PreviewRow & { fieldKey: string };
-  const initialRows = useMemo<Row[]>(
-    () =>
-      initial.map((r) => {
-        const col = template.columns.find((c) => c.id === r.columnId);
-        return { ...r, fieldKey: col ? effectiveTemplateFieldKey(col) : "__custom" };
-      }),
-    [initial, template.columns],
-  );
-  const [rows, setRows] = useState<Row[]>(initialRows);
+  const [rows, setRows] = useState<PreviewRow[]>(initial);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
-  const [headerBgOverride, setHeaderBgOverride] = useState<string>(
-    template.headerColor ?? DEFAULT_HEADER_COLOR,
-  );
-  const [exporting, setExporting] = useState<null | "xlsx" | "csv">(null);
 
   useEffect(() => {
-    setRows(initialRows);
+    setRows(initial);
     setHidden(new Set());
-    setHeaderBgOverride(template.headerColor ?? DEFAULT_HEADER_COLOR);
-  }, [initialRows, template.headerColor]);
+  }, [initial]);
 
   const updateValue = (i: number, v: string) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, value: v } : r)));
   const updateLabel = (i: number, v: string) =>
     setRows((rs) => rs.map((r, idx) => (idx === i ? { ...r, label: v } : r)));
-  const updateFieldKey = (i: number, key: string) =>
-    setRows((rs) =>
-      rs.map((r, idx) => {
-        if (idx !== i) return r;
-        const next = { ...r, fieldKey: key };
-        // Repull value from the record when remapping to a real field.
-        if (!key.startsWith("__")) {
-          next.value = candidateFieldValue(record, key);
-        }
-        return next;
-      }),
-    );
   const remove = (i: number) => setRows((rs) => rs.filter((_, idx) => idx !== i));
   const addColumn = () =>
     setRows((rs) => [
@@ -83,11 +51,10 @@ export function ExportPreview({
         columnId: `custom_${Date.now()}`,
         label: "New column",
         value: "",
-        fieldKey: "__custom",
       },
     ]);
   const reset = () => {
-    setRows(initialRows);
+    setRows(initial);
     setHidden(new Set());
   };
   const toggleHidden = (id: string) =>
@@ -110,42 +77,25 @@ export function ExportPreview({
 
   const visibleRows = rows.filter((r) => !hidden.has(r.columnId));
   const previewRows: PreviewRow[] = visibleRows.map((r) => ({ ...r, value: display(r.value) }));
-  const headerBg = headerBgOverride;
+  const headerBg = template.headerColor ?? DEFAULT_HEADER_COLOR;
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
 
-  const persistFieldKeys = () => {
-    if (!onUpdateTemplate) return;
-    const nextCols = template.columns
-      .map((c) => {
-        const row = rows.find((r) => r.columnId === c.id);
-        if (!row) return c;
-        return { ...c, fieldKey: row.fieldKey, label: row.label };
-      });
-    onUpdateTemplate({ columns: nextCols });
-  };
-
   const doXlsx = async () => {
-    setExporting("xlsx");
     try {
-      await exportToXlsx(record, template, visibleRows, headerBg);
+      await exportToXlsx(record, template, visibleRows);
       toast.success("Excel exported");
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
-    } finally {
-      setExporting(null);
     }
   };
   const doCsv = async () => {
-    setExporting("csv");
     try {
       await exportToCsv(record, template, visibleRows);
       toast.success("CSV exported");
     } catch (err) {
       console.error(err);
       toast.error("Export failed");
-    } finally {
-      setExporting(null);
     }
   };
 
@@ -159,20 +109,18 @@ export function ExportPreview({
           </p>
         </div>
         <div className="flex gap-2">
-          <HeaderColorControl value={headerBg} onChange={setHeaderBgOverride} />
           <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
-          <Button type="button" variant="outline" onClick={doCsv} disabled={!!exporting} className="rounded-lg border-white/10 bg-white/[0.03]">
-            {exporting === "csv" ? <InlineSpinner context="export" /> : <FileSpreadsheet className="h-4 w-4" />} CSV
+          <Button type="button" variant="outline" onClick={doCsv} className="rounded-lg border-white/10 bg-white/[0.03]">
+            <FileSpreadsheet className="h-4 w-4" /> CSV
           </Button>
           <Button
             type="button"
             onClick={doXlsx}
-            disabled={!!exporting}
             className="rounded-lg bg-gradient-to-r from-primary to-accent shadow-2xl shadow-primary/30"
           >
-            {exporting === "xlsx" ? <InlineSpinner context="export" /> : <Download className="h-4 w-4" />} Export .xlsx
+            <Download className="h-4 w-4" /> Export .xlsx
           </Button>
         </div>
       </div>
@@ -184,25 +132,13 @@ export function ExportPreview({
             <div className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Column order
             </div>
-            <div className="flex items-center gap-2">
-              {onUpdateTemplate && (
-                <button
-                  type="button"
-                  onClick={persistFieldKeys}
-                  className="rounded-md px-1.5 py-0.5 text-[10px] text-accent hover:bg-white/[0.05]"
-                  title="Save the current field mapping and labels back to this template"
-                >
-                  Save to template
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={addColumn}
-                className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
-              >
-                <Plus className="h-3 w-3" /> Add
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={addColumn}
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+            >
+              <Plus className="h-3 w-3" /> Add
+            </button>
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
             <SortableContext items={rows.map((r) => r.columnId)} strategy={verticalListSortingStrategy}>
@@ -212,10 +148,8 @@ export function ExportPreview({
                     key={r.columnId}
                     id={r.columnId}
                     label={r.label}
-                    fieldKey={r.fieldKey}
                     hidden={hidden.has(r.columnId)}
                     onLabelChange={(v) => updateLabel(i, v)}
-                    onFieldKeyChange={(k) => updateFieldKey(i, k)}
                     onToggleHidden={() => toggleHidden(r.columnId)}
                     onRemove={() => remove(i)}
                   />
@@ -230,23 +164,15 @@ export function ExportPreview({
           <table className="w-full min-w-[520px] text-xs">
             <thead>
               <tr className="border-b border-white/10" style={{ background: headerBg }}>
-                {previewRows.map((r) => {
-                  const row = rows.find((x) => x.columnId === r.columnId);
-                  return (
-                    <th
-                      key={r.columnId}
-                      className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest"
-                      style={{ color: headerFg }}
-                    >
-                      <div>{r.label}</div>
-                      {row && (
-                        <div className="mt-0.5 text-[9px] font-normal normal-case tracking-normal opacity-70">
-                          from: {describeField(row.fieldKey)}
-                        </div>
-                      )}
-                    </th>
-                  );
-                })}
+                {previewRows.map((r) => (
+                  <th
+                    key={r.columnId}
+                    className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: headerFg }}
+                  >
+                    {r.label}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -281,19 +207,15 @@ export function ExportPreview({
 function SortableRow({
   id,
   label,
-  fieldKey,
   hidden,
   onLabelChange,
-  onFieldKeyChange,
   onToggleHidden,
   onRemove,
 }: {
   id: string;
   label: string;
-  fieldKey: string;
   hidden: boolean;
   onLabelChange: (v: string) => void;
-  onFieldKeyChange: (k: string) => void;
   onToggleHidden: () => void;
   onRemove: () => void;
 }) {
@@ -303,90 +225,44 @@ function SortableRow({
     transition,
     opacity: isDragging ? 0.6 : 1,
   };
-  const currentValue = fieldKey.startsWith("__") ? "__custom" : fieldKey;
   return (
     <li
       ref={setNodeRef}
       style={style}
-      className={`flex flex-col gap-1 rounded-lg border px-2 py-1.5 ${
-        "border-white/5 " + (hidden ? "bg-white/[0.01] opacity-60" : "bg-white/[0.03]")
+      className={`flex items-center gap-1.5 rounded-lg border border-white/5 px-2 py-1.5 ${
+        hidden ? "bg-white/[0.01] opacity-60" : "bg-white/[0.03]"
       }`}
     >
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          {...attributes}
-          {...listeners}
-          className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
-          aria-label="Drag to reorder"
-        >
-          <GripVertical className="h-3.5 w-3.5" />
-        </button>
-        <input
-          value={label}
-          onChange={(e) => onLabelChange(e.target.value)}
-          className="flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-foreground/90 hover:border-white/10 focus:border-accent focus:bg-white/[0.03] focus:outline-none"
-        />
-        <button
-          type="button"
-          onClick={onToggleHidden}
-          className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
-          aria-label={hidden ? "Show column" : "Hide column"}
-        >
-          {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-        </button>
-        <button
-          type="button"
-          onClick={onRemove}
-          className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300"
-          aria-label="Remove column"
-        >
-          <Trash2 className="h-3 w-3" />
-        </button>
-      </div>
-      <div className="flex items-center gap-1.5 pl-5">
-        <span className="text-[9px] uppercase tracking-widest text-muted-foreground">from</span>
-        <select
-          value={currentValue}
-          onChange={(e) => onFieldKeyChange(e.target.value)}
-          className="flex-1 rounded border border-white/10 bg-transparent px-1 py-0.5 text-[10px] text-muted-foreground outline-none focus:border-accent"
-        >
-          {CANDIDATE_FIELDS.map((f) => (
-            <option key={f.key} value={f.key} className="bg-background">
-              {f.group} · {f.label}
-            </option>
-          ))}
-          <option value="__custom" className="bg-background">Custom (no field)</option>
-        </select>
-      </div>
-    </li>
-  );
-}
-
-export function HeaderColorControl({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label
-      className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-muted-foreground"
-      title="Header background color (preview + export)"
-    >
-      <span className="hidden sm:inline">Header</span>
-      <span
-        className="inline-block h-4 w-4 rounded border border-white/20"
-        style={{ background: value }}
-      />
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
+        aria-label="Drag to reorder"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
       <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="h-5 w-6 cursor-pointer border-0 bg-transparent p-0"
-        aria-label="Header background color"
+        value={label}
+        onChange={(e) => onLabelChange(e.target.value)}
+        className="flex-1 rounded-md border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-foreground/90 hover:border-white/10 focus:border-accent focus:bg-white/[0.03] focus:outline-none"
       />
-    </label>
+      <button
+        type="button"
+        onClick={onToggleHidden}
+        className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-white/[0.05] hover:text-foreground"
+        aria-label={hidden ? "Show column" : "Hide column"}
+      >
+        {hidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+      </button>
+      <button
+        type="button"
+        onClick={onRemove}
+        className="grid h-6 w-6 place-items-center rounded-md text-muted-foreground hover:bg-rose-500/10 hover:text-rose-300"
+        aria-label="Remove column"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+    </li>
   );
 }

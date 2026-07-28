@@ -10,40 +10,6 @@ export interface ExportSettings {
   sheetName: string;
 }
 
-export type MismatchRuleSetId = "trust-template" | "header-label" | "conservative-client";
-
-export interface MismatchRuleSetOption {
-  id: MismatchRuleSetId;
-  label: string;
-  description: string;
-}
-
-export const DEFAULT_MISMATCH_RULE_SET: MismatchRuleSetId = "trust-template";
-
-export const MISMATCH_RULE_SETS: readonly MismatchRuleSetOption[] = [
-  {
-    id: "trust-template",
-    label: "Trust saved mapping",
-    description: "Use this client's saved field selectors and suppress label-only mismatch warnings.",
-  },
-  {
-    id: "header-label",
-    label: "Auto-map by headers",
-    description: "Uses the column header text to review field mappings aggressively.",
-  },
-  {
-    id: "conservative-client",
-    label: "Conservative client headers",
-    description: "Uses exact, low-risk header matches for clients with custom labels.",
-  },
-] as const;
-
-export function normalizeMismatchRuleSet(value: string | undefined): MismatchRuleSetId {
-  return MISMATCH_RULE_SETS.some((r) => r.id === value)
-    ? (value as MismatchRuleSetId)
-    : DEFAULT_MISMATCH_RULE_SET;
-}
-
 export interface ClientTemplate {
   id: string;
   name: string;
@@ -58,10 +24,6 @@ export interface ClientTemplate {
   headerColor?: string;
   /** Hex color for the header row text in the exported Excel. */
   headerTextColor?: string;
-  /** Controls how mismatch diagnostics and one-click fixes behave for this client template. */
-  mismatchRuleSet?: MismatchRuleSetId;
-  /** Set by the migration when a column label appears to disagree with its fieldKey. */
-  needsReview?: boolean;
 }
 
 export const DEFAULT_HEADER_COLOR = "#0F172A";
