@@ -40,20 +40,30 @@ const HINTS: Record<string, string[]> = {
   recruiterNotes: ["remarks", "notes", "comment"],
 };
 
-export function suggestFieldMapping(headers: string[]): TemplateColumn[] {
-  return headers.map((header, i) => {
-    const lower = header.toLowerCase();
-    let match: string | undefined;
-    for (const [key, hints] of Object.entries(HINTS)) {
-      if (hints.some((h) => lower.includes(h))) {
-        match = key;
-        break;
+/**
+ * Best-effort mapping from a human header label to a candidate fieldKey.
+ * Returns undefined when nothing plausible matches. Longer hints win so
+ * "current ctc" beats "ctc" and "current location" beats "location".
+ */
+export function suggestFieldKeyForLabel(label: string): string | undefined {
+  const lower = label.toLowerCase().trim();
+  if (!lower) return undefined;
+  let best: { key: string; score: number } | undefined;
+  for (const [key, hints] of Object.entries(HINTS)) {
+    for (const hint of hints) {
+      if (lower.includes(hint) && (!best || hint.length > best.score)) {
+        best = { key, score: hint.length };
       }
     }
-    // Verify match is a real field
-    if (match && !CANDIDATE_FIELDS.some((f) => f.key === match) && match !== "recruiterNotes") {
-      match = undefined;
-    }
+  }
+  if (!best) return undefined;
+  if (best.key === "recruiterNotes") return best.key;
+  return CANDIDATE_FIELDS.some((f) => f.key === best!.key) ? best.key : undefined;
+}
+
+export function suggestFieldMapping(headers: string[]): TemplateColumn[] {
+  return headers.map((header, i) => {
+    const match = suggestFieldKeyForLabel(header);
     return {
       id: `imp_${i}_${Math.random().toString(36).slice(2, 7)}`,
       fieldKey: match ?? `__unmapped_${i}`,

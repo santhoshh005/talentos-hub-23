@@ -10,6 +10,7 @@ import { buildPreviewRow, exportBulkXlsx } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
 import { AddResumesButton } from "./CandidateUpload";
 import { HeaderColorControl } from "./ExportPreview";
+import { diagnoseColumn } from "@/lib/templates/column-diagnostics";
 
 export type BulkStatus = "queued" | "parsing" | "extracting" | "done" | "failed";
 
@@ -49,6 +50,9 @@ export function BulkCandidateTable({
     [doneItems, template],
   );
   const header = rowsPerRecord[0]?.map((r) => r.label) ?? template.columns.filter((c) => !c.hidden).map((c) => c.label);
+  const visibleColumns = template.columns.filter((c) => !c.hidden);
+  const columnDiagnostics = visibleColumns.map((c) => diagnoseColumn(c));
+  const mismatchCount = columnDiagnostics.filter((d) => d.mismatch).length;
 
   const doExport = async () => {
     setExporting(true);
@@ -133,19 +137,40 @@ export function BulkCandidateTable({
           <p className="text-xs text-muted-foreground">
             Edit any cell before export. Header uses your template color.
           </p>
+          {mismatchCount > 0 && (
+            <div className="mt-3 flex items-start gap-2 rounded-xl border border-amber-400/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <div>
+                <div className="font-semibold">
+                  {mismatchCount} column{mismatchCount === 1 ? "" : "s"} may be reading the wrong field.
+                </div>
+                <div className="text-amber-200/80">
+                  Open Manage templates or the single-record preview to remap.
+                </div>
+              </div>
+            </div>
+          )}
           <div className="mt-3 overflow-x-auto rounded-xl border border-white/10">
             <table className="w-full min-w-[720px] text-xs">
               <thead>
                 <tr style={{ background: headerBg }}>
-                  {header.map((label) => (
-                    <th
-                      key={label}
-                      className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest"
-                      style={{ color: headerFg }}
-                    >
-                      {label}
-                    </th>
-                  ))}
+                  {header.map((label, i) => {
+                    const d = columnDiagnostics[i];
+                    return (
+                      <th
+                        key={`${label}_${i}`}
+                        className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest"
+                        style={{ color: headerFg }}
+                      >
+                        <div>{label}</div>
+                        {d && (
+                          <div className={`mt-0.5 text-[9px] font-normal normal-case tracking-normal ${d.mismatch ? "text-amber-200" : "opacity-70"}`}>
+                            from: {d.sourceCaption}
+                          </div>
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
