@@ -1,27 +1,17 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Sparkles, CheckCircle2, AlertTriangle, PlusCircle, ChevronDown,
   Briefcase, GraduationCap, Award, FolderKanban, Clock, Cpu,
   FileSearch, Brain, Layers, Target, ShieldCheck, Lock, Mail, Phone, MapPin,
+  TrendingUp, ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PipelineResult } from "@/lib/pipeline.functions";
 
-type Recommendation = {
-  label: string;
-  tone: "emerald" | "sky" | "amber" | "rose";
-  description: string;
-};
+type Tone = "emerald" | "sky" | "amber" | "rose";
 
-function computeRecommendation(matchPct: number): Recommendation {
-  if (matchPct >= 85) return { label: "Highly Recommended", tone: "emerald", description: "Strong alignment across required skills and evidence." };
-  if (matchPct >= 70) return { label: "Recommended", tone: "sky", description: "Solid fit with minor gaps that can be validated in interview." };
-  if (matchPct >= 50) return { label: "Needs Review", tone: "amber", description: "Partial alignment — recruiter judgement recommended." };
-  return { label: "Low Match", tone: "rose", description: "Significant gaps against the role's core requirements." };
-}
-
-const toneStyles: Record<Recommendation["tone"], { badge: string; ring: string; dot: string }> = {
+const toneStyles: Record<Tone, { badge: string; ring: string; dot: string }> = {
   emerald: { badge: "bg-emerald-500/10 text-emerald-300 border-emerald-400/30", ring: "ring-emerald-400/30", dot: "bg-emerald-400" },
   sky: { badge: "bg-sky-500/10 text-sky-300 border-sky-400/30", ring: "ring-sky-400/30", dot: "bg-sky-400" },
   amber: { badge: "bg-amber-500/10 text-amber-300 border-amber-400/30", ring: "ring-amber-400/30", dot: "bg-amber-400" },
@@ -71,12 +61,9 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
     );
   }
 
-  const { resume, jobDescription, matching, evidence, metadata } = data;
-  const matchPct = useMemo(() => {
-    const total = matching.similarity.totalRequiredSkills || 1;
-    return Math.round((matching.similarity.matchedRequiredSkills / total) * 100);
-  }, [matching]);
-  const rec = computeRecommendation(matchPct);
+  const { resume, jobDescription, matching, evidence, metadata, scoring, intelligence } = data;
+  const matchPct = scoring.matchPercentage;
+  const rec = intelligence.recommendation;
   const tone = toneStyles[rec.tone];
 
   return (
@@ -94,7 +81,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
                 <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">{resume.name}</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                   <span className="inline-flex items-center gap-1.5"><Briefcase className="h-3.5 w-3.5" />{jobDescription.jobTitle}</span>
-                  <span className="inline-flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" />{jobDescription.domain}</span>
+                  <span className="inline-flex items-center gap-1.5"><Layers className="h-3.5 w-3.5" />{intelligence.inferredDomain}</span>
                   <span className="inline-flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{resume.location}</span>
                 </div>
               </div>
@@ -108,6 +95,10 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
                   {rec.label}
                 </span>
                 <p className="max-w-[220px] text-xs text-muted-foreground">{rec.description}</p>
+                <div className="mt-1 flex gap-3 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <span>Skills {scoring.skillCoverage}%</span>
+                  <span>Evidence {scoring.evidenceScore}%</span>
+                </div>
               </div>
             </div>
           </div>
@@ -116,7 +107,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
             <MetaStat icon={Mail} label="Email" value={resume.email} />
             <MetaStat icon={Phone} label="Phone" value={resume.phone} />
             <MetaStat icon={Clock} label="Notice" value={resume.noticePeriod} />
-            <MetaStat icon={ShieldCheck} label="Seniority" value={jobDescription.seniorityLevel} />
+            <MetaStat icon={ShieldCheck} label="Seniority" value={intelligence.inferredSeniority} />
           </div>
         </GlassCard>
       </motion.div>
@@ -125,19 +116,11 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
       <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} variants={fadeUp}>
         <SectionHeader eyebrow="Section 1" title="Executive Summary" icon={Sparkles} />
         <GlassCard className="p-6 md:p-8">
-          <p className="text-base leading-relaxed text-foreground/90">
-            <span className="font-medium">{resume.name}</span> is a{" "}
-            <span className="text-primary">{resume.currentDesignation}</span> at{" "}
-            <span className="text-primary">{resume.currentCompany}</span> with{" "}
-            <span className="text-primary">{resume.experience}</span> of overall experience.
-            The candidate matches <span className="text-emerald-300">{matching.similarity.matchedRequiredSkills}</span> of{" "}
-            {matching.similarity.totalRequiredSkills} required skills for the{" "}
-            <span className="text-accent">{jobDescription.jobTitle}</span> role in {jobDescription.domain}.
-          </p>
-          <p className="mt-3 text-sm text-muted-foreground">
-            A full recruiter-grade summary (rationale, risks, strengths, next steps) will be produced once the
-            Recruiter Intelligence Engine is enabled.
-          </p>
+          <p className="text-base leading-relaxed text-foreground/90">{intelligence.summary}</p>
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            <InsightList title="Strengths" icon={TrendingUp} tone="emerald" items={intelligence.strengths} />
+            <InsightList title="Risks" icon={ShieldAlert} tone="rose" items={intelligence.risks} />
+          </div>
         </GlassCard>
       </motion.div>
 
@@ -150,11 +133,33 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
               <SkillChip key={m.skill} label={m.skill} tone="emerald" tooltip={`Confidence ${m.confidence} · ${m.kind}`} delay={i * 0.03} />
             ))}
           </SkillColumn>
-          <SkillColumn title="Missing Skills" icon={AlertTriangle} tone="rose" count={matching.missingSkills.length}>
-            {matching.missingSkills.map((s, i) => (
-              <SkillChip key={s} label={s} tone="rose" tooltip="Required by JD, absent in resume" delay={i * 0.03} />
-            ))}
-          </SkillColumn>
+          <GlassCard className="p-5">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-rose-400" />
+                <span className="text-sm font-medium">Missing Skills</span>
+              </div>
+              <span className={cn("rounded-full border px-2 py-0.5 text-xs", toneStyles.rose.badge)}>
+                {matching.missingSkills.length}
+              </span>
+            </div>
+            {matching.missingSkills.length === 0 ? (
+              <span className="text-xs text-muted-foreground">None</span>
+            ) : (
+              <div className="space-y-3">
+                {intelligence.missingByCategory.map((group) => (
+                  <div key={group.category}>
+                    <div className="mb-1.5 text-[10px] uppercase tracking-widest text-muted-foreground">{group.category}</div>
+                    <div className="flex flex-wrap gap-2">
+                      {group.skills.map((s, i) => (
+                        <SkillChip key={s} label={s} tone="rose" tooltip="Required by JD, absent in resume" delay={i * 0.02} />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </GlassCard>
           <SkillColumn title="Additional Skills" icon={PlusCircle} tone="sky" count={matching.additionalSkills.length}>
             {matching.additionalSkills.map((s, i) => (
               <SkillChip key={s} label={s} tone="sky" tooltip="Present in resume, not requested by JD" delay={i * 0.03} />
@@ -460,6 +465,8 @@ const STAGE_LABELS: Record<string, string> = {
   skillNormalization: "Skill Normalization",
   matching: "Matching Engine",
   evidence: "Evidence Engine",
+  scoring: "Scoring Engine",
+  recruiterIntelligence: "Recruiter Intelligence",
 };
 
 const FUTURE_INSIGHTS = [
