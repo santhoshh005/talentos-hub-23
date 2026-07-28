@@ -25,6 +25,7 @@ import { Route as WorkspaceInterviewRouteImport } from './routes/workspace.inter
 import { Route as WorkspaceIntelligenceRouteImport } from './routes/workspace.intelligence'
 import { Route as WorkspaceCandidateRouteImport } from './routes/workspace.candidate'
 import { Route as WorkspaceBooleanRouteImport } from './routes/workspace.boolean'
+import { Route as SitemapXmlRouteImport } from './routes/sitemap.xml'
 
 const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
@@ -106,6 +107,11 @@ const WorkspaceBooleanRoute = WorkspaceBooleanRouteImport.update({
   path: '/boolean',
   getParentRoute: () => WorkspaceRoute,
 } as any)
+const SitemapXmlRoute = SitemapXmlRouteImport.update({
+  id: '/sitemap/xml',
+  path: '/sitemap/xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
   '/workspace': typeof WorkspaceRouteWithChildren
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/workspace/boolean': typeof WorkspaceBooleanRoute
   '/workspace/candidate': typeof WorkspaceCandidateRoute
   '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/workspace/boolean': typeof WorkspaceBooleanRoute
   '/workspace/candidate': typeof WorkspaceCandidateRoute
   '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
   '/workspace': typeof WorkspaceRouteWithChildren
+  '/sitemap/xml': typeof SitemapXmlRoute
   '/workspace/boolean': typeof WorkspaceBooleanRoute
   '/workspace/candidate': typeof WorkspaceCandidateRoute
   '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/report'
     | '/timeline'
     | '/workspace'
+    | '/sitemap/xml'
     | '/workspace/boolean'
     | '/workspace/candidate'
     | '/workspace/intelligence'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/report'
     | '/timeline'
+    | '/sitemap/xml'
     | '/workspace/boolean'
     | '/workspace/candidate'
     | '/workspace/intelligence'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/report'
     | '/timeline'
     | '/workspace'
+    | '/sitemap/xml'
     | '/workspace/boolean'
     | '/workspace/candidate'
     | '/workspace/intelligence'
@@ -227,6 +239,7 @@ export interface RootRouteChildren {
   ReportRoute: typeof ReportRoute
   TimelineRoute: typeof TimelineRoute
   WorkspaceRoute: typeof WorkspaceRouteWithChildren
+  SitemapXmlRoute: typeof SitemapXmlRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -343,6 +356,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceBooleanRouteImport
       parentRoute: typeof WorkspaceRoute
     }
+    '/sitemap/xml': {
+      id: '/sitemap/xml'
+      path: '/sitemap/xml'
+      fullPath: '/sitemap/xml'
+      preLoaderRoute: typeof SitemapXmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -380,7 +400,18 @@ const rootRouteChildren: RootRouteChildren = {
   ReportRoute: ReportRoute,
   TimelineRoute: TimelineRoute,
   WorkspaceRoute: WorkspaceRouteWithChildren,
+  SitemapXmlRoute: SitemapXmlRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
