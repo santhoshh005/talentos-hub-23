@@ -554,7 +554,21 @@ export function normalizeSkill(raw: string): string {
  * form (case-insensitive), and drops empty tokens.
  */
 export function normalizeSkillList(values: unknown): NormalizedSkill[] {
-  const list = collectStrings(values);
+  const rawList = collectStrings(values);
+  // First: rescue multi-word canonical phrases even if the input arrived
+  // pre-split into fragments like ["Sales", "Cloud"] — join everything and
+  // run a longest-match pass over the alias table.
+  const joined = rawList.map((v) => v.replace(/\s+/g, " ").trim()).filter(Boolean).join(" | ");
+  const { phrases, remainder } = extractSkillPhrases(joined);
+  const list: string[] = [...phrases];
+  // Anything not consumed by phrase extraction still needs splitting on the
+  // usual delimiters so single-token skills survive.
+  for (const chunk of remainder.split(/\s*\|\s*/)) {
+    for (const piece of chunk.split(/\s*[,;/]\s*/)) {
+      const p = piece.trim();
+      if (p) list.push(p);
+    }
+  }
   const seen = new Set<string>();
   const out: NormalizedSkill[] = [];
   for (const original of list) {
