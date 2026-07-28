@@ -1,10 +1,13 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { RotateCcw, Sparkles } from "lucide-react";
+import { Download, RotateCcw, Sparkles } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
 import { RecruiterReport } from "@/components/report/RecruiterReport";
 import { Button } from "@/components/ui/button";
 import { clearResult, useLastReport } from "@/lib/report-store";
+import { downloadRecruiterReportPdf } from "@/lib/recruiter-report-pdf";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -21,6 +24,25 @@ export const Route = createFileRoute("/report")({
 function ReportPage() {
   const navigate = useNavigate();
   const result = useLastReport();
+  const [downloading, setDownloading] = useState(false);
+  const canDownload = !!result && result.ok;
+
+  const handleDownload = async () => {
+    if (!canDownload || !result) {
+      toast.error("No report available to export.");
+      return;
+    }
+    try {
+      setDownloading(true);
+      // Yield so the button state updates before the sync PDF work runs.
+      await new Promise((r) => setTimeout(r, 20));
+      downloadRecruiterReportPdf(result);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Failed to generate PDF.");
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (!result || !result.ok) {
     return (
@@ -54,7 +76,18 @@ function ReportPage() {
       description="Explainable candidate intelligence from the TalentOS pipeline — skills, evidence, and transparency."
     >
       <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
-        <div className="mb-6 flex justify-end">
+        <div className="mb-6 flex flex-wrap justify-end gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            onClick={handleDownload}
+            disabled={!canDownload || downloading}
+            title={canDownload ? "Download PDF" : "No report available to export."}
+            className="gap-2"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {downloading ? "Preparing PDF…" : "Download PDF"}
+          </Button>
           <Button
             variant="outline"
             size="sm"
