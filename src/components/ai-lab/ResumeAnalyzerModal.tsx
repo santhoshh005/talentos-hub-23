@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { runResumeIntelligence } from "@/lib/pipeline.functions";
 import { extractResumeText } from "@/lib/resume-extract";
 import { setResult } from "@/lib/report-store";
+import { clearIntake, setIntake, useIntake } from "@/lib/intake-store";
 import { cn } from "@/lib/utils";
 
 type Phase = "intake" | "running" | "error";
@@ -43,15 +44,11 @@ function GlassCard({ children, className }: { children: ReactNode; className?: s
 export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const runPipeline = useServerFn(runResumeIntelligence);
+  const intake = useIntake();
 
   const [phase, setPhase] = useState<Phase>("intake");
-  const [file, setFile] = useState<File | null>(null);
-  const [resumeText, setResumeText] = useState("");
   const [extracting, setExtracting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
-  const [jobDescription, setJobDescription] = useState("");
-  const [jdMode, setJdMode] = useState<"paste" | "upload">("paste");
-  const [jdFileName, setJdFileName] = useState("");
   const [jdLoading, setJdLoading] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
   const [errorMessage, setErrorMessage] = useState("");
@@ -59,6 +56,12 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
   const inputRef = useRef<HTMLInputElement>(null);
   const jdInputRef = useRef<HTMLInputElement>(null);
   const stepTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const resumeText = intake.resumeText;
+  const resumeName = intake.resumeName;
+  const jobDescription = intake.jobDescription;
+  const jdMode = intake.jdMode;
+  const jdFileName = intake.jdFileName;
 
   const clearTimer = () => {
     if (stepTimerRef.current) {
@@ -70,25 +73,29 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
   const reset = useCallback(() => {
     clearTimer();
     setPhase("intake");
-    setFile(null);
-    setResumeText("");
     setExtracting(false);
     setDragActive(false);
-    setJobDescription("");
-    setJdMode("paste");
-    setJdFileName("");
     setJdLoading(false);
     setActiveStep(0);
     setErrorMessage("");
     setFailedStage(null);
+    clearIntake();
     if (inputRef.current) inputRef.current.value = "";
     if (jdInputRef.current) jdInputRef.current.value = "";
   }, []);
 
+  // Cleanup only — never wipe intake on close so users can navigate to
+  // other workspace tabs and come back without losing their resume + JD.
+  useEffect(() => () => clearTimer(), []);
   useEffect(() => {
-    if (!open) reset();
-    return () => clearTimer();
-  }, [open, reset]);
+    if (open) {
+      // Return the user to the intake step when they reopen the drawer,
+      // unless a run is already in flight or errored.
+      setPhase((p) => (p === "running" ? p : "intake"));
+      setErrorMessage("");
+      setFailedStage(null);
+    }
+  }, [open]);
 
   const processResumeFile = useCallback(async (nextFile: File) => {
     const lower = nextFile.name.toLowerCase();
@@ -101,16 +108,15 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       return;
     }
     setExtracting(true);
-    setFile(nextFile);
-    setResumeText("");
+    setIntake({ resumeName: nextFile.name, resumeText: "" });
     try {
       const text = await extractResumeText(nextFile);
-      setResumeText(text);
+      setIntake({ resumeText: text });
       toast.success("Resume ready");
     } catch (caught) {
       console.error("[TalentOS Resume Analyzer] resume extract failed:", caught);
       toast.error("Could not read that resume file.");
-      setFile(null);
+      setIntake({ resumeName: "", resumeText: "" });
     } finally {
       setExtracting(false);
     }
@@ -137,12 +143,12 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       return;
     }
     setJdLoading(true);
-    setJdFileName(nextFile.name);
+    setIntake({ jdFileName: nextFile.name });
     try {
       const text = lower.endsWith(".txt")
         ? await nextFile.text()
         : await extractResumeText(nextFile);
-      setJobDescription(text.trim());
+      setIntake({ jobDescription: text.trim() });
       toast.success("Job description loaded");
     } catch (caught) {
       console.error("[TalentOS Resume Analyzer] JD extraction failed:", caught);
@@ -264,14 +270,14 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                     >
                       {extracting ? (
                         <Loader2 className="h-6 w-6 animate-spin text-accent" />
-                      ) : file ? (
+                      ) : resumeName ? (
                         <CheckCircle2 className="h-6 w-6 text-emerald-400" />
                       ) : (
                         <Upload className="h-6 w-6 text-accent" />
                       )}
                       <div className="text-sm text-muted-foreground">
-                        {file ? (
-                          <>Loaded <span className="text-foreground">{file.name}</span></>
+                        {resumeName ? (
+                          <>Loaded <span className="text-foreground">{resumeName}</span></>
                         ) : (
                           "Drop a PDF or DOCX resume here"
                         )}
@@ -307,7 +313,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                         <button
                           key={mode}
                           type="button"
-                          onClick={() => setJdMode(mode)}
+                          onClick={() => setIntake({ jdMode: mode })}
                           className={cn(
                             "rounded-lg px-3 py-1.5 font-medium capitalize transition",
                             jdMode === mode
@@ -322,7 +328,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                     {jdMode === "paste" ? (
                       <textarea
                         value={jobDescription}
-                        onChange={(event) => setJobDescription(event.target.value)}
+                        onChange={(event) => setIntake({ jobDescription: event.target.value })}
                         placeholder="Paste the Job Description here…"
                         rows={8}
                         className="w-full resize-y rounded-2xl border border-border bg-background/50 p-4 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30"
