@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import type { ClientTemplate } from "@/lib/templates/template-types";
+import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
 import { buildPreviewRow, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
 
@@ -76,6 +77,8 @@ export function ExportPreview({
 
   const visibleRows = rows.filter((r) => !hidden.has(r.columnId));
   const previewRows: PreviewRow[] = visibleRows.map((r) => ({ ...r, value: display(r.value) }));
+  const headerBg = template.headerColor ?? DEFAULT_HEADER_COLOR;
+  const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
 
   const doXlsx = async () => {
     try {
@@ -160,11 +163,12 @@ export function ExportPreview({
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02]">
           <table className="w-full min-w-[520px] text-xs">
             <thead>
-              <tr className="border-b border-white/10 bg-white/[0.03]">
+              <tr className="border-b border-white/10" style={{ background: headerBg }}>
                 {previewRows.map((r) => (
                   <th
                     key={r.columnId}
-                    className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest text-muted-foreground"
+                    className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest"
+                    style={{ color: headerFg }}
                   >
                     {r.label}
                   </th>
