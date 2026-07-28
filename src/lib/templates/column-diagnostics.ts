@@ -39,3 +39,22 @@ export function countMismatches(columns: ReadonlyArray<Pick<TemplateColumn, "fie
   for (const c of columns) if (diagnoseColumn(c).mismatch) n++;
   return n;
 }
+
+/**
+ * Apply the suggested Map-chip remap to every mismatched column.
+ * Preserves labels — only rewrites `fieldKey` where a confident suggestion exists.
+ */
+export function applyColumnFixes<T extends Pick<TemplateColumn, "fieldKey" | "label">>(
+  columns: ReadonlyArray<T>,
+): { columns: T[]; fixed: number } {
+  let fixed = 0;
+  const next = columns.map((c) => {
+    const d = diagnoseColumn(c);
+    if (d.mismatch && d.suggestedKey) {
+      fixed++;
+      return { ...c, fieldKey: d.suggestedKey };
+    }
+    return { ...c };
+  });
+  return { columns: next, fixed };
+}
