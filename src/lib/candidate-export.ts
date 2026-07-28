@@ -69,12 +69,17 @@ function toAOA(rows: PreviewRow[]): string[][] {
   return [rows.map((r) => r.label), rows.map((r) => r.value)];
 }
 
+async function loadXlsx() {
+  const mod = await import("xlsx-js-style");
+  return (mod as unknown as { default?: typeof mod }).default ?? mod;
+}
+
 export async function exportToXlsx(
   record: CandidateRecord,
   template: ClientTemplate,
   overrideRows?: PreviewRow[],
 ): Promise<void> {
-  const XLSX = (await import("xlsx-js-style")).default ?? (await import("xlsx-js-style"));
+  const XLSX = await loadXlsx();
   const rows = overrideRows ?? buildPreviewRow(record, template);
   const aoa = toAOA(rows);
   const sheet = XLSX.utils.aoa_to_sheet(aoa);
@@ -86,8 +91,8 @@ export async function exportToXlsx(
 }
 
 function applyHeaderStyle(
-  XLSX: typeof import("xlsx-js-style"),
-  sheet: import("xlsx-js-style").WorkSheet,
+  XLSX: Awaited<ReturnType<typeof loadXlsx>>,
+  sheet: Record<string, { s?: unknown } | undefined>,
   columnCount: number,
   template: ClientTemplate,
 ) {
@@ -108,7 +113,7 @@ export async function exportBulkXlsx(
   template: ClientTemplate,
   overrideRowsPerRecord?: PreviewRow[][],
 ): Promise<void> {
-  const XLSX = (await import("xlsx-js-style")).default ?? (await import("xlsx-js-style"));
+  const XLSX = await loadXlsx();
   const perRecord = overrideRowsPerRecord ?? records.map((r) => buildPreviewRow(r, template));
   const first = perRecord[0] ?? buildPreviewRow(records[0] ?? ({} as CandidateRecord), template);
   const header = first.map((r) => r.label);
