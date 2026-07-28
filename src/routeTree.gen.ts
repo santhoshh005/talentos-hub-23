@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -17,7 +18,19 @@ import { Route as ContactRouteImport } from './routes/contact'
 import { Route as CertificationsRouteImport } from './routes/certifications'
 import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
+import { Route as WorkspaceTemplatesRouteImport } from './routes/workspace.templates'
+import { Route as WorkspaceJdRouteImport } from './routes/workspace.jd'
+import { Route as WorkspaceInterviewRouteImport } from './routes/workspace.interview'
+import { Route as WorkspaceIntelligenceRouteImport } from './routes/workspace.intelligence'
+import { Route as WorkspaceCandidateRouteImport } from './routes/workspace.candidate'
+import { Route as WorkspaceBooleanRouteImport } from './routes/workspace.boolean'
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const TimelineRoute = TimelineRouteImport.update({
   id: '/timeline',
   path: '/timeline',
@@ -58,6 +71,41 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceTemplatesRoute = WorkspaceTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceJdRoute = WorkspaceJdRouteImport.update({
+  id: '/jd',
+  path: '/jd',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceInterviewRoute = WorkspaceInterviewRouteImport.update({
+  id: '/interview',
+  path: '/interview',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceIntelligenceRoute = WorkspaceIntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceCandidateRoute = WorkspaceCandidateRouteImport.update({
+  id: '/candidate',
+  path: '/candidate',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceBooleanRoute = WorkspaceBooleanRouteImport.update({
+  id: '/boolean',
+  path: '/boolean',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -68,6 +116,14 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
+  '/workspace': typeof WorkspaceRouteWithChildren
+  '/workspace/boolean': typeof WorkspaceBooleanRoute
+  '/workspace/candidate': typeof WorkspaceCandidateRoute
+  '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
+  '/workspace/interview': typeof WorkspaceInterviewRoute
+  '/workspace/jd': typeof WorkspaceJdRoute
+  '/workspace/templates': typeof WorkspaceTemplatesRoute
+  '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -78,6 +134,13 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
+  '/workspace/boolean': typeof WorkspaceBooleanRoute
+  '/workspace/candidate': typeof WorkspaceCandidateRoute
+  '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
+  '/workspace/interview': typeof WorkspaceInterviewRoute
+  '/workspace/jd': typeof WorkspaceJdRoute
+  '/workspace/templates': typeof WorkspaceTemplatesRoute
+  '/workspace': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -89,6 +152,14 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/timeline': typeof TimelineRoute
+  '/workspace': typeof WorkspaceRouteWithChildren
+  '/workspace/boolean': typeof WorkspaceBooleanRoute
+  '/workspace/candidate': typeof WorkspaceCandidateRoute
+  '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
+  '/workspace/interview': typeof WorkspaceInterviewRoute
+  '/workspace/jd': typeof WorkspaceJdRoute
+  '/workspace/templates': typeof WorkspaceTemplatesRoute
+  '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -101,6 +172,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/report'
     | '/timeline'
+    | '/workspace'
+    | '/workspace/boolean'
+    | '/workspace/candidate'
+    | '/workspace/intelligence'
+    | '/workspace/interview'
+    | '/workspace/jd'
+    | '/workspace/templates'
+    | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -111,6 +190,13 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/report'
     | '/timeline'
+    | '/workspace/boolean'
+    | '/workspace/candidate'
+    | '/workspace/intelligence'
+    | '/workspace/interview'
+    | '/workspace/jd'
+    | '/workspace/templates'
+    | '/workspace'
   id:
     | '__root__'
     | '/'
@@ -121,6 +207,14 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/report'
     | '/timeline'
+    | '/workspace'
+    | '/workspace/boolean'
+    | '/workspace/candidate'
+    | '/workspace/intelligence'
+    | '/workspace/interview'
+    | '/workspace/jd'
+    | '/workspace/templates'
+    | '/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -132,10 +226,18 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ReportRoute: typeof ReportRoute
   TimelineRoute: typeof TimelineRoute
+  WorkspaceRoute: typeof WorkspaceRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/timeline': {
       id: '/timeline'
       path: '/timeline'
@@ -192,8 +294,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/workspace/': {
+      id: '/workspace/'
+      path: '/'
+      fullPath: '/workspace/'
+      preLoaderRoute: typeof WorkspaceIndexRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/templates': {
+      id: '/workspace/templates'
+      path: '/templates'
+      fullPath: '/workspace/templates'
+      preLoaderRoute: typeof WorkspaceTemplatesRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/jd': {
+      id: '/workspace/jd'
+      path: '/jd'
+      fullPath: '/workspace/jd'
+      preLoaderRoute: typeof WorkspaceJdRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/interview': {
+      id: '/workspace/interview'
+      path: '/interview'
+      fullPath: '/workspace/interview'
+      preLoaderRoute: typeof WorkspaceInterviewRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/intelligence': {
+      id: '/workspace/intelligence'
+      path: '/intelligence'
+      fullPath: '/workspace/intelligence'
+      preLoaderRoute: typeof WorkspaceIntelligenceRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/candidate': {
+      id: '/workspace/candidate'
+      path: '/candidate'
+      fullPath: '/workspace/candidate'
+      preLoaderRoute: typeof WorkspaceCandidateRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/boolean': {
+      id: '/workspace/boolean'
+      path: '/boolean'
+      fullPath: '/workspace/boolean'
+      preLoaderRoute: typeof WorkspaceBooleanRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
   }
 }
+
+interface WorkspaceRouteChildren {
+  WorkspaceBooleanRoute: typeof WorkspaceBooleanRoute
+  WorkspaceCandidateRoute: typeof WorkspaceCandidateRoute
+  WorkspaceIntelligenceRoute: typeof WorkspaceIntelligenceRoute
+  WorkspaceInterviewRoute: typeof WorkspaceInterviewRoute
+  WorkspaceJdRoute: typeof WorkspaceJdRoute
+  WorkspaceTemplatesRoute: typeof WorkspaceTemplatesRoute
+  WorkspaceIndexRoute: typeof WorkspaceIndexRoute
+}
+
+const WorkspaceRouteChildren: WorkspaceRouteChildren = {
+  WorkspaceBooleanRoute: WorkspaceBooleanRoute,
+  WorkspaceCandidateRoute: WorkspaceCandidateRoute,
+  WorkspaceIntelligenceRoute: WorkspaceIntelligenceRoute,
+  WorkspaceInterviewRoute: WorkspaceInterviewRoute,
+  WorkspaceJdRoute: WorkspaceJdRoute,
+  WorkspaceTemplatesRoute: WorkspaceTemplatesRoute,
+  WorkspaceIndexRoute: WorkspaceIndexRoute,
+}
+
+const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
+  WorkspaceRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -204,6 +379,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ReportRoute: ReportRoute,
   TimelineRoute: TimelineRoute,
+  WorkspaceRoute: WorkspaceRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
