@@ -62,6 +62,17 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
   }
 
   const { resume, jobDescription, matching, evidence, metadata, scoring, intelligence } = data;
+  if (!scoring || !intelligence) {
+    return (
+      <GlassCard className="p-8 text-center">
+        <AlertTriangle className="mx-auto mb-3 h-8 w-8 text-amber-400" />
+        <p className="font-medium">This report was generated before the latest engines shipped.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Please re-run the Resume Analyzer from the AI Lab to regenerate the report.
+        </p>
+      </GlassCard>
+    );
+  }
   const matchPct = scoring.matchPercentage;
   const rec = intelligence.recommendation;
   const tone = toneStyles[rec.tone];
