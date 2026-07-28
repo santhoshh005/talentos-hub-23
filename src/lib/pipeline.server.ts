@@ -24,6 +24,15 @@ import { matchSkills, type MatchingResult } from "./matching-engine";
 import { buildEvidence, type SkillEvidence } from "./evidence-engine";
 import { scoreMatch, type ScoringResult } from "./scoring-engine";
 import { buildRecruiterIntelligence, type RecruiterIntelligence } from "./recruiter-intelligence";
+import { extractResumeV3, extractJDV3 } from "./llm-extract.server";
+import { runSemanticMatch } from "./semantic-match.server";
+import type {
+  ParsedJDV3,
+  ParsedResumeV3,
+  SemanticMatchV3,
+} from "./intelligence-schemas";
+import type { NormalizedSkill } from "./skill-normalizer";
+import type { SkillMatch } from "./matching-engine";
 
 export const PipelineInputSchema = z.object({
   resumeText: z.string().min(20),
@@ -93,6 +102,10 @@ export interface PipelineContext {
   evidence?: SkillEvidence[];
   scoring?: ScoringResult;
   intelligence?: RecruiterIntelligence;
+  // v3 intermediates
+  resumeV3?: ParsedResumeV3;
+  jdV3?: ParsedJDV3;
+  semantic?: SemanticMatchV3;
 }
 
 // ---------------------------------------------------------------------------
@@ -103,34 +116,37 @@ export const defaultPipelineStages: PipelineStage[] = [
   {
     name: "resumeParser",
     run: async (ctx) => {
-      ctx.resume = await runParseResume({ resumeText: ctx.input.resumeText });
+      ctx.resumeV3 = await extractResumeV3(ctx.input.resumeText);
+      ctx.resume = adaptResumeV3ToLegacy(ctx.resumeV3);
     },
   },
   {
     name: "jdIntelligence",
     run: async (ctx) => {
-      ctx.jobDescription = await runJdIntelligence({ jobDescription: ctx.input.jobDescription });
+      ctx.jdV3 = await extractJDV3(ctx.input.jobDescription);
+      ctx.jobDescription = adaptJdV3ToLegacy(ctx.jdV3);
     },
   },
   {
     name: "skillNormalization",
     run: async (ctx) => {
-      requireStage(ctx.resume, "resumeParser");
-      requireStage(ctx.jobDescription, "jdIntelligence");
-      ctx.normalizedSkills = normalizeSkills({
-        resume: ctx.resume,
-        jd: ctx.jobDescription,
-      });
+      requireStage(ctx.resumeV3, "resumeParser");
+      requireStage(ctx.jdV3, "jdIntelligence");
+      ctx.normalizedSkills = buildNormalizedFromV3(ctx.resumeV3, ctx.jdV3);
     },
   },
   {
     name: "matching",
     run: async (ctx) => {
+      requireStage(ctx.resumeV3, "resumeParser");
+      requireStage(ctx.jdV3, "jdIntelligence");
       requireStage(ctx.normalizedSkills, "skillNormalization");
-      ctx.matching = matchSkills({
-        resumeSkills: ctx.normalizedSkills.resumeSkills,
-        jdSkills: ctx.normalizedSkills.jdSkills,
-      });
+      ctx.semantic = await runSemanticMatch(ctx.resumeV3, ctx.jdV3);
+      ctx.matching = adaptSemanticToMatchingResult(
+        ctx.semantic,
+        ctx.resumeV3,
+        ctx.jdV3,
+      );
     },
   },
   {
@@ -166,6 +182,8 @@ export const defaultPipelineStages: PipelineStage[] = [
         matching: ctx.matching,
         evidence: ctx.evidence,
         scoring: ctx.scoring,
+        resumeV3: ctx.resumeV3,
+        jdV3: ctx.jdV3,
       });
     },
   },
@@ -256,4 +274,140 @@ function now(): number {
 
 function round(ms: number): number {
   return Math.round(ms * 100) / 100;
+}
+
+// Silence unused-import warnings for legacy helpers kept for backwards compat.
+void runParseResume; void runJdIntelligence; void normalizeSkills; void matchSkills;
+
+// ---------------------------------------------------------------------------
+// v3 → legacy adapters
+// ---------------------------------------------------------------------------
+
+function adaptResumeV3ToLegacy(r: ParsedResumeV3): ParsedResumeData {
+  const scalar = (v: string) => (v && v.trim() ? v.trim() : "Not Found");
+  const employmentHistory = r.employment.map((e) => {
+    const range = [e.start, e.end].filter(Boolean).join(" - ");
+    const suffix = range ? ` (${range})` : "";
+    return `${e.title || ""}${e.title && e.company ? " — " : ""}${e.company || ""}${suffix}`.trim();
+  }).filter(Boolean);
+  const skillNames = r.skills.map((s) => s.canonical).filter(Boolean);
+  const technologyCategories = new Set(["Frontend", "Backend", "Cloud", "DevOps", "Data", "AI/ML", "Database", "Mobile", "QA"]);
+  const technologies = r.skills.filter((s) => technologyCategories.has(s.category)).map((s) => s.canonical);
+  return {
+    name: scalar(r.name),
+    email: scalar(r.email),
+    phone: scalar(r.phone),
+    location: scalar(r.location),
+    experience: r.totalYears > 0 ? `${r.totalYears} years` : "Not Found",
+    currentCompany: scalar(r.currentCompany),
+    skills: skillNames,
+    education: r.education[0] ?? "Not Found",
+    projects: r.projects,
+    certifications: r.certifications,
+    technologies,
+    currentDesignation: scalar(r.currentDesignation),
+    relevantExperience: "Not Found",
+    employmentHistory,
+    educationHistory: r.education,
+    tools: [],
+    languages: r.languages,
+    noticePeriod: scalar(r.noticePeriod),
+  };
+}
+
+function adaptJdV3ToLegacy(j: ParsedJDV3): JdIntelligence {
+  const scalar = (v: string) => (v && v.trim() ? v.trim() : "Not Found");
+  return {
+    jobTitle: scalar(j.jobTitle),
+    industry: scalar(j.industry),
+    department: scalar(j.department),
+    employmentType: scalar(j.employmentType),
+    experienceRequired: scalar(j.experienceRequired),
+    educationRequired: j.educationRequired,
+    requiredSkills: j.required.map((r) => r.canonical),
+    preferredSkills: j.preferred.map((r) => r.canonical),
+    responsibilities: j.responsibilities,
+    tools: [],
+    technologies: [],
+    softSkills: j.softSkills,
+    certifications: j.certifications,
+    domain: scalar(j.domain),
+    seniorityLevel: scalar(j.seniorityLevel),
+  };
+}
+
+function buildNormalizedFromV3(r: ParsedResumeV3, j: ParsedJDV3): SkillNormalizationOutput {
+  const resumeSkills: NormalizedSkill[] = r.skills.map((s) => ({
+    original: s.aliases[0] ?? s.canonical,
+    normalized: s.canonical,
+  }));
+  const jdSkills: NormalizedSkill[] = [...j.required, ...j.preferred].map((s) => ({
+    original: s.aliases[0] ?? s.canonical,
+    normalized: s.canonical,
+  }));
+  return { resumeSkills, jdSkills };
+}
+
+function adaptSemanticToMatchingResult(
+  semantic: SemanticMatchV3,
+  resume: ParsedResumeV3,
+  jd: ParsedJDV3,
+): MatchingResult {
+  const jdCanonicalByLower = new Map<string, string>();
+  for (const r of [...jd.required, ...jd.preferred]) jdCanonicalByLower.set(r.canonical.toLowerCase(), r.canonical);
+
+  const matchingSkills: SkillMatch[] = [];
+  const missingSet = new Set<string>();
+  const matchedResumeCanonicalLower = new Set<string>();
+
+  for (const entry of semantic.matches) {
+    const jdName = jdCanonicalByLower.get(entry.requirement.toLowerCase()) ?? entry.requirement;
+    if (entry.status === "missing" || !entry.matchedResumeSkill) {
+      missingSet.add(jdName);
+      continue;
+    }
+    const conf = entry.status === "exact" ? 100 : entry.status === "equivalent" ? 95 : entry.status === "related" ? 80 : 80;
+    const kind = entry.status === "exact" ? "exact" : entry.status === "equivalent" ? "alias" : "related";
+    matchingSkills.push({
+      skill: jdName,
+      resumeOriginal: entry.matchedResumeSkill,
+      jdOriginal: jdName,
+      confidence: conf as 100 | 95 | 90 | 80,
+      kind: kind as SkillMatch["kind"],
+    });
+    matchedResumeCanonicalLower.add(entry.matchedResumeSkill.toLowerCase());
+  }
+
+  matchingSkills.sort((a, b) => a.skill.localeCompare(b.skill, undefined, { sensitivity: "base" }));
+  const missingSkills = Array.from(missingSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const additionalSkills = resume.skills
+    .map((s) => s.canonical)
+    .filter((n) => !matchedResumeCanonicalLower.has(n.toLowerCase()))
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+
+  const totalRequiredSkills = jd.required.length + jd.preferred.length;
+  const matchedRequiredSkills = matchingSkills.length;
+  const averageConfidence = matchingSkills.length
+    ? Math.round(matchingSkills.reduce((s, m) => s + m.confidence, 0) / matchingSkills.length)
+    : 0;
+
+  return {
+    matchingSkills,
+    missingSkills,
+    additionalSkills,
+    similarity: {
+      totalRequiredSkills,
+      matchedRequiredSkills,
+      missingRequiredSkills: missingSkills.length,
+      totalResumeSkills: resume.skills.length,
+      additionalSkills: additionalSkills.length,
+    },
+    confidence: {
+      averageConfidence,
+      exactMatches: matchingSkills.filter((m) => m.kind === "exact").length,
+      aliasMatches: matchingSkills.filter((m) => m.kind === "alias").length,
+      semanticMatches: matchingSkills.filter((m) => m.kind === "semantic").length,
+      relatedMatches: matchingSkills.filter((m) => m.kind === "related").length,
+    },
+  };
 }
