@@ -24,6 +24,8 @@ export interface ClientTemplate {
   headerColor?: string;
   /** Hex color for the header row text in the exported Excel. */
   headerTextColor?: string;
+  /** Set by the migration when a column label appears to disagree with its fieldKey. */
+  needsReview?: boolean;
 }
 
 export const DEFAULT_HEADER_COLOR = "#0F172A";
