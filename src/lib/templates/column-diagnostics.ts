@@ -1,5 +1,5 @@
 import { CANDIDATE_FIELDS } from "../candidate-schemas";
-import type { TemplateColumn } from "./template-types";
+import { DEFAULT_MISMATCH_RULE_SET, normalizeMismatchRuleSet, type MismatchRuleSetId, type TemplateColumn } from "./template-types";
 import { suggestFieldKeyForLabel } from "./excel-import";
 
 export interface ColumnDiagnostic {
@@ -19,8 +19,18 @@ export function describeField(fieldKey: string): string {
   return meta ? `${meta.group} · ${meta.label}` : "Unmapped";
 }
 
-export function diagnoseColumn(column: Pick<TemplateColumn, "fieldKey" | "label">): ColumnDiagnostic {
-  const suggestedKey = suggestFieldKeyForLabel(column.label);
+export function diagnoseColumn(
+  column: Pick<TemplateColumn, "fieldKey" | "label">,
+  ruleSet: MismatchRuleSetId | undefined = DEFAULT_MISMATCH_RULE_SET,
+): ColumnDiagnostic {
+  const normalizedRuleSet = normalizeMismatchRuleSet(ruleSet);
+  if (normalizedRuleSet === "trust-template") {
+    return {
+      sourceCaption: describeField(column.fieldKey),
+      mismatch: false,
+    };
+  }
+  const suggestedKey = suggestFieldKeyForLabel(column.label, normalizedRuleSet);
   const suggestedMeta = suggestedKey ? CANDIDATE_FIELDS.find((f) => f.key === suggestedKey) : undefined;
   const isCustom = !column.fieldKey || column.fieldKey.startsWith("__");
   const mismatch = Boolean(
@@ -34,9 +44,12 @@ export function diagnoseColumn(column: Pick<TemplateColumn, "fieldKey" | "label"
   };
 }
 
-export function countMismatches(columns: ReadonlyArray<Pick<TemplateColumn, "fieldKey" | "label">>): number {
+export function countMismatches(
+  columns: ReadonlyArray<Pick<TemplateColumn, "fieldKey" | "label">>,
+  ruleSet: MismatchRuleSetId | undefined = DEFAULT_MISMATCH_RULE_SET,
+): number {
   let n = 0;
-  for (const c of columns) if (diagnoseColumn(c).mismatch) n++;
+  for (const c of columns) if (diagnoseColumn(c, ruleSet).mismatch) n++;
   return n;
 }
 
@@ -46,10 +59,11 @@ export function countMismatches(columns: ReadonlyArray<Pick<TemplateColumn, "fie
  */
 export function applyColumnFixes<T extends Pick<TemplateColumn, "fieldKey" | "label">>(
   columns: ReadonlyArray<T>,
+  ruleSet: MismatchRuleSetId | undefined = DEFAULT_MISMATCH_RULE_SET,
 ): { columns: T[]; fixed: number } {
   let fixed = 0;
   const next = columns.map((c) => {
-    const d = diagnoseColumn(c);
+    const d = diagnoseColumn(c, ruleSet);
     if (d.mismatch && d.suggestedKey) {
       fixed++;
       return { ...c, fieldKey: d.suggestedKey };
