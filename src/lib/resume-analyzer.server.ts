@@ -332,6 +332,15 @@ function parseResumeLocally(rawText: string): ParsedResumeData {
     projects,
     certifications,
     technologies,
+    currentDesignation: extractCurrentDesignation(experienceLines),
+    relevantExperience: extractRelevantExperience(text),
+    employmentHistory: extractEmploymentHistory(experienceLines),
+    educationHistory: educationLines.slice(0, 8),
+    tools: extractSectionItems(lines, ["tools", "tools & technologies", "tools and technologies", "software", "platforms"], 20).slice(0, 30),
+    languages: extractSectionItems(lines, ["languages", "languages known"], 12)
+      .flatMap((line) => splitList(line))
+      .slice(0, 12),
+    noticePeriod: extractNoticePeriod(text),
   });
 }
 
@@ -381,6 +390,33 @@ function extractCurrentCompany(experienceLines: string[]): string {
   if (!companyLine) return "";
   const atMatch = companyLine.match(/(?:at|@)\s+(.+)$/i)?.[1]?.trim();
   return (atMatch ?? companyLine).replace(/^[-•]\s*/, "").slice(0, 90);
+}
+
+const DESIGNATION_HINTS = /\b(engineer|developer|manager|analyst|recruiter|specialist|consultant|architect|designer|lead|head|director|officer|executive|associate|coordinator|administrator|accountant|nurse|doctor|technician|operator|supervisor|assistant|intern|trainee|scientist|researcher|advisor|representative|agent|clerk|planner|strategist|marketer|salesperson|counsel|lawyer|paralegal|therapist|pharmacist|surveyor|inspector|foreman|principal|vp|vice president|cxo|ceo|cto|cfo|coo|chro)\b/i;
+
+function extractCurrentDesignation(experienceLines: string[]): string {
+  const line = experienceLines.find((entry) => DESIGNATION_HINTS.test(entry));
+  if (!line) return "";
+  return line.split(/\bat\b|@|,|—|–|-|\|/i)[0].replace(/^[-•]\s*/, "").trim().slice(0, 80);
+}
+
+function extractEmploymentHistory(experienceLines: string[]): string[] {
+  return experienceLines
+    .filter((line) => DESIGNATION_HINTS.test(line) || /\b(19|20)\d{2}\b/.test(line))
+    .map((line) => line.replace(/^[-•]\s*/, "").trim())
+    .slice(0, 12);
+}
+
+function extractRelevantExperience(text: string): string {
+  return text.match(/relevant\s+experience[:\s-]*([^\n]{2,60})/i)?.[1]?.trim() ?? "";
+}
+
+function extractNoticePeriod(text: string): string {
+  return (
+    text.match(/notice\s*period[:\s-]*([^\n]{2,40})/i)?.[1]?.trim() ??
+    text.match(/\b(immediate(?:ly)?\s*(?:available|joiner)?|serving\s*notice|\d{1,3}\s*(?:days?|weeks?|months?)\s*notice)\b/i)?.[0]?.trim() ??
+    ""
+  );
 }
 
 function sectionText(lines: string[], headers: string[], limit: number): string {
