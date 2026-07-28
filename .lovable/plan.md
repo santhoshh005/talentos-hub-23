@@ -1,56 +1,62 @@
-# Premium Branded Loading Experience
+## Plan — Make `/report` the natural continuation of the Resume Analyzer
 
-Replace all generic spinners with a cinematic, branded loading system that makes TalentOS feel like an operating system, plus page transitions and premium skeletons.
+Goal: the modal only collects inputs and shows loading/error. On pipeline success, auto-navigate to `/report`, which renders the existing `RecruiterReport` from the passed `PipelineResult`. No new nav item. No duplicated report UI. No backend changes.
 
-## New components (`src/components/loader/`)
+### 1. Add a tiny shared store for the last PipelineResult
 
-- `TalentOSLoader.tsx` — full-screen loader. Composes background, logo, rotator, workflow, progress. Props: `progress?: number` (0–100, auto-animates if omitted), `variant: "cinematic" | "inline"`, `onDone?: () => void`, `minDurationMs?: number`.
-- `LoaderBackground.tsx` — `#020617` base, animated blue/cyan gradient blobs, blurred futuristic grid mask, soft mouse-follow glow, ~20 floating particles, slow-drifting ghost cards (Resume / JD / Candidate / Offer / LinkedIn / Boolean Search / Interview) with heavy blur + low opacity. Reuses aesthetic tokens from `HeroBackground` so it feels native to the app.
-- `LoaderLogo.tsx` — centered TalentOS wordmark: fade-in + scale 0.8→1, soft blue radial glow, 2s pulse loop. Below it, `Building the Future of AI Recruitment` with a typing effect (per-character reveal via framer-motion, not JS setInterval).
-- `LoadingMessageRotator.tsx` — cycles the 11 provided messages every 2s with fade+slide (AnimatePresence). Guarantees no consecutive repeat by picking next index from remaining pool.
-- `RecruitmentWorkflow.tsx` — 6 steps (Resume → AI Analysis → Shortlisting → Interview → Offer → Hired) with icons. Active step glows blue (ring + shadow), completed steps turn green with check, upcoming steps muted. Driven by `progress` (each step = 100/6).
-- `LoaderProgress.tsx` — glowing horizontal blue line with animated width and percentage counter (spring-eased). If no explicit progress passed, uses an internal easing curve toward 100.
-- `QuoteFlash.tsx` — 5% chance per mount, fades in one of 4 motivational quotes near the bottom.
-- `SoundController.ts` — no-op stub exporting `playLoaderSound()` / `enableSound()`, wired but muted; leaves architecture for later.
+New file: `src/lib/report-store.ts`
 
-All components respect `prefers-reduced-motion`: fall back to static logo + progress, no particles/blobs/typing.
+- Module-level singleton with `getResult()`, `setResult(result)`, `clearResult()`, and a `subscribe(fn)` for React via `useSyncExternalStore`.
+- Also mirror to `sessionStorage` under `talentos:last-report` so a refresh on `/report` keeps the report visible.
+- Export `useLastReport()` hook returning `PipelineResult | null`.
 
-## Global integration
+Why not router state or URL search: `PipelineResult` is large/nested; putting it in URL or history state is fragile. A module store + sessionStorage is the smallest, safest handoff.
 
-- `src/components/loader/LoaderProvider.tsx` — context + `useLoader()` hook exposing `show()`, `hide()`, `setProgress()`. Renders `<TalentOSLoader variant="cinematic" />` as a fixed overlay with AnimatePresence exit fade.
-- `src/components/loader/FirstVisitGate.tsx` — on mount, checks `localStorage["talentos.visited"]`. First visit: show cinematic loader ~3.5s then set flag and fade out. Return visits: skip (or render a ~400ms micro version).
-- Mount `LoaderProvider` + `FirstVisitGate` inside `RootComponent` in `src/routes/__root.tsx`, above `<Outlet />`.
+### 2. Rewire `ResumeAnalyzerModal` to run the pipeline and navigate
 
-## Page transitions
+Edit `src/components/ai-lab/ResumeAnalyzerModal.tsx`:
 
-- `src/components/layout/PageTransition.tsx` — wraps children in `motion.div` with fade+slide-up (y:12→0), 0.4s, cubic-bezier `[0.22,1,0.36,1]`. Keyed by `useRouterState({select: s => s.location.pathname})` inside `AnimatePresence mode="wait"`.
-- Insert inside `AppLayout` around `{children}` so every route benefits without touching route files.
+- Replace the two-call flow (`parseResume` + `analyzeResumeMatch`) with a single call to `runResumeIntelligence` from `@/lib/pipeline.functions` via `useServerFn`.
+- Keep the existing intake UI: resume upload (drag/drop + browse) and JD (paste/upload) — unchanged visually.
+- Keep the existing "Analyzing" overlay with the illuminated LOADING steps, driven by the same `activeStep` timer pattern used in `src/routes/report.tsx` (Resume Uploaded → Parsing → JD Intelligence → Normalizing → Matching → Evidence → Preparing Report).
+- On success:
+  1. `setResult(pipelineResult)` in the shared store.
+  2. Show a brief "Report ready" state (~350 ms so the last step visibly illuminates).
+  3. `onClose()` the modal, then `navigate({ to: "/report" })`.
+- On failure: stay in the modal, show error message + failed stage + Retry (reruns pipeline with same inputs) and Start Over (clears inputs). Do not navigate.
+- Remove the modal's post-analysis result view (analysis card, copy/share/PDF buttons wired to the old `analysis` object) and the `analysis`/`analyzeResumeMatch` state. The modal is now inputs + loading + error only.
+- Preserve the modal's existing styling, sizing, and animation — only the "result" branch is deleted and replaced with the auto-close/navigate handoff.
 
-## Skeletons (`src/components/skeletons/`)
+### 3. Convert `/report` into a display-only screen that reads the store
 
-Premium shimmer skeletons (Tailwind + framer-motion, using `bg-white/[0.04]` shimmer via animated gradient). All use existing glass tokens.
+Edit `src/routes/report.tsx`:
 
-- `KpiCardSkeleton.tsx`, `ChartSkeleton.tsx`, `TableRowSkeleton.tsx` → used by `DashboardSection` while data mounts (brief 500ms mount delay for perceived polish, respects reduced motion).
-- `AiLabCardSkeleton.tsx` → `AiLabCards`.
-- `UploadBoxSkeleton.tsx` → shown inside `ResumeAnalyzerModal` while pdf.js/mammoth chunks load.
-- `BlogCardSkeleton.tsx` → `ContentLibrary` / `RecruitmentInsights`.
-- `TimelineMilestoneSkeleton.tsx` → `CareerTimeline`.
-- `CertificateCardSkeleton.tsx` → `CertificationsGrid`.
+- Remove the intake form, the in-page pipeline call, and the `LoadingSteps` UI (the modal now owns intake + loading).
+- On mount, read `useLastReport()`:
+  - If a `PipelineResult` exists → render `<RecruiterReport data={result} />` plus the existing "New Report" button that calls `clearResult()` and `navigate({ to: "/ai-lab" })`.
+  - If none exists (user hit `/report` directly with no prior run) → render a small empty state card: "No report yet — start from the AI Lab" with a button that navigates to `/ai-lab`. This is a passive fallback, not a nav item, and avoids a blank page.
+- Keep the existing `head()` metadata unchanged.
 
-Each section conditionally renders its skeleton for a short mount window (or while an actual async op is in flight), then swaps to real content with a fade.
+### 4. Files touched
 
-## Replacing existing spinners
+- Add: `src/lib/report-store.ts`
+- Edit: `src/components/ai-lab/ResumeAnalyzerModal.tsx` (swap analyzer calls → pipeline; delete result view; add navigate-on-success)
+- Edit: `src/routes/report.tsx` (drop intake + loading; read store; render `RecruiterReport` or empty state)
 
-Audit and replace every ad-hoc spinner (`Loader2`, plain "Loading…", the analyzer overlay) with either the branded inline mini loader (`<TalentOSLoader variant="inline" />`) or the appropriate skeleton. Analyzer keeps its progress bar but restyled to `LoaderProgress` styling for consistency.
+### 5. Not touching
 
-## Out of scope
+- `src/components/report/RecruiterReport.tsx` — reused as-is.
+- `src/lib/pipeline.server.ts`, `pipeline.functions.ts`, and all engines (parser, JD intelligence, normalization, matching, evidence) — untouched.
+- `Navbar.tsx` — no new nav item.
+- Home / Dashboard / other routes — untouched.
 
-No changes to routing, data fetching, backend/server functions, or the underlying design tokens. No sound files shipped. No copy changes outside the loader itself.
+### 6. Verification after implementation
 
-## Technical notes
+- Open `/ai-lab` → launch modal → upload resume → paste JD → click **Analyze Resume**.
+- Confirm modal shows illuminated loading steps only (no report inside modal).
+- On success, modal closes and app lands on `/report` with `RecruiterReport` fully populated (header, skill chips, evidence, pipeline stages).
+- On simulated failure (empty/garbage JD triggering pipeline error), modal stays open with error + Retry.
+- Refresh `/report` — report still visible (sessionStorage rehydration).
+- Visit `/report` fresh in a new session — empty-state card appears, not a broken page.
 
-- Uses only existing deps (framer-motion, lucide-react, tailwind, shadcn). No new packages.
-- All colors via semantic tokens (`--primary`, `--accent`, `--background`) — no hardcoded hex outside the already-approved `#020617` base already living in `styles.css`.
-- Animations use transform/opacity only for 60fps; blurred blobs limited in count.
-- `localStorage` access guarded for SSR (checked in `useEffect`).
-- New files only; existing files edited: `src/routes/__root.tsx` (mount provider + gate), `src/components/layout/AppLayout.tsx` (wrap with `PageTransition`), and the six section components listed above (conditional skeleton render).
+Approve to switch to build mode and apply the three-file change above.
