@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileSpreadsheet, Trash2, Plus, GripVertical, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { Download, FileSpreadsheet, Trash2, Plus, GripVertical, RotateCcw, Eye, EyeOff, Paintbrush } from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -18,20 +18,27 @@ import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
-import type { ClientTemplate } from "@/lib/templates/template-types";
-import { buildPreviewRow, exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
+import { exportToCsv, exportToXlsx, type PreviewRow } from "@/lib/candidate-export";
+import { buildDefaultRows } from "@/lib/candidate-default-headers";
 import { display } from "@/lib/candidate-display";
 
-export function ExportPreview({
-  record,
-  template,
-}: {
-  record: CandidateRecord;
-  template: ClientTemplate;
-}) {
-  const initial = useMemo(() => buildPreviewRow(record, template), [record, template]);
+const HEADER_COLORS: { label: string; value: string }[] = [
+  { label: "Blue", value: "#2563EB" },
+  { label: "Cyan", value: "#38BDF8" },
+  { label: "Emerald", value: "#10B981" },
+  { label: "Amber", value: "#F59E0B" },
+  { label: "Rose", value: "#F43F5E" },
+  { label: "Violet", value: "#8B5CF6" },
+  { label: "Slate", value: "#334155" },
+  { label: "White", value: "#FFFFFF" },
+];
+
+export function ExportPreview({ record }: { record: CandidateRecord }) {
+  const initial = useMemo(() => buildDefaultRows(record), [record]);
   const [rows, setRows] = useState<PreviewRow[]>(initial);
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const [headerColor, setHeaderColor] = useState<string>("#2563EB");
+  const [customColor, setCustomColor] = useState<string>("#2563EB");
 
   useEffect(() => {
     setRows(initial);
@@ -79,7 +86,7 @@ export function ExportPreview({
 
   const doXlsx = async () => {
     try {
-      await exportToXlsx(record, template, visibleRows);
+      await exportToXlsx(record, visibleRows, { headerColor });
       toast.success("Excel exported");
     } catch (err) {
       console.error(err);
@@ -88,7 +95,7 @@ export function ExportPreview({
   };
   const doCsv = async () => {
     try {
-      await exportToCsv(record, template, visibleRows);
+      await exportToCsv(record, visibleRows);
       toast.success("CSV exported");
     } catch (err) {
       console.error(err);
@@ -119,6 +126,43 @@ export function ExportPreview({
           >
             <Download className="h-4 w-4" /> Export .xlsx
           </Button>
+        </div>
+      </div>
+
+      {/* Header color picker */}
+      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-2">
+        <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <Paintbrush className="h-3.5 w-3.5" /> Header color
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {HEADER_COLORS.map((c) => {
+            const active = headerColor.toLowerCase() === c.value.toLowerCase();
+            return (
+              <button
+                key={c.value}
+                type="button"
+                onClick={() => setHeaderColor(c.value)}
+                title={c.label}
+                aria-label={`Set header color to ${c.label}`}
+                className={`h-6 w-6 rounded-md border transition ${
+                  active ? "border-white ring-2 ring-accent/60 scale-110" : "border-white/20"
+                }`}
+                style={{ backgroundColor: c.value }}
+              />
+            );
+          })}
+          <label className="ml-1 flex items-center gap-1.5 rounded-md border border-white/10 bg-white/[0.03] px-1.5 py-0.5 text-[11px] text-muted-foreground">
+            Custom
+            <input
+              type="color"
+              value={customColor}
+              onChange={(e) => {
+                setCustomColor(e.target.value);
+                setHeaderColor(e.target.value);
+              }}
+              className="h-5 w-6 cursor-pointer rounded border-0 bg-transparent p-0"
+            />
+          </label>
         </div>
       </div>
 
@@ -160,11 +204,15 @@ export function ExportPreview({
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-white/[0.02]">
           <table className="w-full min-w-[520px] text-xs">
             <thead>
-              <tr className="border-b border-white/10 bg-white/[0.03]">
+              <tr className="border-b border-white/10">
                 {previewRows.map((r) => (
                   <th
                     key={r.columnId}
-                    className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest text-muted-foreground"
+                    className="p-2 text-left text-[10px] font-semibold uppercase tracking-widest"
+                    style={{
+                      backgroundColor: headerColor,
+                      color: isLight(headerColor) ? "#111827" : "#FFFFFF",
+                    }}
                   >
                     {r.label}
                   </th>
@@ -198,6 +246,15 @@ export function ExportPreview({
       </div>
     </div>
   );
+}
+
+function isLight(hex: string): boolean {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const r = parseInt(full.slice(0, 2), 16);
+  const g = parseInt(full.slice(2, 4), 16);
+  const b = parseInt(full.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
 }
 
 function SortableRow({
