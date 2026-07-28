@@ -13,7 +13,7 @@ import { parseCandidateText, mergeCandidate } from "@/lib/candidate-parse";
 import { CandidateRecordSchema } from "@/lib/candidate-schemas";
 import { useTemplates } from "@/lib/templates/use-templates";
 import type { ClientTemplate } from "@/lib/templates/template-types";
-import { CandidateUpload } from "./CandidateUpload";
+import { CandidateUpload, AddResumesButton } from "./CandidateUpload";
 import { CandidateWorkspaceSkeleton } from "./CandidateWorkspaceSkeleton";
 import { CandidateSnapshot } from "./CandidateSnapshot";
 import { CandidateRecordEditor } from "./CandidateRecordEditor";
@@ -321,7 +321,7 @@ export function CandidateWorkspace() {
               <div className="flex items-center justify-between">
                 <h2 className="text-lg font-semibold tracking-tight">Editable candidate record</h2>
                 <div className="flex gap-2">
-                  <AddMoreButton onAdd={(files) => void promoteAndAppend(files)} />
+                  <AddResumesButton onFiles={(files) => void promoteAndAppend(files)} />
                   <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
                     <RotateCcw className="h-4 w-4" /> Start over
                   </Button>
