@@ -101,7 +101,7 @@ type SectionBucket =
   | "certifications";
 
 export async function runParseJobDescription(data: JdInput): Promise<ParsedJobDescription> {
-  const jd = normalize(data.jobDescription);
+  const jd = cleanJobDescription(normalize(data.jobDescription));
   const local = parseJdLocally(jd);
   const key = process.env.LOVABLE_API_KEY;
   if (!key) return finalize(local);
