@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Download, RotateCcw, Loader2, CheckCircle2, AlertTriangle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -7,6 +7,8 @@ import type { ClientTemplate } from "@/lib/templates/template-types";
 import { DEFAULT_HEADER_COLOR, DEFAULT_HEADER_TEXT_COLOR } from "@/lib/templates/template-types";
 import { buildPreviewRow, exportBulkXlsx } from "@/lib/candidate-export";
 import { display } from "@/lib/candidate-display";
+import { AddResumesButton } from "./CandidateUpload";
+import { HeaderColorControl } from "./ExportPreview";
 
 export type BulkStatus = "queued" | "parsing" | "extracting" | "done" | "failed";
 
@@ -23,13 +25,18 @@ export function BulkCandidateTable({
   template,
   onReset,
   onEditRecord,
+  onAddFiles,
 }: {
   items: BulkItem[];
   template: ClientTemplate;
   onReset: () => void;
   onEditRecord: (id: string, patch: Partial<CandidateRecord>) => void;
+  onAddFiles?: (files: File[]) => void;
 }) {
-  const headerBg = template.headerColor ?? DEFAULT_HEADER_COLOR;
+  const [headerBg, setHeaderBg] = useState<string>(template.headerColor ?? DEFAULT_HEADER_COLOR);
+  useEffect(() => {
+    setHeaderBg(template.headerColor ?? DEFAULT_HEADER_COLOR);
+  }, [template.headerColor]);
   const headerFg = template.headerTextColor ?? DEFAULT_HEADER_TEXT_COLOR;
 
   const doneItems = items.filter((i) => i.status === "done" || i.status === "failed");
@@ -43,7 +50,7 @@ export function BulkCandidateTable({
 
   const doExport = async () => {
     try {
-      await exportBulkXlsx(doneItems.map((i) => i.record), template, rowsPerRecord);
+      await exportBulkXlsx(doneItems.map((i) => i.record), template, rowsPerRecord, headerBg);
       toast.success(`Exported ${doneItems.length} candidate${doneItems.length === 1 ? "" : "s"}`);
     } catch (err) {
       console.error(err);
@@ -70,7 +77,9 @@ export function BulkCandidateTable({
             />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <HeaderColorControl value={headerBg} onChange={setHeaderBg} />
+          {onAddFiles && <AddResumesButton onFiles={onAddFiles} />}
           <Button
             type="button"
             variant="outline"
