@@ -24,6 +24,13 @@ export const ParsedResumeSchema = z.object({
   projects: z.array(z.string()),
   certifications: z.array(z.string()),
   technologies: z.array(z.string()),
+  currentDesignation: z.string().default("Not Found"),
+  relevantExperience: z.string().default("Not Found"),
+  employmentHistory: z.array(z.string()).default([]),
+  educationHistory: z.array(z.string()).default([]),
+  tools: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+  noticePeriod: z.string().default("Not Found"),
 });
 
 export type ParsedResumeData = z.infer<typeof ParsedResumeSchema>;
