@@ -348,7 +348,7 @@ export function ExportPreview({
   );
 }
 
-function MismatchRuleSetControl({
+export function MismatchRuleSetControl({
   value,
   onChange,
   disabled,
