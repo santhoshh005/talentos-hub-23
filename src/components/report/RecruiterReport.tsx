@@ -244,7 +244,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
           </ol>
           <div className="mt-6 flex items-center justify-between border-t border-white/5 pt-4 text-xs text-muted-foreground">
             <span>Pipeline v{metadata.version}</span>
-            <span>Total: {Math.round(metadata.totalDurationMs)} ms</span>
+            <span>Total: {formatMs(metadata.totalDurationMs)}</span>
           </div>
         </GlassCard>
       </motion.div>
@@ -483,7 +483,7 @@ function PipelineStageCard({ name, durationMs, ok, index }: { name: string; dura
           {ok ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <AlertTriangle className="h-4 w-4 text-rose-400" />}
         </div>
         <div className="mt-2 text-sm font-medium">{label}</div>
-        <div className="mt-1 text-xs text-muted-foreground">{Math.round(durationMs)} ms</div>
+        <div className="mt-1 text-xs text-muted-foreground">{formatMs(durationMs)}</div>
         <div className="mt-2 text-[10px] uppercase tracking-widest text-emerald-300/80">Completed</div>
       </div>
     </motion.li>
@@ -508,3 +508,10 @@ const FUTURE_INSIGHTS = [
   { title: "Notice Period Risk", description: "Availability risk scoring and joining likelihood.", icon: Clock },
   { title: "Culture Fit", description: "Signals across communication, ownership, and values.", icon: ShieldCheck },
 ];
+
+function formatMs(ms: number): string {
+  if (!Number.isFinite(ms) || ms <= 0) return "<1 ms";
+  if (ms < 1) return "<1 ms";
+  if (ms < 10) return `${ms.toFixed(1)} ms`;
+  return `${Math.round(ms)} ms`;
+}

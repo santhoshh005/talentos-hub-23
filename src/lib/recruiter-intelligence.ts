@@ -75,25 +75,38 @@ function groupByCategory(skills: string[]): GroupedSkills[] {
 // ---------------------------------------------------------------------------
 
 const DOMAIN_RULES: Array<{ domain: string; match: RegExp }> = [
+  { domain: "Salesforce CRM", match: /\b(salesforce|sfdc|apex|lightning web|visualforce|soql|sosl|sales cloud|service cloud|experience cloud|omnistudio|cpq|mulesoft|lwc)\b/i },
+  { domain: "SAP / ERP", match: /\b(sap abap|sap fico|sap mm|sap sd|sap hana|s\/?4hana|oracle erp|netsuite|dynamics 365|workday|servicenow)\b/i },
+  { domain: "Data Engineering", match: /\b(spark|pyspark|hadoop|airflow|dbt|snowflake|databricks|redshift|bigquery|kafka|data engineer)\b/i },
   { domain: "AI / Machine Learning", match: /\b(ai|ml|machine learning|deep learning|nlp|data scien|llm)\b/i },
   { domain: "Data & Analytics", match: /\b(data analyst|data engineer|analytics|bi|business intelligence|reporting)\b/i },
-  { domain: "Cloud & DevOps", match: /\b(devops|sre|cloud|infrastructure|platform engineer)\b/i },
+  { domain: "Cloud & DevOps", match: /\b(devops|sre|cloud|infrastructure|platform engineer|kubernetes|terraform|argo cd)\b/i },
+  { domain: "Cybersecurity", match: /\b(security|infosec|penetration|soc analyst|siem|owasp|burp|nessus|pentest)\b/i },
+  { domain: "Talent Acquisition", match: /\b(recruiter|recruitment|talent acquisition|sourcing|boolean|greenhouse|lever|naukri)\b/i },
+  { domain: "Product Management", match: /\b(product manager|product owner|product roadmap)\b/i },
+  { domain: "Mobile Engineering", match: /\b(mobile|ios|android|react native|flutter|swiftui|jetpack compose)\b/i },
   { domain: "Backend Engineering", match: /\b(backend|back-end|server|api|microservices|java developer|python developer|node)\b/i },
   { domain: "Frontend Engineering", match: /\b(frontend|front-end|ui developer|react|angular|vue)\b/i },
   { domain: "Full-Stack Engineering", match: /\b(full[\s-]?stack|mern|mean)\b/i },
-  { domain: "Mobile Engineering", match: /\b(mobile|ios|android|react native|flutter)\b/i },
-  { domain: "Talent Acquisition", match: /\b(recruiter|recruitment|talent acquisition|hr|sourcing)\b/i },
+  { domain: "Marketing", match: /\b(seo|sem|google ads|hubspot|marketo|content marketing|lead generation)\b/i },
+  { domain: "Finance / Accounting", match: /\b(financial analyst|accountant|controller|quickbooks|ifrs|gaap|sox|financial modeling|accounts payable|accounts receivable)\b/i },
   { domain: "Fintech / Banking", match: /\b(fintech|banking|payments|trading)\b/i },
   { domain: "Healthcare", match: /\b(healthcare|medical|clinical|pharma)\b/i },
   { domain: "E-commerce / Retail", match: /\b(ecommerce|e-commerce|retail|shopify)\b/i },
-  { domain: "Cybersecurity", match: /\b(security|infosec|penetration|soc analyst)\b/i },
+  { domain: "Manufacturing", match: /\b(autocad|solidworks|catia|plc|scada|six sigma|lean manufacturing)\b/i },
 ];
 
 function inferDomain(jd: JdIntelligence, resume: ParsedResumeData): string {
   if (jd.domain && jd.domain !== "Not Found") return jd.domain;
-  const haystack = [jd.jobTitle, jd.industry, jd.department, resume.currentDesignation]
-    .filter((v) => v && v !== "Not Found")
-    .join(" ");
+  const parts: string[] = [
+    jd.jobTitle, jd.industry, jd.department, resume.currentDesignation,
+    ...(jd.requiredSkills ?? []).slice(0, 20),
+    ...(jd.preferredSkills ?? []).slice(0, 10),
+    ...(jd.technologies ?? []).slice(0, 10),
+    ...(resume.skills ?? []).slice(0, 20),
+    ...(resume.technologies ?? []).slice(0, 10),
+  ].filter((v): v is string => Boolean(v) && v !== "Not Found");
+  const haystack = parts.join(" ");
   for (const rule of DOMAIN_RULES) if (rule.match.test(haystack)) return rule.domain;
   return jd.jobTitle && jd.jobTitle !== "Not Found" ? jd.jobTitle : "General";
 }
