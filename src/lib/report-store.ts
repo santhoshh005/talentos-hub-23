@@ -24,7 +24,7 @@ function hydrateFromStorage(): void {
   }
 }
 
-export function getResult(): PipelineResult | null {
+function getResult(): PipelineResult | null {
   hydrateFromStorage();
   return current;
 }

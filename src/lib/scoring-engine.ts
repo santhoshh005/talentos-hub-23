@@ -5,8 +5,9 @@
 // Engine outputs. NEVER calls AI, NEVER re-parses text.
 //
 // Weights:
-//   0.70  Weighted skill coverage (sum of matched confidence / required)
-//   0.30  Average evidence strength across matched required skills
+//   0.60  Weighted skill coverage (sum of matched confidence / required)
+//   0.40  Average evidence strength across matched required skills
+//   * Applies non-linear exponential penalty if skill coverage is < 60%
 // ---------------------------------------------------------------------------
 
 import type { MatchingResult, SkillMatch } from "./matching-engine";
@@ -18,9 +19,9 @@ export interface ScoringInput {
 }
 
 export interface ScoringResult {
-  matchPercentage: number;      // 0..100
-  skillCoverage: number;        // 0..100
-  evidenceScore: number;        // 0..100
+  matchPercentage: number; // 0..100
+  skillCoverage: number; // 0..100
+  evidenceScore: number; // 0..100
   matchedRequired: number;
   totalRequired: number;
   averageConfidence: number;
@@ -42,9 +43,7 @@ export function scoreMatch(input: ScoringInput): ScoringResult {
     ? clamp((matched.reduce((s, m) => s + m.confidence, 0) / (totalRequired * 100)) * 100, 0, 100)
     : 0;
 
-  const evidenceValues = matchedWithEvidence
-    .map((m) => m.evidenceStrength)
-    .filter((v) => v > 0);
+  const evidenceValues = matchedWithEvidence.map((m) => m.evidenceStrength).filter((v) => v > 0);
   const evidenceScore = evidenceValues.length
     ? evidenceValues.reduce((s, v) => s + v, 0) / evidenceValues.length
     : 0;
@@ -54,7 +53,15 @@ export function scoreMatch(input: ScoringInput): ScoringResult {
   // pushed below 70%.
   const effectiveEvidence = matched.length > 0 && evidenceScore === 0 ? 30 : evidenceScore;
 
-  const matchPercentage = Math.round(0.7 * skillCoverage + 0.3 * effectiveEvidence);
+  // Enhance the scoring: 60% coverage, 40% evidence
+  let rawScore = 0.6 * skillCoverage + 0.4 * effectiveEvidence;
+
+  // Severe penalty for missing skills (if coverage is < 60%)
+  if (skillCoverage < 60) {
+    rawScore = rawScore * (skillCoverage / 60);
+  }
+
+  const matchPercentage = Math.round(rawScore);
 
   // Dev-only diagnostic: catches accuracy regressions where the matcher
   // finds most required skills but the score still tanks.

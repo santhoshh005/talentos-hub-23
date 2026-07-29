@@ -86,8 +86,8 @@ export function ExcelImportPanel({
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
         <h2 className="text-lg font-semibold tracking-tight">Import an existing client Excel</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upload the client's tracker (e.g. <em>CGI_Tracker.xlsx</em>). We read the header row and let
-          you map each column to a candidate field. Save it once — reuse it forever.
+          Upload the client's tracker (e.g. <em>CGI_Tracker.xlsx</em>). We read the header row and
+          let you map each column to a candidate field. Save it once — reuse it forever.
         </p>
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm">
@@ -115,7 +115,9 @@ export function ExcelImportPanel({
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
           <div className="grid gap-3 md:grid-cols-2">
             <label className="block">
-              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Template name</span>
+              <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Template name
+              </span>
               <input
                 value={templateName}
                 onChange={(e) => setTemplateName(e.target.value)}
@@ -143,11 +145,15 @@ export function ExcelImportPanel({
                     c.fieldKey.startsWith("__unmapped")
                       ? "__custom"
                       : options.find((o) => o.value === c.fieldKey)
-                      ? c.fieldKey
-                      : "__custom"
+                        ? c.fieldKey
+                        : "__custom"
                   }
                   onChange={(e) =>
-                    setColumns((cs) => cs.map((col, idx) => (idx === i ? { ...col, fieldKey: e.target.value } : col)))
+                    setColumns((cs) =>
+                      cs.map((col, idx) =>
+                        idx === i ? { ...col, fieldKey: e.target.value } : col,
+                      ),
+                    )
                   }
                   className="min-w-[220px] rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs outline-none focus:border-accent"
                 >
@@ -158,7 +164,9 @@ export function ExcelImportPanel({
                   ))}
                 </select>
                 {c.fieldKey.startsWith("__unmapped") && (
-                  <span className="text-[10px] uppercase tracking-widest text-amber-300">Unmapped</span>
+                  <span className="text-[10px] uppercase tracking-widest text-amber-300">
+                    Unmapped
+                  </span>
                 )}
               </div>
             ))}

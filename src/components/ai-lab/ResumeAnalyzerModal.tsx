@@ -19,6 +19,7 @@ import { runResumeIntelligence } from "@/lib/pipeline.functions";
 import { extractResumeText } from "@/lib/resume-extract";
 import { setResult } from "@/lib/report-store";
 import { clearIntake, setIntake, useIntake } from "@/lib/intake-store";
+import { trackCandidateAnalysis, trackJdAnalysis } from "@/lib/usage-store";
 import { cn } from "@/lib/utils";
 
 type Phase = "intake" | "running" | "error";
@@ -35,7 +36,12 @@ const LOADING_STEPS = [
 
 function GlassCard({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <div className={cn("rounded-2xl border border-border bg-card/55 p-5 shadow-2xl shadow-primary/5 backdrop-blur-xl", className)}>
+    <div
+      className={cn(
+        "rounded-2xl border border-border bg-card/55 p-5 shadow-2xl shadow-primary/5 backdrop-blur-xl",
+        className,
+      )}
+    >
       {children}
     </div>
   );
@@ -149,6 +155,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
         ? await nextFile.text()
         : await extractResumeText(nextFile);
       setIntake({ jobDescription: text.trim() });
+      trackJdAnalysis();
       toast.success("Job description loaded");
     } catch (caught) {
       console.error("[TalentOS Resume Analyzer] JD extraction failed:", caught);
@@ -184,6 +191,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       if (output.ok) {
         setActiveStep(LOADING_STEPS.length - 1);
         setResult(output);
+        trackCandidateAnalysis(output.resume?.technologies || []);
         // brief hold so the last step visibly illuminates, then navigate
         setTimeout(() => {
           onClose();
@@ -240,18 +248,34 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                   <Sparkles className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <div>
-                  <h2 className="text-sm font-semibold tracking-tight md:text-base">Resume Analyzer</h2>
-                  <p className="text-xs text-muted-foreground">Upload a resume + JD to run the Resume Intelligence Pipeline</p>
+                  <h2 className="text-sm font-semibold tracking-tight md:text-base">
+                    Resume Analyzer
+                  </h2>
+                  <p className="text-xs text-muted-foreground">
+                    Upload a resume + JD to run the Resume Intelligence Pipeline
+                  </p>
                 </div>
               </div>
-              <Button type="button" variant="outline" size="icon" aria-label="Close resume analyzer" onClick={onClose} className="border-border bg-background/40">
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                aria-label="Close resume analyzer"
+                onClick={onClose}
+                className="border-border bg-background/40"
+              >
                 <X className="h-4 w-4" />
               </Button>
             </header>
 
             <div className="relative z-10 flex-1 overflow-y-auto px-4 py-6 md:px-6">
               {phase === "intake" && (
-                <motion.div key="intake" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto max-w-2xl space-y-5">
+                <motion.div
+                  key="intake"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mx-auto max-w-2xl space-y-5"
+                >
                   <GlassCard>
                     <div className="mb-3 flex items-center gap-2 text-sm font-semibold">
                       <Upload className="h-4 w-4 text-accent" /> Resume
@@ -265,7 +289,9 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                       onDrop={onDropResume}
                       className={cn(
                         "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-6 text-center transition-colors",
-                        dragActive ? "border-accent bg-accent/10" : "border-border bg-background/40 hover:border-accent/50",
+                        dragActive
+                          ? "border-accent bg-accent/10"
+                          : "border-border bg-background/40 hover:border-accent/50",
                       )}
                     >
                       {extracting ? (
@@ -277,12 +303,19 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                       )}
                       <div className="text-sm text-muted-foreground">
                         {resumeName ? (
-                          <>Loaded <span className="text-foreground">{resumeName}</span></>
+                          <>
+                            Loaded <span className="text-foreground">{resumeName}</span>
+                          </>
                         ) : (
                           "Drop a PDF or DOCX resume here"
                         )}
                       </div>
-                      <Button type="button" variant="outline" onClick={() => inputRef.current?.click()} className="rounded-xl border-border bg-background/40">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => inputRef.current?.click()}
+                        className="rounded-xl border-border bg-background/40"
+                      >
                         <FileText className="h-4 w-4" /> Choose resume file
                       </Button>
                       <input
@@ -306,7 +339,9 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                       <div className="flex items-center gap-2 text-sm font-semibold">
                         <FileText className="h-4 w-4 text-accent" /> Job Description
                       </div>
-                      <span className="text-xs text-muted-foreground">{jobDescription.length} characters</span>
+                      <span className="text-xs text-muted-foreground">
+                        {jobDescription.length} characters
+                      </span>
                     </div>
                     <div className="mb-3 inline-flex rounded-xl border border-border bg-background/40 p-1 text-xs">
                       {(["paste", "upload"] as const).map((mode) => (
@@ -351,12 +386,19 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                           )}
                           <div className="text-sm text-muted-foreground">
                             {jdFileName ? (
-                              <>Loaded <span className="text-foreground">{jdFileName}</span></>
+                              <>
+                                Loaded <span className="text-foreground">{jdFileName}</span>
+                              </>
                             ) : (
                               "Drop a PDF, DOCX, or TXT job description here"
                             )}
                           </div>
-                          <Button type="button" variant="outline" onClick={() => jdInputRef.current?.click()} className="rounded-xl border-border bg-background/40">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => jdInputRef.current?.click()}
+                            className="rounded-xl border-border bg-background/40"
+                          >
                             <FileText className="h-4 w-4" /> Choose JD file
                           </Button>
                           <input
@@ -377,7 +419,12 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                   </GlassCard>
 
                   <div className="flex items-center justify-end gap-3">
-                    <Button type="button" variant="outline" onClick={reset} className="rounded-xl border-border bg-background/40">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={reset}
+                      className="rounded-xl border-border bg-background/40"
+                    >
                       <RotateCcw className="h-4 w-4" /> Reset
                     </Button>
                     <Button
@@ -393,14 +440,21 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
               )}
 
               {phase === "running" && (
-                <motion.div key="running" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mx-auto flex min-h-full max-w-2xl flex-col justify-center">
+                <motion.div
+                  key="running"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mx-auto flex min-h-full max-w-2xl flex-col justify-center"
+                >
                   <GlassCard>
                     <div className="mb-6 flex items-center gap-3">
                       <div className="rounded-xl border border-border bg-primary/10 p-2.5 text-primary">
                         <Loader2 className="h-5 w-5 animate-spin" />
                       </div>
                       <div>
-                        <div className="text-xs uppercase tracking-widest text-muted-foreground">Running Pipeline</div>
+                        <div className="text-xs uppercase tracking-widest text-muted-foreground">
+                          Running Pipeline
+                        </div>
                         <h3 className="text-lg font-semibold">Analyzing candidate against role</h3>
                       </div>
                     </div>
@@ -437,7 +491,14 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                                 i + 1
                               )}
                             </span>
-                            <span className={cn("text-sm", done || current ? "text-foreground" : "text-muted-foreground")}>{step.label}</span>
+                            <span
+                              className={cn(
+                                "text-sm",
+                                done || current ? "text-foreground" : "text-muted-foreground",
+                              )}
+                            >
+                              {step.label}
+                            </span>
                           </motion.li>
                         );
                       })}
@@ -447,7 +508,12 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
               )}
 
               {phase === "error" && (
-                <motion.div key="error" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mx-auto flex min-h-full max-w-xl flex-col justify-center">
+                <motion.div
+                  key="error"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mx-auto flex min-h-full max-w-xl flex-col justify-center"
+                >
                   <GlassCard className="text-center">
                     <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-2xl border border-rose-400/30 bg-rose-500/10 text-rose-300">
                       <AlertTriangle className="h-6 w-6" />
@@ -458,7 +524,9 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
                         Failed at stage: <span className="text-rose-300">{failedStage}</span>
                       </p>
                     )}
-                    {errorMessage && <p className="mt-3 text-sm text-foreground/90">{errorMessage}</p>}
+                    {errorMessage && (
+                      <p className="mt-3 text-sm text-foreground/90">{errorMessage}</p>
+                    )}
                     <div className="mt-6 flex items-center justify-center gap-3">
                       <Button type="button" variant="outline" onClick={reset} className="gap-2">
                         <RotateCcw className="h-4 w-4" /> Start Over

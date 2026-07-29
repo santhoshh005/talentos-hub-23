@@ -17,13 +17,37 @@ const DATE_RANGE_RE =
   /((?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*\d{4}|\d{4})\s*[-–—to]{1,3}\s*((?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s*\d{4}|\d{4}|present|current|now)/i;
 
 const DEGREE_KEYWORDS = [
-  "b.tech", "btech", "b.e", "b.e.", "be ", "bachelor", "bsc", "b.sc", "bca",
-  "mba", "m.tech", "mtech", "m.e", "m.sc", "msc", "mca", "phd", "ph.d", "diploma",
+  "b.tech",
+  "btech",
+  "b.e",
+  "b.e.",
+  "be ",
+  "bachelor",
+  "bsc",
+  "b.sc",
+  "bca",
+  "mba",
+  "m.tech",
+  "mtech",
+  "m.e",
+  "m.sc",
+  "msc",
+  "mca",
+  "phd",
+  "ph.d",
+  "diploma",
 ];
 
 const SKILL_SECTION_HEADS = [
-  "technical skills", "core skills", "key skills", "primary skills",
-  "secondary skills", "skills", "tools", "technologies", "tech stack",
+  "technical skills",
+  "core skills",
+  "key skills",
+  "primary skills",
+  "secondary skills",
+  "skills",
+  "tools",
+  "technologies",
+  "tech stack",
 ];
 const EXPERIENCE_HEADS = ["experience", "work experience", "professional experience", "employment"];
 const EDUCATION_HEADS = ["education", "academics", "qualification", "qualifications"];
@@ -51,9 +75,21 @@ function findSection(lines: string[], heads: string[]): { start: number; end: nu
     const isHeader =
       l.length > 0 &&
       l.length < 40 &&
-      [...SKILL_SECTION_HEADS, ...EXPERIENCE_HEADS, ...EDUCATION_HEADS, ...CERT_HEADS,
-        "projects", "summary", "profile", "objective", "achievements", "awards",
-        "languages", "personal details", "declaration"].some((h) => l === h || l.startsWith(h + " "));
+      [
+        ...SKILL_SECTION_HEADS,
+        ...EXPERIENCE_HEADS,
+        ...EDUCATION_HEADS,
+        ...CERT_HEADS,
+        "projects",
+        "summary",
+        "profile",
+        "objective",
+        "achievements",
+        "awards",
+        "languages",
+        "personal details",
+        "declaration",
+      ].some((h) => l === h || l.startsWith(h + " "));
     if (isHeader && i !== start - 1 && !heads.some((h) => l === h || l.startsWith(h + " "))) {
       end = i;
       break;
@@ -81,7 +117,11 @@ function extractLabeled(text: string, labels: string[]): string {
   for (const label of labels) {
     const re = new RegExp(`${label}\\s*[:\\-]\\s*([^\\n\\r]+)`, "i");
     const m = text.match(re);
-    if (m) return m[1].trim().replace(/[·|].*$/, "").trim();
+    if (m)
+      return m[1]
+        .trim()
+        .replace(/[·|].*$/, "")
+        .trim();
   }
   return "";
 }
@@ -91,7 +131,7 @@ function extractSkills(lines: string[]): string[] {
   if (!section) return [];
   const raw = lines.slice(section.start, section.end).join("\n");
   const tokens = raw
-    .split(/[,|•·;\n\/]+/)
+    .split(/[,|•·;\n/]+/)
     .map((t) => t.replace(/^[\s\-•*]+/, "").trim())
     .filter(Boolean);
   return sanitizeSkillList(tokens).slice(0, 40);
@@ -143,7 +183,10 @@ function extractEmployment(lines: string[]): {
     const dateMatch = line.match(DATE_RANGE_RE);
     if (dateMatch) {
       // New entry — pull title/company from same or previous line
-      const before = line.replace(dateMatch[0], "").replace(/[|·•\-–—]+$/, "").trim();
+      const before = line
+        .replace(dateMatch[0], "")
+        .replace(/[|·•\-–—]+$/, "")
+        .trim();
       const parts = before.split(/\s+[-–—@|]\s+|\s{2,}/).filter(Boolean);
       const entry: EmploymentEntry = {
         title: parts[0]?.slice(0, 80) ?? "",

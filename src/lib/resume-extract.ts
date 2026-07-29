@@ -20,7 +20,12 @@ async function extractPdf(file: File): Promise<string> {
     const content = await page.getTextContent({ includeMarkedContent: false });
     const items = content.items
       .map((raw) => {
-        const item = raw as { str?: string; hasEOL?: boolean; transform?: number[]; width?: number };
+        const item = raw as {
+          str?: string;
+          hasEOL?: boolean;
+          transform?: number[];
+          width?: number;
+        };
         return {
           text: item.str ?? "",
           x: item.transform?.[4] ?? 0,
@@ -36,7 +41,8 @@ async function extractPdf(file: File): Promise<string> {
       });
 
     const lines: string[] = [];
-    let currentLine: Array<{ text: string; x: number; y: number; hasEOL: boolean; width: number }> = [];
+    let currentLine: Array<{ text: string; x: number; y: number; hasEOL: boolean; width: number }> =
+      [];
     let currentY: number | null = null;
     for (const item of items) {
       const newLine = currentY === null || Math.abs(item.y - currentY) > 2.5;
@@ -57,7 +63,9 @@ async function extractPdf(file: File): Promise<string> {
   }
   const text = normalize(pages.join("\n\n"));
   if (text.length < 40) {
-    throw new Error("This PDF does not contain readable text. Please upload a text-based PDF or DOCX resume.");
+    throw new Error(
+      "This PDF does not contain readable text. Please upload a text-based PDF or DOCX resume.",
+    );
   }
   return text;
 }

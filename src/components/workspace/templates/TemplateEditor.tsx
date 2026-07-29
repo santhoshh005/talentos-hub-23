@@ -89,7 +89,11 @@ export function TemplateEditor({
         >
           <ArrowLeft className="h-4 w-4" /> Back to templates
         </button>
-        <Button type="button" onClick={save} className="rounded-lg bg-gradient-to-r from-primary to-accent shadow-2xl shadow-primary/30">
+        <Button
+          type="button"
+          onClick={save}
+          className="rounded-lg bg-gradient-to-r from-primary to-accent shadow-2xl shadow-primary/30"
+        >
           <Save className="h-4 w-4" /> Save template
         </Button>
       </div>
@@ -131,7 +135,12 @@ export function TemplateEditor({
       <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Columns</h3>
-          <Button type="button" variant="outline" onClick={addColumn} className="rounded-lg border-white/10 bg-white/[0.03]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={addColumn}
+            className="rounded-lg border-white/10 bg-white/[0.03]"
+          >
             <Plus className="h-4 w-4" /> Add column
           </Button>
         </div>
@@ -142,7 +151,9 @@ export function TemplateEditor({
               {columns.map((col) => (
                 <SortableRow key={col.id} column={col}>
                   <select
-                    value={fieldOptions.find((f) => f.value === col.fieldKey) ? col.fieldKey : "__custom"}
+                    value={
+                      fieldOptions.find((f) => f.value === col.fieldKey) ? col.fieldKey : "__custom"
+                    }
                     onChange={(e) => patchCol(col.id, { fieldKey: e.target.value })}
                     className="min-w-[180px] rounded-md border border-white/10 bg-white/[0.03] px-2 py-1.5 text-xs outline-none focus:border-accent"
                   >
@@ -188,7 +199,9 @@ export function TemplateEditor({
 }
 
 function SortableRow({ column, children }: { column: TemplateColumn; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: column.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: column.id,
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -217,7 +230,9 @@ function SortableRow({ column, children }: { column: TemplateColumn; children: R
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       <div className="mt-1.5">{children}</div>
     </label>
   );

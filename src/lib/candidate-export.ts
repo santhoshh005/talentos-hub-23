@@ -7,11 +7,13 @@ export interface PreviewRow {
 }
 
 function slug(v: string): string {
-  return (v || "candidate")
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 40) || "candidate";
+  return (
+    (v || "candidate")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "candidate"
+  );
 }
 
 function timestamp(): string {
@@ -22,7 +24,7 @@ function timestamp(): string {
   return `${yyyy}${mm}${dd}`;
 }
 
-export function exportFileName(record: CandidateRecord, ext: "xlsx" | "csv"): string {
+function exportFileName(record: CandidateRecord, ext: "xlsx" | "csv"): string {
   const parts = record.fullName.trim().split(/\s+/);
   const last = parts.length > 1 ? parts[parts.length - 1] : parts[0] || "candidate";
   return `candidate-${slug(last)}-${timestamp()}.${ext}`;
@@ -35,7 +37,11 @@ function toAOA(rows: PreviewRow[]): string[][] {
 function normaliseHex(hex: string): string {
   const h = hex.replace("#", "").trim();
   if (h.length === 3) {
-    return h.split("").map((c) => c + c).join("").toUpperCase();
+    return h
+      .split("")
+      .map((c) => c + c)
+      .join("")
+      .toUpperCase();
   }
   return h.toUpperCase().slice(0, 6).padEnd(6, "0");
 }
@@ -75,15 +81,15 @@ export async function exportToXlsx(
   XLSX.writeFile(wb, exportFileName(record, "xlsx"));
 }
 
-export async function exportToCsv(
-  record: CandidateRecord,
-  rows: PreviewRow[],
-): Promise<void> {
+export async function exportToCsv(record: CandidateRecord, rows: PreviewRow[]): Promise<void> {
   const escape = (s: string) => {
     if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
-  const csv = [rows.map((r) => escape(r.label)).join(","), rows.map((r) => escape(r.value)).join(",")].join("\n");
+  const csv = [
+    rows.map((r) => escape(r.label)).join(","),
+    rows.map((r) => escape(r.value)).join(","),
+  ].join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

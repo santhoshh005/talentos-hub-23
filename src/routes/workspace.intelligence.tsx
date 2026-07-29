@@ -16,7 +16,8 @@ export const Route = createFileRoute("/workspace/intelligence")({
       { property: "og:title", content: "Resume Intelligence — TalentOS" },
       {
         property: "og:description",
-        content: "Explainable resume ↔ JD matching with evidence, scoring, and a branded PDF report.",
+        content:
+          "Explainable resume ↔ JD matching with evidence, scoring, and a branded PDF report.",
       },
     ],
   }),
@@ -28,11 +29,15 @@ function IntelligencePage() {
   return (
     <div>
       <div className="mb-6">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground">Resume Intelligence</div>
-        <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">Match resumes against any JD</h2>
+        <div className="text-xs uppercase tracking-widest text-muted-foreground">
+          Resume Intelligence
+        </div>
+        <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
+          Match resumes against any JD
+        </h2>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Deterministic scoring backed by an AI evidence engine, transparent pipeline, and a downloadable
-          recruiter report.
+          Deterministic scoring backed by an AI evidence engine, transparent pipeline, and a
+          downloadable recruiter report.
         </p>
       </div>
 
@@ -42,7 +47,10 @@ function IntelligencePage() {
           { title: "Evidence Engine", desc: "Every skill grounded in resume phrases and tenure." },
           { title: "Recruiter Report", desc: "Branded, PDF-exportable candidate assessment." },
         ].map((c) => (
-          <div key={c.title} className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
+          <div
+            key={c.title}
+            className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl"
+          >
             <div className="text-sm font-semibold">{c.title}</div>
             <div className="mt-1 text-xs text-muted-foreground">{c.desc}</div>
           </div>

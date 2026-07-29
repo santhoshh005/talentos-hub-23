@@ -26,11 +26,7 @@ import { scoreMatch, type ScoringResult } from "./scoring-engine";
 import { buildRecruiterIntelligence, type RecruiterIntelligence } from "./recruiter-intelligence";
 import { extractResumeV3, extractJDV3 } from "./llm-extract.server";
 import { runSemanticMatch } from "./semantic-match.server";
-import type {
-  ParsedJDV3,
-  ParsedResumeV3,
-  SemanticMatchV3,
-} from "./intelligence-schemas";
+import type { ParsedJDV3, ParsedResumeV3, SemanticMatchV3 } from "./intelligence-schemas";
 import type { NormalizedSkill } from "./skill-normalizer";
 import type { SkillMatch } from "./matching-engine";
 
@@ -41,7 +37,7 @@ export const PipelineInputSchema = z.object({
 
 export type PipelineInput = z.infer<typeof PipelineInputSchema>;
 
-export type PipelineStageName =
+type PipelineStageName =
   | "resumeParser"
   | "jdIntelligence"
   | "skillNormalization"
@@ -50,13 +46,13 @@ export type PipelineStageName =
   | "scoring"
   | "recruiterIntelligence";
 
-export interface PipelineStageTiming {
+interface PipelineStageTiming {
   stage: PipelineStageName | string;
   durationMs: number;
   ok: boolean;
 }
 
-export interface PipelineMetadata {
+interface PipelineMetadata {
   startedAt: string;
   finishedAt: string;
   totalDurationMs: number;
@@ -64,7 +60,7 @@ export interface PipelineMetadata {
   version: "1.0.0";
 }
 
-export interface PipelineSuccess {
+interface PipelineSuccess {
   ok: true;
   resume: ParsedResumeData;
   jobDescription: JdIntelligence;
@@ -76,7 +72,7 @@ export interface PipelineSuccess {
   metadata: PipelineMetadata;
 }
 
-export interface PipelineFailure {
+interface PipelineFailure {
   ok: false;
   failedStage: PipelineStageName | string;
   error: { message: string; name?: string };
@@ -93,7 +89,7 @@ export interface PipelineStage<Ctx = PipelineContext> {
   run: (ctx: Ctx) => Promise<void>;
 }
 
-export interface PipelineContext {
+interface PipelineContext {
   input: PipelineInput;
   resume?: ParsedResumeData;
   jobDescription?: JdIntelligence;
@@ -112,7 +108,7 @@ export interface PipelineContext {
 // Default stages — thin wrappers around existing services.
 // ---------------------------------------------------------------------------
 
-export const defaultPipelineStages: PipelineStage[] = [
+const defaultPipelineStages: PipelineStage[] = [
   {
     name: "resumeParser",
     run: async (ctx) => {
@@ -252,7 +248,10 @@ function buildMetadata(
   };
 }
 
-function requireStage<T>(value: T | undefined, stage: PipelineStageName | string): asserts value is T {
+function requireStage<T>(
+  value: T | undefined,
+  stage: PipelineStageName | string,
+): asserts value is T {
   if (value === undefined || value === null) {
     throw new Error(`Pipeline stage "${stage}" produced no output`);
   }
@@ -274,7 +273,10 @@ function round(ms: number): number {
 }
 
 // Silence unused-import warnings for legacy helpers kept for backwards compat.
-void runParseResume; void runJdIntelligence; void normalizeSkills; void matchSkills;
+void runParseResume;
+void runJdIntelligence;
+void normalizeSkills;
+void matchSkills;
 
 // ---------------------------------------------------------------------------
 // v3 → legacy adapters
@@ -282,14 +284,28 @@ void runParseResume; void runJdIntelligence; void normalizeSkills; void matchSki
 
 function adaptResumeV3ToLegacy(r: ParsedResumeV3): ParsedResumeData {
   const scalar = (v: string) => (v && v.trim() ? v.trim() : "Not Found");
-  const employmentHistory = r.employment.map((e) => {
-    const range = [e.start, e.end].filter(Boolean).join(" - ");
-    const suffix = range ? ` (${range})` : "";
-    return `${e.title || ""}${e.title && e.company ? " — " : ""}${e.company || ""}${suffix}`.trim();
-  }).filter(Boolean);
+  const employmentHistory = r.employment
+    .map((e) => {
+      const range = [e.start, e.end].filter(Boolean).join(" - ");
+      const suffix = range ? ` (${range})` : "";
+      return `${e.title || ""}${e.title && e.company ? " — " : ""}${e.company || ""}${suffix}`.trim();
+    })
+    .filter(Boolean);
   const skillNames = r.skills.map((s) => s.canonical).filter(Boolean);
-  const technologyCategories = new Set(["Frontend", "Backend", "Cloud", "DevOps", "Data", "AI/ML", "Database", "Mobile", "QA"]);
-  const technologies = r.skills.filter((s) => technologyCategories.has(s.category)).map((s) => s.canonical);
+  const technologyCategories = new Set([
+    "Frontend",
+    "Backend",
+    "Cloud",
+    "DevOps",
+    "Data",
+    "AI/ML",
+    "Database",
+    "Mobile",
+    "QA",
+  ]);
+  const technologies = r.skills
+    .filter((s) => technologyCategories.has(s.category))
+    .map((s) => s.canonical);
   return {
     name: scalar(r.name),
     email: scalar(r.email),
@@ -351,7 +367,8 @@ function adaptSemanticToMatchingResult(
   jd: ParsedJDV3,
 ): MatchingResult {
   const jdCanonicalByLower = new Map<string, string>();
-  for (const r of [...jd.required, ...jd.preferred]) jdCanonicalByLower.set(r.canonical.toLowerCase(), r.canonical);
+  for (const r of [...jd.required, ...jd.preferred])
+    jdCanonicalByLower.set(r.canonical.toLowerCase(), r.canonical);
 
   const matchingSkills: SkillMatch[] = [];
   const missingSet = new Set<string>();
@@ -363,8 +380,16 @@ function adaptSemanticToMatchingResult(
       missingSet.add(jdName);
       continue;
     }
-    const conf = entry.status === "exact" ? 100 : entry.status === "equivalent" ? 95 : entry.status === "related" ? 80 : 80;
-    const kind = entry.status === "exact" ? "exact" : entry.status === "equivalent" ? "alias" : "related";
+    const conf =
+      entry.status === "exact"
+        ? 100
+        : entry.status === "equivalent"
+          ? 95
+          : entry.status === "related"
+            ? 80
+            : 80;
+    const kind =
+      entry.status === "exact" ? "exact" : entry.status === "equivalent" ? "alias" : "related";
     matchingSkills.push({
       skill: jdName,
       resumeOriginal: entry.matchedResumeSkill,
@@ -376,7 +401,9 @@ function adaptSemanticToMatchingResult(
   }
 
   matchingSkills.sort((a, b) => a.skill.localeCompare(b.skill, undefined, { sensitivity: "base" }));
-  const missingSkills = Array.from(missingSet).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  const missingSkills = Array.from(missingSet).sort((a, b) =>
+    a.localeCompare(b, undefined, { sensitivity: "base" }),
+  );
   const additionalSkills = resume.skills
     .map((s) => s.canonical)
     .filter((n) => !matchedResumeCanonicalLower.has(n.toLowerCase()))

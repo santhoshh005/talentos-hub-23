@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createAiGatewayProvider } from "./ai-gateway.server";
 import { isCleanSkillToken } from "./token-sanitizer";
 
 // ---------------------------------------------------------------------------
@@ -12,11 +12,11 @@ import { isCleanSkillToken } from "./token-sanitizer";
 // Its output is consumed downstream by the Skill Matching Engine.
 // ---------------------------------------------------------------------------
 
-export const JdIntelligenceInputSchema = z.object({
+const JdIntelligenceInputSchema = z.object({
   jobDescription: z.string().min(20),
 });
 
-export const JdIntelligenceSchema = z.object({
+const JdIntelligenceSchema = z.object({
   jobTitle: z.string().default("Not Found"),
   industry: z.string().default("Not Found"),
   department: z.string().default("Not Found"),
@@ -120,15 +120,70 @@ type SectionBucket =
   | "seniorityLevel";
 
 const SECTION_MAP: Array<{ bucket: SectionBucket; headers: string[] }> = [
-  { bucket: "jobTitle", headers: ["job title", "role title", "position title", "designation", "role"] },
+  {
+    bucket: "jobTitle",
+    headers: ["job title", "role title", "position title", "designation", "role"],
+  },
   { bucket: "industry", headers: ["industry", "sector"] },
   { bucket: "department", headers: ["department", "team", "function", "division"] },
-  { bucket: "employmentType", headers: ["employment type", "job type", "engagement type", "work type"] },
-  { bucket: "experienceRequired", headers: ["experience", "experience required", "years of experience", "work experience"] },
-  { bucket: "educationRequired", headers: ["education", "educational qualifications", "academic qualifications", "qualifications", "minimum qualifications"] },
-  { bucket: "requiredSkills", headers: ["required skills", "must have", "must-have", "mandatory skills", "key skills", "primary skills", "core skills", "technical skills", "skills required"] },
-  { bucket: "preferredSkills", headers: ["preferred skills", "nice to have", "nice-to-have", "good to have", "good-to-have", "desired skills", "additional skills", "secondary skills", "bonus skills"] },
-  { bucket: "responsibilities", headers: ["key responsibilities", "roles and responsibilities", "duties", "what you'll do", "what you will do", "day to day", "day-to-day"] },
+  {
+    bucket: "employmentType",
+    headers: ["employment type", "job type", "engagement type", "work type"],
+  },
+  {
+    bucket: "experienceRequired",
+    headers: ["experience", "experience required", "years of experience", "work experience"],
+  },
+  {
+    bucket: "educationRequired",
+    headers: [
+      "education",
+      "educational qualifications",
+      "academic qualifications",
+      "qualifications",
+      "minimum qualifications",
+    ],
+  },
+  {
+    bucket: "requiredSkills",
+    headers: [
+      "required skills",
+      "must have",
+      "must-have",
+      "mandatory skills",
+      "key skills",
+      "primary skills",
+      "core skills",
+      "technical skills",
+      "skills required",
+    ],
+  },
+  {
+    bucket: "preferredSkills",
+    headers: [
+      "preferred skills",
+      "nice to have",
+      "nice-to-have",
+      "good to have",
+      "good-to-have",
+      "desired skills",
+      "additional skills",
+      "secondary skills",
+      "bonus skills",
+    ],
+  },
+  {
+    bucket: "responsibilities",
+    headers: [
+      "key responsibilities",
+      "roles and responsibilities",
+      "duties",
+      "what you'll do",
+      "what you will do",
+      "day to day",
+      "day-to-day",
+    ],
+  },
   { bucket: "tools", headers: ["tools", "tooling", "software", "platforms"] },
   { bucket: "technologies", headers: ["technologies", "tech stack", "stack", "frameworks"] },
   { bucket: "softSkills", headers: ["soft skills", "behavioral skills", "interpersonal skills"] },
@@ -140,13 +195,13 @@ const SECTION_MAP: Array<{ bucket: SectionBucket; headers: string[] }> = [
 export async function runJdIntelligence(data: JdInput): Promise<JdIntelligence> {
   const jd = normalize(data.jobDescription);
   const local = parseJdLocally(jd);
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return finalize(local);
 
   try {
-    const gateway = createLovableAiGatewayProvider(key);
+    const gateway = createAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("google/gemini-3.6-flash"),
+      model: gateway("gemini-1.5-flash"),
       temperature: 0,
       instructions: [
         "You are the TalentOS JD Intelligence Engine.",
@@ -190,7 +245,10 @@ ${jd.slice(0, 20000)}`,
     });
     return finalize(mergeJd(parseJsonObject(text), local));
   } catch (error) {
-    console.error("[TalentOS JD Intelligence] AI extraction failed; using deterministic parse.", error);
+    console.error(
+      "[TalentOS JD Intelligence] AI extraction failed; using deterministic parse.",
+      error,
+    );
     return finalize(local);
   }
 }
@@ -200,7 +258,10 @@ ${jd.slice(0, 20000)}`,
 // ---------------------------------------------------------------------------
 
 function parseJdLocally(jd: string): JdIntelligence {
-  const lines = jd.split("\n").map((l) => l.trim()).filter(Boolean);
+  const lines = jd
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
   const sections = splitIntoSections(lines);
 
   const jobTitle = detectJobTitle(lines, sections);
@@ -208,7 +269,9 @@ function parseJdLocally(jd: string): JdIntelligence {
   const employmentType = detectEmploymentType(jd, sections);
   const seniorityLevel = detectSeniority(jd, jobTitle, sections);
 
-  const responsibilities = (sections.responsibilities ?? []).map(stripBullet).filter((l) => l.length >= 4);
+  const responsibilities = (sections.responsibilities ?? [])
+    .map(stripBullet)
+    .filter((l) => l.length >= 4);
   const educationRequired = (sections.educationRequired ?? []).map(stripBullet).filter(Boolean);
   const certifications = (sections.certifications ?? []).map(stripBullet).filter(Boolean);
   const softSkills = flattenTokens(sections.softSkills ?? []);
@@ -270,11 +333,19 @@ function splitIntoSections(lines: string[]): Partial<Record<SectionBucket, strin
 }
 
 function matchHeader(line: string): SectionBucket | null {
-  const cleaned = line.toLowerCase().replace(/[:*_#>\-–—]+/g, " ").replace(/\s+/g, " ").trim();
+  const cleaned = line
+    .toLowerCase()
+    .replace(/[:*_#>\-–—]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!cleaned || cleaned.split(" ").length > 6) return null;
   for (const entry of SECTION_MAP) {
     for (const header of entry.headers) {
-      if (cleaned === header || cleaned.startsWith(`${header} `) || cleaned.startsWith(`${header}:`)) {
+      if (
+        cleaned === header ||
+        cleaned.startsWith(`${header} `) ||
+        cleaned.startsWith(`${header}:`)
+      ) {
         return entry.bucket;
       }
     }
@@ -283,7 +354,11 @@ function matchHeader(line: string): SectionBucket | null {
 }
 
 function isIgnoredHeader(line: string): boolean {
-  const cleaned = line.toLowerCase().replace(/[:*_#>\-–—]+/g, " ").replace(/\s+/g, " ").trim();
+  const cleaned = line
+    .toLowerCase()
+    .replace(/[:*_#>\-–—]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
   if (!cleaned || cleaned.split(" ").length > 6) return false;
   return IGNORED_HEADINGS.has(cleaned);
 }
@@ -294,10 +369,13 @@ function stripHeaderInline(line: string): string {
   return line.slice(idx + 1).trim();
 }
 
-function detectJobTitle(lines: string[], sections: Partial<Record<SectionBucket, string[]>>): string {
+function detectJobTitle(
+  lines: string[],
+  sections: Partial<Record<SectionBucket, string[]>>,
+): string {
   if (sections.jobTitle && sections.jobTitle.length > 0) return sections.jobTitle[0].trim();
   for (const line of lines.slice(0, 12)) {
-    const m = line.match(/^(?:job title|position|role|designation)\s*[:\-]\s*(.+)$/i);
+    const m = line.match(/^(?:job title|position|role|designation)\s*[:-]\s*(.+)$/i);
     if (m) return m[1].trim();
   }
   for (const line of lines.slice(0, 5)) {
@@ -320,14 +398,21 @@ function detectExperience(jd: string, sections: Partial<Record<SectionBucket, st
   return single ? single[0] : "";
 }
 
-function detectEmploymentType(jd: string, sections: Partial<Record<SectionBucket, string[]>>): string {
+function detectEmploymentType(
+  jd: string,
+  sections: Partial<Record<SectionBucket, string[]>>,
+): string {
   const fromSection = (sections.employmentType ?? []).join(" ").trim();
   const scan = fromSection || jd;
   for (const p of EMPLOYMENT_TYPE_PATTERNS) if (p.regex.test(scan)) return p.label;
   return "";
 }
 
-function detectSeniority(jd: string, jobTitle: string, sections: Partial<Record<SectionBucket, string[]>>): string {
+function detectSeniority(
+  jd: string,
+  jobTitle: string,
+  sections: Partial<Record<SectionBucket, string[]>>,
+): string {
   const fromSection = (sections.seniorityLevel ?? []).join(" ").trim();
   const scan = `${fromSection} ${jobTitle} ${jd}`;
   for (const p of SENIORITY_PATTERNS) if (p.regex.test(scan)) return p.label;
@@ -349,7 +434,10 @@ function flattenTokens(lines: string[]): string[] {
     for (const part of parts) {
       if (!part) continue;
       const skill = part
-        .replace(/^(?:experience (?:with|in|of)|knowledge of|proficiency in|hands[- ]on (?:with|in)|strong|good|excellent)\s+/i, "")
+        .replace(
+          /^(?:experience (?:with|in|of)|knowledge of|proficiency in|hands[- ]on (?:with|in)|strong|good|excellent)\s+/i,
+          "",
+        )
         .trim();
       if (isValidToken(skill)) tokens.push(skill);
     }
@@ -361,7 +449,10 @@ function isValidToken(value: string): boolean {
   if (!value) return false;
   const trimmed = value.trim();
   if (trimmed.length < 2 || trimmed.length > 80) return false;
-  const lower = trimmed.toLowerCase().replace(/[:.\-–—]+$/g, "").trim();
+  const lower = trimmed
+    .toLowerCase()
+    .replace(/[:.\-–—]+$/g, "")
+    .trim();
   if (IGNORED_HEADINGS.has(lower)) return false;
   const wordCount = trimmed.split(/\s+/).length;
   if (wordCount > 8 && /[.!?]$/.test(trimmed)) return false;
@@ -369,7 +460,10 @@ function isValidToken(value: string): boolean {
 }
 
 function stripBullet(value: string): string {
-  return value.replace(/^[\s•·▪●○\-*–—]+/, "").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/^[\s•·▪●○\-*–—]+/, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function normalize(text: string): string {
@@ -406,7 +500,9 @@ function finalize(parsed: JdIntelligence): JdIntelligence {
     educationRequired: sanitizeList(parsed.educationRequired),
     requiredSkills: sanitizeList(parsed.requiredSkills),
     preferredSkills: sanitizeList(parsed.preferredSkills),
-    responsibilities: unique(parsed.responsibilities.map((r) => r.trim()).filter((r) => r.length >= 4)),
+    responsibilities: unique(
+      parsed.responsibilities.map((r) => r.trim()).filter((r) => r.length >= 4),
+    ),
     tools: sanitizeList(parsed.tools),
     technologies: sanitizeList(parsed.technologies),
     softSkills: sanitizeList(parsed.softSkills),
@@ -417,7 +513,8 @@ function finalize(parsed: JdIntelligence): JdIntelligence {
 }
 
 function mergeJd(aiValue: unknown, local: JdIntelligence): JdIntelligence {
-  const src = typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
+  const src =
+    typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
   const str = (k: string, fallback: string) => {
     const v = src[k];
     return typeof v === "string" && v.trim() ? v.trim() : fallback;
@@ -451,7 +548,10 @@ function mergeJd(aiValue: unknown, local: JdIntelligence): JdIntelligence {
 }
 
 function parseJsonObject(text: string): unknown {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return {};

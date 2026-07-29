@@ -12,7 +12,10 @@ export interface TemplateRepository {
   list(): ClientTemplate[];
   get(id: string): ClientTemplate | undefined;
   create(input: CreateTemplateInput): ClientTemplate;
-  update(id: string, patch: Partial<Omit<ClientTemplate, "id" | "createdAt">>): ClientTemplate | undefined;
+  update(
+    id: string,
+    patch: Partial<Omit<ClientTemplate, "id" | "createdAt">>,
+  ): ClientTemplate | undefined;
   duplicate(id: string): ClientTemplate | undefined;
   delete(id: string): void;
   toggleFavorite(id: string): ClientTemplate | undefined;

@@ -45,10 +45,7 @@ export function TemplateManager() {
   }
   if (importing) {
     return (
-      <ExcelImportPanel
-        onClose={() => setImporting(false)}
-        onCreated={() => setImporting(false)}
-      />
+      <ExcelImportPanel onClose={() => setImporting(false)} onCreated={() => setImporting(false)} />
     );
   }
 
@@ -62,7 +59,12 @@ export function TemplateManager() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={() => setImporting(true)} className="rounded-lg border-white/10 bg-white/[0.03]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setImporting(true)}
+            className="rounded-lg border-white/10 bg-white/[0.03]"
+          >
             <LayoutTemplate className="h-4 w-4" /> Import from Excel
           </Button>
           <Button
@@ -99,7 +101,9 @@ function TemplateGroup({
 }) {
   return (
     <section>
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{title}</h3>
+      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {title}
+      </h3>
       <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {items.map((t) => (
           <div
@@ -127,7 +131,10 @@ function TemplateGroup({
 
             <div className="mt-3 flex flex-wrap gap-1.5">
               {t.columns.slice(0, 5).map((c) => (
-                <span key={c.id} className="rounded-full border border-white/5 bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground">
+                <span
+                  key={c.id}
+                  className="rounded-full border border-white/5 bg-white/[0.03] px-2 py-0.5 text-[10px] text-muted-foreground"
+                >
                   {c.label}
                 </span>
               ))}
@@ -139,7 +146,13 @@ function TemplateGroup({
             </div>
 
             <div className="mt-4 flex items-center gap-1 pt-3">
-              <Button type="button" variant="outline" size="sm" onClick={() => onEdit(t.id)} className="rounded-lg border-white/10 bg-white/[0.03]">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onEdit(t.id)}
+                className="rounded-lg border-white/10 bg-white/[0.03]"
+              >
                 <Edit3 className="h-3.5 w-3.5" /> Edit
               </Button>
               <Button

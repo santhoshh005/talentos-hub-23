@@ -8,16 +8,16 @@
 
 import { z } from "zod";
 
-export const SkillEntryV3Schema = z.object({
+const SkillEntryV3Schema = z.object({
   canonical: z.string(),
   aliases: z.array(z.string()).default([]),
   category: z.string().default("Other"),
   years: z.number().default(0),
   evidence: z.array(z.string()).default([]),
 });
-export type SkillEntryV3 = z.infer<typeof SkillEntryV3Schema>;
+type SkillEntryV3 = z.infer<typeof SkillEntryV3Schema>;
 
-export const EmploymentEntryV3Schema = z.object({
+const EmploymentEntryV3Schema = z.object({
   company: z.string(),
   title: z.string().default(""),
   start: z.string().default(""),
@@ -25,7 +25,7 @@ export const EmploymentEntryV3Schema = z.object({
   isCurrent: z.boolean().default(false),
   summary: z.string().default(""),
 });
-export type EmploymentEntryV3 = z.infer<typeof EmploymentEntryV3Schema>;
+type EmploymentEntryV3 = z.infer<typeof EmploymentEntryV3Schema>;
 
 export const ParsedResumeV3Schema = z.object({
   name: z.string().default(""),
@@ -50,13 +50,13 @@ export const ParsedResumeV3Schema = z.object({
 });
 export type ParsedResumeV3 = z.infer<typeof ParsedResumeV3Schema>;
 
-export const JdRequirementV3Schema = z.object({
+const JdRequirementV3Schema = z.object({
   canonical: z.string(),
   aliases: z.array(z.string()).default([]),
   category: z.string().default("Other"),
   weight: z.number().default(1),
 });
-export type JdRequirementV3 = z.infer<typeof JdRequirementV3Schema>;
+type JdRequirementV3 = z.infer<typeof JdRequirementV3Schema>;
 
 export const ParsedJDV3Schema = z.object({
   jobTitle: z.string().default(""),
@@ -77,9 +77,9 @@ export const ParsedJDV3Schema = z.object({
 });
 export type ParsedJDV3 = z.infer<typeof ParsedJDV3Schema>;
 
-export type SemanticMatchStatus = "exact" | "equivalent" | "related" | "missing";
+type SemanticMatchStatus = "exact" | "equivalent" | "related" | "missing";
 
-export const SemanticMatchEntrySchema = z.object({
+const SemanticMatchEntrySchema = z.object({
   requirement: z.string(),
   status: z.string(),
   matchedResumeSkill: z.string().default(""),

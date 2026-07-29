@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileSpreadsheet, Trash2, Plus, GripVertical, RotateCcw, Eye, EyeOff, Paintbrush } from "lucide-react";
+import {
+  Download,
+  FileSpreadsheet,
+  Trash2,
+  Plus,
+  GripVertical,
+  RotateCcw,
+  Eye,
+  EyeOff,
+  Paintbrush,
+} from "lucide-react";
 import {
   DndContext,
   PointerSensor,
@@ -80,7 +90,11 @@ export function ExportPreview({ record }: { record: CandidateRecord }) {
   const toggleHidden = (id: string) =>
     setHidden((h) => {
       const next = new Set(h);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
@@ -127,10 +141,20 @@ export function ExportPreview({ record }: { record: CandidateRecord }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={reset}
+            className="rounded-lg border-white/10 bg-white/[0.03]"
+          >
             <RotateCcw className="h-4 w-4" /> Reset
           </Button>
-          <Button type="button" variant="outline" onClick={doCsv} className="rounded-lg border-white/10 bg-white/[0.03]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={doCsv}
+            className="rounded-lg border-white/10 bg-white/[0.03]"
+          >
             <FileSpreadsheet className="h-4 w-4" /> CSV
           </Button>
           <Button
@@ -196,7 +220,10 @@ export function ExportPreview({ record }: { record: CandidateRecord }) {
             </button>
           </div>
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <SortableContext items={rows.map((r) => r.columnId)} strategy={verticalListSortingStrategy}>
+            <SortableContext
+              items={rows.map((r) => r.columnId)}
+              strategy={verticalListSortingStrategy}
+            >
               <ul className="space-y-1">
                 {rows.map((r, i) => (
                   <SortableRow
@@ -244,7 +271,10 @@ export function ExportPreview({ record }: { record: CandidateRecord }) {
                         value={r.value}
                         placeholder="NA"
                         onChange={(e) =>
-                          updateValue(rows.findIndex((x) => x.columnId === r.columnId), e.target.value)
+                          updateValue(
+                            rows.findIndex((x) => x.columnId === r.columnId),
+                            e.target.value,
+                          )
                         }
                         className={`w-full resize-y rounded-md border border-white/5 bg-white/[0.02] px-2 py-1 text-xs outline-none focus:border-accent focus:ring-1 focus:ring-accent/40 ${
                           isNa ? "text-muted-foreground italic" : "text-foreground/90"
@@ -264,7 +294,13 @@ export function ExportPreview({ record }: { record: CandidateRecord }) {
 
 function isLight(hex: string): boolean {
   const h = hex.replace("#", "");
-  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  const full =
+    h.length === 3
+      ? h
+          .split("")
+          .map((c) => c + c)
+          .join("")
+      : h;
   const r = parseInt(full.slice(0, 2), 16);
   const g = parseInt(full.slice(2, 4), 16);
   const b = parseInt(full.slice(4, 6), 16);
@@ -286,7 +322,9 @@ function SortableRow({
   onToggleHidden: () => void;
   onRemove: () => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id,
+  });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,

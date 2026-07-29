@@ -2,6 +2,5 @@ User-agent: *
 Allow: /
 Disallow: /workspace
 Disallow: /report
-Disallow: /lovable/
 
 Sitemap: /sitemap.xml

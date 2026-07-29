@@ -57,7 +57,8 @@ const posts: InsightPost[] = [
     readTime: "6 min read",
     href: "https://www.linkedin.com/posts/hemanth-kumar-235078270_insiderecruitment-recruitment-aijobs-activity-7485230253007708160-RQRO?utm_source=share&utm_medium=member_desktop&rcm=ACoAAEI3rkkBiQddNH4UAJkE1OjPdLEpFFWDnmM",
     coverUrl: aiResumesCover.url,
-    coverAlt: "Inside Recruitment #01 — Out of 19 AI/ML resumes I screened, only 3 were shortlisted",
+    coverAlt:
+      "Inside Recruitment #01 — Out of 19 AI/ML resumes I screened, only 3 were shortlisted",
     icon: Sparkles,
     glow: "shadow-[0_0_40px_-12px_rgba(56,189,248,0.35)]",
   },
@@ -121,8 +122,7 @@ export function ContentLibrary() {
           Recruitment Insights
         </span>
         <h2 className="mt-5 text-3xl font-semibold tracking-tight md:text-4xl">
-          Fresh thinking from the{" "}
-          <span className="text-gradient">recruiting frontlines</span>
+          Fresh thinking from the <span className="text-gradient">recruiting frontlines</span>
         </h2>
         <p className="mt-3 text-base text-muted-foreground md:text-lg">
           Highlights from my LinkedIn — click any card to read the full post.

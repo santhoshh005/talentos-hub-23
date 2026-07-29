@@ -1,10 +1,10 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createAiGatewayProvider } from "./ai-gateway.server";
 import { CandidateRecordSchema, type CandidateRecord } from "./candidate-schemas";
 import { mergeCandidate } from "./candidate-parse";
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "gemini-1.5-flash";
 
 export const CandidateExtractInputSchema = z.object({
   resumeText: z.string().min(20, "Resume text is too short"),
@@ -14,7 +14,7 @@ export const CandidateExtractInputSchema = z.object({
 const SYSTEM = [
   "You are TalentOS Candidate Extractor.",
   "You read a raw resume and extract structured recruiter fields as strict JSON.",
-  "Never invent values. If a field is absent, use \"\" or []. Return ONLY raw JSON — no markdown, no prose.",
+  'Never invent values. If a field is absent, use "" or []. Return ONLY raw JSON — no markdown, no prose.',
 ].join(" ");
 
 function buildPrompt(resumeText: string): string {
@@ -70,9 +70,9 @@ export async function runExtractCandidate(
   const seedMerged = (llm: Partial<CandidateRecord>): CandidateRecord =>
     CandidateRecordSchema.parse(mergeCandidate(llm, seedRecord));
 
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return seedMerged({});
-  const gateway = createLovableAiGatewayProvider(key);
+  const gateway = createAiGatewayProvider(key);
   const model = gateway(MODEL);
 
   const call = async () => {

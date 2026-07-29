@@ -1,5 +1,13 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { FileText, Brain, ListChecks, MessageSquare, Handshake, CheckCircle2, ChevronDown } from "lucide-react";
+import {
+  FileText,
+  Brain,
+  ListChecks,
+  MessageSquare,
+  Handshake,
+  CheckCircle2,
+  ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const STEPS = [
@@ -30,7 +38,8 @@ export function RecruitmentWorkflow({ progress }: { progress: number }) {
               className={cn(
                 "flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs md:text-sm backdrop-blur-md transition-colors",
                 done && "border-emerald-400/40 bg-emerald-400/10 text-emerald-200",
-                active && "border-primary/60 bg-primary/15 text-white shadow-[0_0_24px_-4px] shadow-primary/70",
+                active &&
+                  "border-primary/60 bg-primary/15 text-white shadow-[0_0_24px_-4px] shadow-primary/70",
                 !done && !active && "border-white/10 bg-white/[0.03] text-white/50",
               )}
             >
@@ -39,7 +48,11 @@ export function RecruitmentWorkflow({ progress }: { progress: number }) {
                 transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
                 className="grid place-items-center"
               >
-                {done ? <CheckCircle2 className="h-3.5 w-3.5" /> : <s.Icon className="h-3.5 w-3.5" />}
+                {done ? (
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                ) : (
+                  <s.Icon className="h-3.5 w-3.5" />
+                )}
               </motion.span>
               <span className="whitespace-nowrap">{s.label}</span>
             </motion.div>

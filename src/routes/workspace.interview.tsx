@@ -5,9 +5,15 @@ export const Route = createFileRoute("/workspace/interview")({
   head: () => ({
     meta: [
       { title: "Interview Studio — TalentOS" },
-      { name: "description", content: "Generate role-specific interview kits calibrated to level and charter." },
+      {
+        name: "description",
+        content: "Generate role-specific interview kits calibrated to level and charter.",
+      },
       { property: "og:title", content: "Interview Studio — TalentOS" },
-      { property: "og:description", content: "Role-specific interview kits for modern recruiters." },
+      {
+        property: "og:description",
+        content: "Role-specific interview kits for modern recruiters.",
+      },
     ],
   }),
   component: () => (

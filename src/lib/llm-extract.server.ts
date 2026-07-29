@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createAiGatewayProvider } from "./ai-gateway.server";
 import {
   ParsedJDV3Schema,
   ParsedResumeV3Schema,
@@ -15,19 +15,19 @@ import {
   type ParsedResumeV3,
 } from "./intelligence-schemas";
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "gemini-1.5-flash";
 
 const RESUME_SYSTEM = [
   "You are TalentOS Resume Extractor v3.",
   "You read a raw resume for ANY domain (IT, Salesforce, SAP, Data, DevOps, HR/Talent Acquisition,",
   "Finance, Healthcare, Manufacturing, Mechanical, Legal, Marketing, Sales, Executive, Freshers).",
   "Your ONLY job is to extract structured facts as strict JSON.",
-  "Never invent values, never translate, never guess. If a field is absent, use \"\" or [].",
-  "Skills MUST be emitted as canonical industry names (e.g. \"Sales Cloud\", \"Lightning Web Components (LWC)\",",
-  "\"SAP FICO\", \"Apache Spark\", \"Talent Acquisition\", \"Financial Modeling\") along with the ALIASES",
-  "actually seen in the text and a broad CATEGORY tag (e.g. \"Salesforce\", \"Frontend\", \"Data\",",
-  "\"Cloud\", \"DevOps\", \"AI/ML\", \"Database\", \"Mobile\", \"Security\", \"QA\", \"Recruitment\",",
-  "\"Finance\", \"Product\", \"Marketing\", \"Healthcare\", \"Mechanical\", \"Soft\", \"Other\").",
+  'Never invent values, never translate, never guess. If a field is absent, use "" or [].',
+  'Skills MUST be emitted as canonical industry names (e.g. "Sales Cloud", "Lightning Web Components (LWC)",',
+  '"SAP FICO", "Apache Spark", "Talent Acquisition", "Financial Modeling") along with the ALIASES',
+  'actually seen in the text and a broad CATEGORY tag (e.g. "Salesforce", "Frontend", "Data",',
+  '"Cloud", "DevOps", "AI/ML", "Database", "Mobile", "Security", "QA", "Recruitment",',
+  '"Finance", "Product", "Marketing", "Healthcare", "Mechanical", "Soft", "Other").',
   "Return ONLY raw JSON — no markdown, no prose.",
 ].join(" ");
 
@@ -35,7 +35,7 @@ const JD_SYSTEM = [
   "You are TalentOS JD Extractor v3.",
   "You read a raw job description for ANY domain and emit strict JSON.",
   "Split requirements into required vs preferred. Emit each requirement with canonical + aliases + category + weight.",
-  "Never invent values. If a field is absent, use \"\" or [] or 0.",
+  'Never invent values. If a field is absent, use "" or [] or 0.',
   "Return ONLY raw JSON — no markdown, no prose.",
 ].join(" ");
 
@@ -122,9 +122,9 @@ ${jd.slice(0, 20000)}`;
 }
 
 export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV3> {
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return ParsedResumeV3Schema.parse({});
-  const gateway = createLovableAiGatewayProvider(key);
+  const gateway = createAiGatewayProvider(key);
   const model = gateway(MODEL);
 
   const call = async () => {
@@ -151,9 +151,9 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
 }
 
 export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return ParsedJDV3Schema.parse({});
-  const gateway = createLovableAiGatewayProvider(key);
+  const gateway = createAiGatewayProvider(key);
   const model = gateway(MODEL);
 
   const call = async () => {
@@ -185,15 +185,27 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
 
 function coerceParsedResume(raw: unknown): ParsedResumeV3 {
   const src = obj(raw);
-  const skills = arr(src.skills).map((s) => coerceSkillEntry(s)).filter((s) => s.canonical);
-  const employment = arr(src.employment).map((e) => coerceEmployment(e)).filter((e) => e.company);
+  const skills = arr(src.skills)
+    .map((s) => coerceSkillEntry(s))
+    .filter((s) => s.canonical);
+  const employment = arr(src.employment)
+    .map((e) => coerceEmployment(e))
+    .filter((e) => e.company);
   return ParsedResumeV3Schema.parse({
     name: str(src.name),
     email: str(src.email),
     phone: str(src.phone),
     location: str(src.location),
-    currentCompany: str(src.currentCompany) || employment.find((e) => e.isCurrent)?.company || employment[0]?.company || "",
-    currentDesignation: str(src.currentDesignation) || employment.find((e) => e.isCurrent)?.title || employment[0]?.title || "",
+    currentCompany:
+      str(src.currentCompany) ||
+      employment.find((e) => e.isCurrent)?.company ||
+      employment[0]?.company ||
+      "",
+    currentDesignation:
+      str(src.currentDesignation) ||
+      employment.find((e) => e.isCurrent)?.title ||
+      employment[0]?.title ||
+      "",
     totalYears: num(src.totalYears),
     noticePeriod: str(src.noticePeriod),
     employment,
@@ -212,8 +224,12 @@ function coerceParsedResume(raw: unknown): ParsedResumeV3 {
 
 function coerceParsedJd(raw: unknown): ParsedJDV3 {
   const src = obj(raw);
-  const required = arr(src.required).map((r) => coerceRequirement(r)).filter((r) => r.canonical);
-  const preferred = arr(src.preferred).map((r) => coerceRequirement(r)).filter((r) => r.canonical);
+  const required = arr(src.required)
+    .map((r) => coerceRequirement(r))
+    .filter((r) => r.canonical);
+  const preferred = arr(src.preferred)
+    .map((r) => coerceRequirement(r))
+    .filter((r) => r.canonical);
   return ParsedJDV3Schema.parse({
     jobTitle: str(src.jobTitle),
     domain: str(src.domain),
@@ -289,7 +305,9 @@ function dedupeSkills<T extends { canonical: string; aliases: string[] }>(list: 
   return Array.from(seen.values());
 }
 
-function dedupeRequirements<T extends { canonical: string; aliases: string[]; weight: number }>(list: T[]): T[] {
+function dedupeRequirements<T extends { canonical: string; aliases: string[]; weight: number }>(
+  list: T[],
+): T[] {
   const seen = new Map<string, T>();
   for (const r of list) {
     const key = r.canonical.toLowerCase();
@@ -310,19 +328,33 @@ function dedupeRequirements<T extends { canonical: string; aliases: string[]; we
 // ---------------------------------------------------------------------------
 
 function normalize(text: string): string {
-  return text.replace(/\r\n?/g, "\n").replace(/[\u00a0\t]+/g, " ").replace(/[ ]{2,}/g, " ").replace(/\n{3,}/g, "\n\n").trim();
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[\u00a0\t]+/g, " ")
+    .replace(/[ ]{2,}/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 function parseJsonObject(text: string): unknown {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return {};
-  try { return JSON.parse(cleaned.slice(start, end + 1)); } catch { return {}; }
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    return {};
+  }
 }
 
 function obj(v: unknown): Record<string, unknown> {
-  return typeof v === "object" && v !== null && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  return typeof v === "object" && v !== null && !Array.isArray(v)
+    ? (v as Record<string, unknown>)
+    : {};
 }
 function arr(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];

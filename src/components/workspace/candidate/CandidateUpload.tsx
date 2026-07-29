@@ -62,7 +62,9 @@ export function CandidateUpload({
       onDrop={onDrop}
       className={cn(
         "flex flex-col items-center justify-center gap-4 rounded-3xl border-2 border-dashed p-10 text-center transition-colors",
-        dragActive ? "border-accent bg-accent/10" : "border-white/10 bg-white/[0.02] hover:border-accent/50",
+        dragActive
+          ? "border-accent bg-accent/10"
+          : "border-white/10 bg-white/[0.02] hover:border-accent/50",
       )}
     >
       {reading || busy ? (
@@ -82,7 +84,9 @@ export function CandidateUpload({
             "Drop a resume to extract candidate data"
           )}
         </div>
-        <div className="mt-1 text-xs text-muted-foreground">PDF or DOCX · up to 10 MB · single file</div>
+        <div className="mt-1 text-xs text-muted-foreground">
+          PDF or DOCX · up to 10 MB · single file
+        </div>
       </div>
       <Button
         type="button"

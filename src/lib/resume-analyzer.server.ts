@@ -1,18 +1,21 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createAiGatewayProvider } from "./ai-gateway.server";
+import crypto from "crypto";
 
-export const InputSchema = z.object({
+const analysisCache = new Map<string, ResumeAnalysis>();
+
+const InputSchema = z.object({
   resumeText: z.string().min(1),
   jobDescription: z.string().min(1),
   candidateName: z.string().optional(),
 });
 
-export const ParseInputSchema = z.object({
+const ParseInputSchema = z.object({
   resumeText: z.string().min(20),
 });
 
-export const ParsedResumeSchema = z.object({
+const ParsedResumeSchema = z.object({
   name: z.string(),
   email: z.string(),
   phone: z.string(),
@@ -35,7 +38,7 @@ export const ParsedResumeSchema = z.object({
 
 export type ParsedResumeData = z.infer<typeof ParsedResumeSchema>;
 
-export const AnalysisSchema = z.object({
+const AnalysisSchema = z.object({
   overallScore: z.number(),
   verdict: z.string(),
   scores: z.object({
@@ -69,7 +72,7 @@ export const AnalysisSchema = z.object({
   }),
 });
 
-export type ResumeAnalysis = z.infer<typeof AnalysisSchema>;
+type ResumeAnalysis = z.infer<typeof AnalysisSchema>;
 
 type ParsedInput = z.infer<typeof ParseInputSchema>;
 type AnalysisInput = z.infer<typeof InputSchema>;
@@ -183,13 +186,13 @@ const KNOWN_TECHNOLOGIES = [
 export async function runParseResume(data: ParsedInput): Promise<ParsedResumeData> {
   const resumeText = normalizeText(data.resumeText);
   const local = parseResumeLocally(resumeText);
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return finalizeNotFound(local);
 
   try {
-    const gateway = createLovableAiGatewayProvider(key);
+    const gateway = createAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("google/gemini-3.6-flash"),
+      model: gateway("gemini-1.5-flash"),
       temperature: 0,
       instructions: [
         "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
@@ -240,7 +243,10 @@ ${resumeText.slice(0, 28000)}`,
     });
     return finalizeNotFound(mergeParsedResume(parseJsonObject(text), local, resumeText));
   } catch (error) {
-    console.error("[TalentOS resume parser] AI extraction failed; using deterministic extraction.", error);
+    console.error(
+      "[TalentOS resume parser] AI extraction failed; using deterministic extraction.",
+      error,
+    );
     return finalizeNotFound(local);
   }
 }
@@ -262,18 +268,26 @@ function finalizeNotFound(parsed: ParsedResumeData): ParsedResumeData {
   };
 }
 
-export async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysis> {
+async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysis> {
   const local = createLocalAnalysis(data.resumeText, data.jobDescription, data.candidateName);
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return local;
 
+  const hashId = crypto
+    .createHash("sha256")
+    .update(data.resumeText + "|||" + data.jobDescription)
+    .digest("hex");
+  if (analysisCache.has(hashId)) {
+    return analysisCache.get(hashId)!;
+  }
+
   try {
-    const gateway = createLovableAiGatewayProvider(key);
+    const gateway = createAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("google/gemini-3.6-flash"),
-      temperature: 0.1,
+      model: gateway("gemini-1.5-flash"),
+      temperature: 0,
       instructions:
-        "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Never use mock data. Return only valid JSON matching the requested keys.",
+        "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Provide a highly accurate and strict 'overallScore' (0-100) based on direct evidence of mandatory skills and depth of experience. Never hallucinate skills. Return only valid JSON matching the requested keys.",
       prompt: `Return JSON with these keys:
 overallScore number 0-100, verdict string, scores { technicalSkills, experience, education, communication, cultureFit }, matchingSkills string[], additionalSkills string[], missingSkills string[], summary string, strengths string[], weaknesses string[], resumeImprovements string[], hiringRecommendation string, interviewQuestions { technical string[], hr string[], scenario string[] }, scorecard { overallResumeQuality, atsCompatibility, keywordOptimization, formatting, experienceQuality, education, softSkills }.
 
@@ -285,24 +299,54 @@ ${data.resumeText.slice(0, 18000)}
 JOB DESCRIPTION:
 ${data.jobDescription.slice(0, 8000)}`,
     });
-    return normalizeAnalysis(parseJsonObject(text), local);
+
+    const parsed = normalizeAnalysis(parseJsonObject(text), local);
+    analysisCache.set(hashId, parsed);
+    return parsed;
   } catch (error) {
-    console.error("[TalentOS resume analyzer] AI matching failed; using deterministic text match.", error);
+    console.error(
+      "[TalentOS resume analyzer] AI matching failed; using deterministic text match.",
+      error,
+    );
     return local;
   }
 }
 
 function parseResumeLocally(rawText: string): ParsedResumeData {
   const text = normalizeText(rawText);
-  const lines = text.split("\n").map((line) => line.trim()).filter(Boolean);
+  const lines = text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
   const email = extractEmail(text);
   const phone = extractPhone(text);
-  const skillsFromSection = splitList(sectionText(lines, ["skills", "technical skills", "core skills", "tools", "technologies"], 28));
-  const technologies = unique([...skillsFromSection, ...findKnownTerms(text, KNOWN_TECHNOLOGIES)]).slice(0, 40);
-  const projects = extractSectionItems(lines, ["projects", "academic projects", "personal projects"], 16).slice(0, 12);
-  const certifications = extractSectionItems(lines, ["certifications", "certificates", "licenses"], 16).slice(0, 18);
-  const educationLines = extractSectionItems(lines, ["education", "academic qualification", "academics"], 8);
-  const experienceLines = extractSectionItems(lines, ["experience", "work experience", "professional experience", "employment"], 12);
+  const skillsFromSection = splitList(
+    sectionText(lines, ["skills", "technical skills", "core skills", "tools", "technologies"], 28),
+  );
+  const technologies = unique([
+    ...skillsFromSection,
+    ...findKnownTerms(text, KNOWN_TECHNOLOGIES),
+  ]).slice(0, 40);
+  const projects = extractSectionItems(
+    lines,
+    ["projects", "academic projects", "personal projects"],
+    16,
+  ).slice(0, 12);
+  const certifications = extractSectionItems(
+    lines,
+    ["certifications", "certificates", "licenses"],
+    16,
+  ).slice(0, 18);
+  const educationLines = extractSectionItems(
+    lines,
+    ["education", "academic qualification", "academics"],
+    8,
+  );
+  const experienceLines = extractSectionItems(
+    lines,
+    ["experience", "work experience", "professional experience", "employment"],
+    12,
+  );
 
   return ParsedResumeSchema.parse({
     name: extractName(lines, email, phone),
@@ -320,7 +364,11 @@ function parseResumeLocally(rawText: string): ParsedResumeData {
     relevantExperience: extractRelevantExperience(text),
     employmentHistory: extractEmploymentHistory(experienceLines),
     educationHistory: educationLines.slice(0, 8),
-    tools: extractSectionItems(lines, ["tools", "tools & technologies", "tools and technologies", "software", "platforms"], 20).slice(0, 30),
+    tools: extractSectionItems(
+      lines,
+      ["tools", "tools & technologies", "tools and technologies", "software", "platforms"],
+      20,
+    ).slice(0, 30),
     languages: extractSectionItems(lines, ["languages", "languages known"], 12)
       .flatMap((line) => splitList(line))
       .slice(0, 12),
@@ -343,7 +391,8 @@ function extractName(lines: string[], email: string, phone: string): string {
     lines.slice(0, 10).find((line) => {
       const lower = line.toLowerCase();
       if (blocked.some((value) => lower.includes(value))) return false;
-      if (/resume|curriculum|vitae|email|phone|linkedin|github|portfolio|http|www\./i.test(line)) return false;
+      if (/resume|curriculum|vitae|email|phone|linkedin|github|portfolio|http|www\./i.test(line))
+        return false;
       if (line.length < 3 || line.length > 70) return false;
       return /[a-z]/i.test(line) && !/[{}<>]/.test(line);
     }) ?? ""
@@ -351,8 +400,16 @@ function extractName(lines: string[], email: string, phone: string): string {
 }
 
 function extractLocation(lines: string[], email: string, phone: string): string {
-  const contactLines = lines.slice(0, 12).filter((line) => !line.includes(email) && !line.includes(phone));
-  return contactLines.find((line) => /\b(india|usa|remote|hyderabad|bengaluru|bangalore|chennai|pune|mumbai|delhi|kolkata|vijayawada|andhra|telangana)\b/i.test(line)) ?? "";
+  const contactLines = lines
+    .slice(0, 12)
+    .filter((line) => !line.includes(email) && !line.includes(phone));
+  return (
+    contactLines.find((line) =>
+      /\b(india|usa|remote|hyderabad|bengaluru|bangalore|chennai|pune|mumbai|delhi|kolkata|vijayawada|andhra|telangana)\b/i.test(
+        line,
+      ),
+    ) ?? ""
+  );
 }
 
 function extractEmail(text: string): string {
@@ -374,7 +431,10 @@ function extractCurrentCompany(experienceLines: string[]): string {
   //    "Designation — Company (Duration)" separators.
   const first = experienceLines[0];
   if (first) {
-    const parts = first.split(/\s+(?:—|–|-|@|at|\|)\s+/i).map((p) => p.trim()).filter(Boolean);
+    const parts = first
+      .split(/\s+(?:—|–|-|@|at|\|)\s+/i)
+      .map((p) => p.trim())
+      .filter(Boolean);
     for (const part of parts) {
       if (looksLikeCompany(part)) return cleanCompany(part);
     }
@@ -387,7 +447,9 @@ function extractCurrentCompany(experienceLines: string[]): string {
     if (hit) return hit;
   }
   // 3) Legacy heuristic (at|@|suffix).
-  const companyLine = experienceLines.find((line) => COMPANY_SUFFIX_RE.test(line) || /\b(?:at|@)\b/i.test(line));
+  const companyLine = experienceLines.find(
+    (line) => COMPANY_SUFFIX_RE.test(line) || /\b(?:at|@)\b/i.test(line),
+  );
   if (!companyLine) return "";
   const atMatch = companyLine.match(/(?:at|@)\s+(.+)$/i)?.[1]?.trim();
   return cleanCompany(atMatch ?? companyLine);
@@ -402,7 +464,12 @@ function looksLikeCompany(part: string): boolean {
   if (COMPANY_SUFFIX_RE.test(s)) return true;
   // Title-cased 2–4 word proper noun with no lowercase-first-letter words.
   const words = s.split(/\s+/);
-  if (words.length >= 1 && words.length <= 4 && words.every((w) => /^[A-Z][A-Za-z0-9&'.-]*$/.test(w))) return true;
+  if (
+    words.length >= 1 &&
+    words.length <= 4 &&
+    words.every((w) => /^[A-Z][A-Za-z0-9&'.-]*$/.test(w))
+  )
+    return true;
   return false;
 }
 
@@ -415,24 +482,90 @@ function cleanCompany(v: string): string {
     .slice(0, 90);
 }
 
-const DESIGNATION_HINTS = /\b(engineer|developer|manager|analyst|recruiter|sourcer|specialist|consultant|architect|designer|lead|head|director|officer|executive|associate|coordinator|administrator|accountant|controller|nurse|physician|surgeon|doctor|technician|operator|supervisor|assistant|intern|trainee|scientist|researcher|advisor|representative|agent|clerk|planner|strategist|marketer|salesperson|counsel|lawyer|paralegal|therapist|pharmacist|surveyor|inspector|foreman|principal|vp|vice president|cxo|ceo|cto|cfo|coo|chro|salesforce (?:developer|admin|administrator|consultant|architect|platform developer)|sap consultant|data (?:scientist|engineer|analyst)|devops|sre|platform engineer|product (?:manager|owner)|talent acquisition|financial analyst|mechanical|electrical|civil|design engineer|qa|sdet|automation engineer|security (?:analyst|engineer|architect))\b/i;
+const DESIGNATION_HINTS =
+  /\b(engineer|developer|manager|analyst|recruiter|sourcer|specialist|consultant|architect|designer|lead|head|director|officer|executive|associate|coordinator|administrator|accountant|controller|nurse|physician|surgeon|doctor|technician|operator|supervisor|assistant|intern|trainee|scientist|researcher|advisor|representative|agent|clerk|planner|strategist|marketer|salesperson|counsel|lawyer|paralegal|therapist|pharmacist|surveyor|inspector|foreman|principal|vp|vice president|cxo|ceo|cto|cfo|coo|chro|salesforce (?:developer|admin|administrator|consultant|architect|platform developer)|sap consultant|data (?:scientist|engineer|analyst)|devops|sre|platform engineer|product (?:manager|owner)|talent acquisition|financial analyst|mechanical|electrical|civil|design engineer|qa|sdet|automation engineer|security (?:analyst|engineer|architect))\b/i;
 
 // Deterministic company detection — used when the AI parser misses the field.
 const KNOWN_COMPANIES = [
-  "Accenture", "Infosys", "TCS", "Tata Consultancy Services", "Wipro",
-  "Cognizant", "Capgemini", "Deloitte", "IBM", "HCL", "HCLTech",
-  "Tech Mahindra", "LTIMindtree", "L&T Infotech", "Persistent", "Mphasis",
-  "Amazon", "Microsoft", "Google", "Meta", "Facebook", "Apple", "Netflix",
-  "Salesforce", "Oracle", "SAP", "Adobe", "Cisco", "Intel", "Nvidia",
-  "JPMorgan", "JP Morgan", "Goldman Sachs", "Morgan Stanley", "HSBC",
-  "Citi", "Citigroup", "Barclays", "HDFC", "ICICI", "Kotak", "Axis Bank",
-  "Reliance", "Tata", "Mahindra", "Bajaj", "Airtel", "Jio",
-  "Apollo", "Fortis", "Manipal", "Pfizer", "GSK", "Novartis", "Cipla",
-  "PayPal", "Stripe", "Uber", "Airbnb", "Zomato", "Swiggy", "Flipkart",
-  "Paytm", "PhonePe", "Razorpay", "Freshworks", "Zoho", "Byju's",
-  "EY", "Ernst & Young", "PwC", "PricewaterhouseCoopers", "KPMG",
-  "McKinsey", "BCG", "Bain",
-  "Xevyte", "Rubixe", "Hardwin",
+  "Accenture",
+  "Infosys",
+  "TCS",
+  "Tata Consultancy Services",
+  "Wipro",
+  "Cognizant",
+  "Capgemini",
+  "Deloitte",
+  "IBM",
+  "HCL",
+  "HCLTech",
+  "Tech Mahindra",
+  "LTIMindtree",
+  "L&T Infotech",
+  "Persistent",
+  "Mphasis",
+  "Amazon",
+  "Microsoft",
+  "Google",
+  "Meta",
+  "Facebook",
+  "Apple",
+  "Netflix",
+  "Salesforce",
+  "Oracle",
+  "SAP",
+  "Adobe",
+  "Cisco",
+  "Intel",
+  "Nvidia",
+  "JPMorgan",
+  "JP Morgan",
+  "Goldman Sachs",
+  "Morgan Stanley",
+  "HSBC",
+  "Citi",
+  "Citigroup",
+  "Barclays",
+  "HDFC",
+  "ICICI",
+  "Kotak",
+  "Axis Bank",
+  "Reliance",
+  "Tata",
+  "Mahindra",
+  "Bajaj",
+  "Airtel",
+  "Jio",
+  "Apollo",
+  "Fortis",
+  "Manipal",
+  "Pfizer",
+  "GSK",
+  "Novartis",
+  "Cipla",
+  "PayPal",
+  "Stripe",
+  "Uber",
+  "Airbnb",
+  "Zomato",
+  "Swiggy",
+  "Flipkart",
+  "Paytm",
+  "PhonePe",
+  "Razorpay",
+  "Freshworks",
+  "Zoho",
+  "Byju's",
+  "EY",
+  "Ernst & Young",
+  "PwC",
+  "PricewaterhouseCoopers",
+  "KPMG",
+  "McKinsey",
+  "BCG",
+  "Bain",
+  "Xevyte",
+  "Rubixe",
+  "Hardwin",
 ];
 
 const COMPANY_SUFFIX_RE =
@@ -441,7 +574,11 @@ const COMPANY_SUFFIX_RE =
 function extractCurrentDesignation(experienceLines: string[]): string {
   const line = experienceLines.find((entry) => DESIGNATION_HINTS.test(entry));
   if (!line) return "";
-  return line.split(/\bat\b|@|,|—|–|-|\|/i)[0].replace(/^[-•]\s*/, "").trim().slice(0, 80);
+  return line
+    .split(/\bat\b|@|,|—|–|-|\|/i)[0]
+    .replace(/^[-•]\s*/, "")
+    .trim()
+    .slice(0, 80);
 }
 
 function extractEmploymentHistory(experienceLines: string[]): string[] {
@@ -458,7 +595,11 @@ function extractRelevantExperience(text: string): string {
 function extractNoticePeriod(text: string): string {
   return (
     text.match(/notice\s*period[:\s-]*([^\n]{2,40})/i)?.[1]?.trim() ??
-    text.match(/\b(immediate(?:ly)?\s*(?:available|joiner)?|serving\s*notice|\d{1,3}\s*(?:days?|weeks?|months?)\s*notice)\b/i)?.[0]?.trim() ??
+    text
+      .match(
+        /\b(immediate(?:ly)?\s*(?:available|joiner)?|serving\s*notice|\d{1,3}\s*(?:days?|weeks?|months?)\s*notice)\b/i,
+      )?.[0]
+      ?.trim() ??
     ""
   );
 }
@@ -481,17 +622,26 @@ function extractSectionItems(lines: string[], headers: string[], limit: number):
 }
 
 function isHeader(line: string, header: string): boolean {
-  const cleaned = line.toLowerCase().replace(/[:\-–—]/g, "").trim();
+  const cleaned = line
+    .toLowerCase()
+    .replace(/[:\-–—]/g, "")
+    .trim();
   return cleaned === header || cleaned.startsWith(`${header} `);
 }
 
 function isAnySectionHeader(line: string): boolean {
-  const cleaned = line.toLowerCase().replace(/[:\-–—]/g, "").trim();
+  const cleaned = line
+    .toLowerCase()
+    .replace(/[:\-–—]/g, "")
+    .trim();
   return SECTION_HEADERS.some((header) => cleaned === header);
 }
 
 function cleanItem(value: string): string {
-  return value.replace(/^[•·▪●○\-*]+\s*/, "").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/^[•·▪●○\-*]+\s*/, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function splitList(text: string): string[] {
@@ -504,12 +654,24 @@ function splitList(text: string): string[] {
 }
 
 function findKnownTerms(text: string, terms: string[]): string[] {
-  return terms.filter((term) => new RegExp(`(^|[^a-z0-9+#.])${escapeRegExp(term)}([^a-z0-9+#.]|$)`, "i").test(text));
+  return terms.filter((term) =>
+    new RegExp(`(^|[^a-z0-9+#.])${escapeRegExp(term)}([^a-z0-9+#.]|$)`, "i").test(text),
+  );
 }
 
-function mergeParsedResume(aiValue: unknown, local: ParsedResumeData, resumeText: string): ParsedResumeData {
-  const source = typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
-  const looseScalarKeys = new Set(["experience", "relevantExperience", "noticePeriod", "currentDesignation"]);
+function mergeParsedResume(
+  aiValue: unknown,
+  local: ParsedResumeData,
+  resumeText: string,
+): ParsedResumeData {
+  const source =
+    typeof aiValue === "object" && aiValue !== null ? (aiValue as Record<string, unknown>) : {};
+  const looseScalarKeys = new Set([
+    "experience",
+    "relevantExperience",
+    "noticePeriod",
+    "currentDesignation",
+  ]);
   const scalar = (key: string, fallback: string): string => {
     const value = cleanString(source[key]);
     if (!value) return fallback;
@@ -541,23 +703,39 @@ function mergeParsedResume(aiValue: unknown, local: ParsedResumeData, resumeText
   });
 }
 
-function createLocalAnalysis(resumeText: string, jobDescription: string, candidateName?: string): ResumeAnalysis {
+function createLocalAnalysis(
+  resumeText: string,
+  jobDescription: string,
+  candidateName?: string,
+): ResumeAnalysis {
   const resume = normalizeText(resumeText);
   const jd = normalizeText(jobDescription);
   const parsed = parseResumeLocally(resume);
-  const jdTerms = unique([...findKnownTerms(jd, KNOWN_TECHNOLOGIES), ...importantWords(jd)]).slice(0, 30);
-  const resumeTerms = unique([...parsed.skills, ...parsed.technologies, ...findKnownTerms(resume, KNOWN_TECHNOLOGIES)]);
+  const jdTerms = unique([...findKnownTerms(jd, KNOWN_TECHNOLOGIES), ...importantWords(jd)]).slice(
+    0,
+    30,
+  );
+  const resumeTerms = unique([
+    ...parsed.skills,
+    ...parsed.technologies,
+    ...findKnownTerms(resume, KNOWN_TECHNOLOGIES),
+  ]);
   const matchingSkills = jdTerms.filter((term) => appearsInList(resumeTerms, term)).slice(0, 10);
   const missingSkills = jdTerms.filter((term) => !appearsInList(resumeTerms, term)).slice(0, 8);
-  const additionalSkills = resumeTerms.filter((term) => !appearsInList(matchingSkills, term)).slice(0, 10);
+  const additionalSkills = resumeTerms
+    .filter((term) => !appearsInList(matchingSkills, term))
+    .slice(0, 10);
   const matchRatio = jdTerms.length === 0 ? 0.55 : matchingSkills.length / jdTerms.length;
-  const resumeCompleteness = [parsed.email, parsed.phone, parsed.education, parsed.experience, parsed.name].filter(Boolean).length / 5;
+  const resumeCompleteness =
+    [parsed.email, parsed.phone, parsed.education, parsed.experience, parsed.name].filter(Boolean)
+      .length / 5;
   const overallScore = clampScore(42 + matchRatio * 44 + resumeCompleteness * 14);
   const candidate = candidateName || parsed.name || "This candidate";
 
   return AnalysisSchema.parse({
     overallScore,
-    verdict: overallScore >= 80 ? "Strong Match" : overallScore >= 62 ? "Potential Match" : "Needs Review",
+    verdict:
+      overallScore >= 80 ? "Strong Match" : overallScore >= 62 ? "Potential Match" : "Needs Review",
     scores: {
       technicalSkills: clampScore(35 + matchRatio * 60),
       experience: clampScore(parsed.experience ? 74 : 58),
@@ -570,25 +748,55 @@ function createLocalAnalysis(resumeText: string, jobDescription: string, candida
     missingSkills,
     summary: `${candidate} matches ${matchingSkills.length} visible JD signals. Review missing keywords and validate experience depth in interview.`,
     strengths: [
-      matchingSkills.length > 0 ? `Relevant skills found: ${matchingSkills.slice(0, 4).join(", ")}.` : "Resume text was extracted successfully for review.",
-      parsed.education ? `Education signal found: ${parsed.education}.` : "Profile can be reviewed against the JD text directly.",
-      parsed.projects.length > 0 ? "Project details are present in the resume." : "Candidate details are available from the uploaded resume text.",
+      matchingSkills.length > 0
+        ? `Relevant skills found: ${matchingSkills.slice(0, 4).join(", ")}.`
+        : "Resume text was extracted successfully for review.",
+      parsed.education
+        ? `Education signal found: ${parsed.education}.`
+        : "Profile can be reviewed against the JD text directly.",
+      parsed.projects.length > 0
+        ? "Project details are present in the resume."
+        : "Candidate details are available from the uploaded resume text.",
     ],
-    weaknesses: missingSkills.length > 0 ? missingSkills.slice(0, 3).map((skill) => `${skill} is requested in the JD but not clearly visible in the resume.`) : ["No major missing JD keywords were detected by deterministic matching."],
+    weaknesses:
+      missingSkills.length > 0
+        ? missingSkills
+            .slice(0, 3)
+            .map(
+              (skill) => `${skill} is requested in the JD but not clearly visible in the resume.`,
+            )
+        : ["No major missing JD keywords were detected by deterministic matching."],
     resumeImprovements: [
       "Add measurable impact for each role or project.",
-      missingSkills.length > 0 ? `If accurate, add evidence for: ${missingSkills.slice(0, 3).join(", ")}.` : "Keep key skills grouped for ATS readability.",
+      missingSkills.length > 0
+        ? `If accurate, add evidence for: ${missingSkills.slice(0, 3).join(", ")}.`
+        : "Keep key skills grouped for ATS readability.",
       "Keep contact details, skills, education, and experience clearly labeled.",
     ],
-    hiringRecommendation: overallScore >= 75 ? "Proceed to recruiter screen and validate depth on matched skills." : "Review manually before shortlisting; focus on missing JD requirements.",
+    hiringRecommendation:
+      overallScore >= 75
+        ? "Proceed to recruiter screen and validate depth on matched skills."
+        : "Review manually before shortlisting; focus on missing JD requirements.",
     interviewQuestions: {
-      technical: (matchingSkills.length > 0 ? matchingSkills : jdTerms.slice(0, 3)).slice(0, 3).map((skill) => `Walk me through your strongest hands-on work with ${skill}.`),
-      hr: ["What type of role are you targeting next?", "Describe a recent challenge and how you handled it.", "What motivates you when working with a new team?"],
-      scenario: missingSkills.slice(0, 3).map((skill) => `The role needs ${skill}. How would you ramp up or prove readiness quickly?`),
+      technical: (matchingSkills.length > 0 ? matchingSkills : jdTerms.slice(0, 3))
+        .slice(0, 3)
+        .map((skill) => `Walk me through your strongest hands-on work with ${skill}.`),
+      hr: [
+        "What type of role are you targeting next?",
+        "Describe a recent challenge and how you handled it.",
+        "What motivates you when working with a new team?",
+      ],
+      scenario: missingSkills
+        .slice(0, 3)
+        .map(
+          (skill) => `The role needs ${skill}. How would you ramp up or prove readiness quickly?`,
+        ),
     },
     scorecard: {
       overallResumeQuality: clampScore(55 + resumeCompleteness * 35),
-      atsCompatibility: clampScore(50 + parsed.skills.length * 2 + (parsed.email ? 8 : 0) + (parsed.phone ? 8 : 0)),
+      atsCompatibility: clampScore(
+        50 + parsed.skills.length * 2 + (parsed.email ? 8 : 0) + (parsed.phone ? 8 : 0),
+      ),
       keywordOptimization: clampScore(35 + matchRatio * 60),
       formatting: clampScore(resume.split("\n").length > 8 ? 78 : 62),
       experienceQuality: clampScore(parsed.experience ? 76 : 56),
@@ -599,15 +807,27 @@ function createLocalAnalysis(resumeText: string, jobDescription: string, candida
 }
 
 function normalizeAnalysis(value: unknown, fallback: ResumeAnalysis): ResumeAnalysis {
-  const source = typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
-  const scores = typeof source.scores === "object" && source.scores !== null ? (source.scores as Record<string, unknown>) : {};
-  const scorecard = typeof source.scorecard === "object" && source.scorecard !== null ? (source.scorecard as Record<string, unknown>) : {};
-  const questions = typeof source.interviewQuestions === "object" && source.interviewQuestions !== null ? (source.interviewQuestions as Record<string, unknown>) : {};
+  const source =
+    typeof value === "object" && value !== null ? (value as Record<string, unknown>) : {};
+  const scores =
+    typeof source.scores === "object" && source.scores !== null
+      ? (source.scores as Record<string, unknown>)
+      : {};
+  const scorecard =
+    typeof source.scorecard === "object" && source.scorecard !== null
+      ? (source.scorecard as Record<string, unknown>)
+      : {};
+  const questions =
+    typeof source.interviewQuestions === "object" && source.interviewQuestions !== null
+      ? (source.interviewQuestions as Record<string, unknown>)
+      : {};
   return AnalysisSchema.parse({
     overallScore: clampScore(numberOr(source.overallScore, fallback.overallScore)),
     verdict: cleanString(source.verdict) || fallback.verdict,
     scores: {
-      technicalSkills: clampScore(numberOr(scores.technicalSkills, fallback.scores.technicalSkills)),
+      technicalSkills: clampScore(
+        numberOr(scores.technicalSkills, fallback.scores.technicalSkills),
+      ),
       experience: clampScore(numberOr(scores.experience, fallback.scores.experience)),
       education: clampScore(numberOr(scores.education, fallback.scores.education)),
       communication: clampScore(numberOr(scores.communication, fallback.scores.communication)),
@@ -627,11 +847,19 @@ function normalizeAnalysis(value: unknown, fallback: ResumeAnalysis): ResumeAnal
       scenario: toStringArray(questions.scenario, fallback.interviewQuestions.scenario),
     },
     scorecard: {
-      overallResumeQuality: clampScore(numberOr(scorecard.overallResumeQuality, fallback.scorecard.overallResumeQuality)),
-      atsCompatibility: clampScore(numberOr(scorecard.atsCompatibility, fallback.scorecard.atsCompatibility)),
-      keywordOptimization: clampScore(numberOr(scorecard.keywordOptimization, fallback.scorecard.keywordOptimization)),
+      overallResumeQuality: clampScore(
+        numberOr(scorecard.overallResumeQuality, fallback.scorecard.overallResumeQuality),
+      ),
+      atsCompatibility: clampScore(
+        numberOr(scorecard.atsCompatibility, fallback.scorecard.atsCompatibility),
+      ),
+      keywordOptimization: clampScore(
+        numberOr(scorecard.keywordOptimization, fallback.scorecard.keywordOptimization),
+      ),
       formatting: clampScore(numberOr(scorecard.formatting, fallback.scorecard.formatting)),
-      experienceQuality: clampScore(numberOr(scorecard.experienceQuality, fallback.scorecard.experienceQuality)),
+      experienceQuality: clampScore(
+        numberOr(scorecard.experienceQuality, fallback.scorecard.experienceQuality),
+      ),
       education: clampScore(numberOr(scorecard.education, fallback.scorecard.education)),
       softSkills: clampScore(numberOr(scorecard.softSkills, fallback.scorecard.softSkills)),
     },
@@ -639,7 +867,10 @@ function normalizeAnalysis(value: unknown, fallback: ResumeAnalysis): ResumeAnal
 }
 
 function parseJsonObject(text: string): unknown {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return {};
@@ -651,7 +882,27 @@ function parseJsonObject(text: string): unknown {
 }
 
 function importantWords(text: string): string[] {
-  const stop = new Set(["and", "the", "with", "for", "from", "that", "this", "will", "must", "have", "your", "role", "work", "team", "skills", "experience", "years", "candidate", "knowledge"]);
+  const stop = new Set([
+    "and",
+    "the",
+    "with",
+    "for",
+    "from",
+    "that",
+    "this",
+    "will",
+    "must",
+    "have",
+    "your",
+    "role",
+    "work",
+    "team",
+    "skills",
+    "experience",
+    "years",
+    "candidate",
+    "knowledge",
+  ]);
   return unique(
     text
       .split(/[^a-zA-Z0-9+#.]+/)
@@ -662,7 +913,12 @@ function importantWords(text: string): string[] {
 
 function appearsInList(list: string[], term: string): boolean {
   const needle = simplify(term);
-  return list.some((item) => simplify(item) === needle || simplify(item).includes(needle) || needle.includes(simplify(item)));
+  return list.some(
+    (item) =>
+      simplify(item) === needle ||
+      simplify(item).includes(needle) ||
+      needle.includes(simplify(item)),
+  );
 }
 
 function appearsInText(text: string, value: string): boolean {
@@ -672,7 +928,10 @@ function appearsInText(text: string, value: string): boolean {
 }
 
 function simplify(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9+#.]+/g, " ").trim();
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9+#.]+/g, " ")
+    .trim();
 }
 
 function cleanString(value: unknown): string {

@@ -2,7 +2,7 @@
 // TalentOS Intelligence v3 — Semantic Matcher
 // ---------------------------------------------------------------------------
 import { generateText } from "ai";
-import { createLovableAiGatewayProvider } from "./ai-gateway.server";
+import { createAiGatewayProvider } from "./ai-gateway.server";
 import {
   SemanticMatchV3Schema,
   type ParsedJDV3,
@@ -11,7 +11,7 @@ import {
   type SemanticMatchV3,
 } from "./intelligence-schemas";
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "gemini-1.5-flash";
 
 const SYSTEM = [
   "You are TalentOS Semantic Matcher v3.",
@@ -25,8 +25,16 @@ const SYSTEM = [
 ].join(" ");
 
 function buildPrompt(resume: ParsedResumeV3, jd: ParsedJDV3): string {
-  const resumeSkills = resume.skills.map((s) => ({ canonical: s.canonical, aliases: s.aliases, category: s.category }));
-  const jdRequirements = [...jd.required, ...jd.preferred].map((r) => ({ canonical: r.canonical, aliases: r.aliases, category: r.category }));
+  const resumeSkills = resume.skills.map((s) => ({
+    canonical: s.canonical,
+    aliases: s.aliases,
+    category: s.category,
+  }));
+  const jdRequirements = [...jd.required, ...jd.preferred].map((r) => ({
+    canonical: r.canonical,
+    aliases: r.aliases,
+    category: r.category,
+  }));
   return `Return ONE JSON object with EXACTLY this shape:
 
 {
@@ -55,7 +63,10 @@ JD_REQUIREMENTS:
 ${JSON.stringify(jdRequirements)}`;
 }
 
-export async function runSemanticMatch(resume: ParsedResumeV3, jd: ParsedJDV3): Promise<SemanticMatchV3> {
+export async function runSemanticMatch(
+  resume: ParsedResumeV3,
+  jd: ParsedJDV3,
+): Promise<SemanticMatchV3> {
   const jdRequirements = [...jd.required, ...jd.preferred];
   if (jdRequirements.length === 0 || resume.skills.length === 0) {
     return SemanticMatchV3Schema.parse({
@@ -69,10 +80,10 @@ export async function runSemanticMatch(resume: ParsedResumeV3, jd: ParsedJDV3): 
     });
   }
 
-  const key = process.env.LOVABLE_API_KEY;
+  const key = process.env.AI_API_KEY;
   if (!key) return deterministicFallback(resume, jd);
 
-  const gateway = createLovableAiGatewayProvider(key);
+  const gateway = createAiGatewayProvider(key);
   const model = gateway(MODEL);
 
   const call = async () => {
@@ -98,7 +109,10 @@ export async function runSemanticMatch(resume: ParsedResumeV3, jd: ParsedJDV3): 
   }
 }
 
-function coerceMatches(raw: unknown, jdRequirements: Array<{ canonical: string }>): SemanticMatchV3 {
+function coerceMatches(
+  raw: unknown,
+  jdRequirements: Array<{ canonical: string }>,
+): SemanticMatchV3 {
   const src = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
   const rawList = Array.isArray(src.matches) ? src.matches : [];
   const byReq = new Map<string, SemanticMatchEntry>();
@@ -108,11 +122,14 @@ function coerceMatches(raw: unknown, jdRequirements: Array<{ canonical: string }
     const requirement = typeof rec.requirement === "string" ? rec.requirement.trim() : "";
     if (!requirement) continue;
     const statusRaw = typeof rec.status === "string" ? rec.status.trim().toLowerCase() : "missing";
-    const status = (["exact", "equivalent", "related", "missing"].includes(statusRaw) ? statusRaw : "missing") as SemanticMatchEntry["status"];
+    const status = (
+      ["exact", "equivalent", "related", "missing"].includes(statusRaw) ? statusRaw : "missing"
+    ) as SemanticMatchEntry["status"];
     byReq.set(requirement.toLowerCase(), {
       requirement,
       status,
-      matchedResumeSkill: typeof rec.matchedResumeSkill === "string" ? rec.matchedResumeSkill.trim() : "",
+      matchedResumeSkill:
+        typeof rec.matchedResumeSkill === "string" ? rec.matchedResumeSkill.trim() : "",
       confidence: clampConfidence(rec.confidence, status),
       reason: typeof rec.reason === "string" ? rec.reason.trim() : "",
     });
@@ -120,23 +137,39 @@ function coerceMatches(raw: unknown, jdRequirements: Array<{ canonical: string }
   const merged: SemanticMatchEntry[] = jdRequirements.map((r) => {
     const hit = byReq.get(r.canonical.toLowerCase());
     if (hit) return { ...hit, requirement: r.canonical };
-    return { requirement: r.canonical, status: "missing", matchedResumeSkill: "", confidence: 0, reason: "Model did not return a verdict for this requirement." };
+    return {
+      requirement: r.canonical,
+      status: "missing",
+      matchedResumeSkill: "",
+      confidence: 0,
+      reason: "Model did not return a verdict for this requirement.",
+    };
   });
   return { matches: merged };
 }
 
 function clampConfidence(raw: unknown, status: SemanticMatchEntry["status"]): number {
   const defaults = { exact: 100, equivalent: 95, related: 80, missing: 0 } as const;
-  const n = typeof raw === "number" && Number.isFinite(raw) ? Math.round(raw) : defaults[status as keyof typeof defaults];
+  const n =
+    typeof raw === "number" && Number.isFinite(raw)
+      ? Math.round(raw)
+      : defaults[status as keyof typeof defaults];
   return Math.max(0, Math.min(100, n));
 }
 
 function parseJsonObject(text: string): unknown {
-  const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/i, "").trim();
+  const cleaned = text
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```\s*$/i, "")
+    .trim();
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) return {};
-  try { return JSON.parse(cleaned.slice(start, end + 1)); } catch { return {}; }
+  try {
+    return JSON.parse(cleaned.slice(start, end + 1));
+  } catch {
+    return {};
+  }
 }
 
 function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): SemanticMatchV3 {
@@ -151,11 +184,24 @@ function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): Semantic
     for (const k of keys) {
       const hit = candidateIndex.get(k);
       if (hit) {
-        const status: SemanticMatchEntry["status"] = hit.toLowerCase() === r.canonical.toLowerCase() ? "exact" : "equivalent";
-        return { requirement: r.canonical, status, matchedResumeSkill: hit, confidence: status === "exact" ? 100 : 95, reason: "Deterministic alias match (LLM unavailable)." };
+        const status: SemanticMatchEntry["status"] =
+          hit.toLowerCase() === r.canonical.toLowerCase() ? "exact" : "equivalent";
+        return {
+          requirement: r.canonical,
+          status,
+          matchedResumeSkill: hit,
+          confidence: status === "exact" ? 100 : 95,
+          reason: "Deterministic alias match (LLM unavailable).",
+        };
       }
     }
-    return { requirement: r.canonical, status: "missing", matchedResumeSkill: "", confidence: 0, reason: "No alias overlap found (LLM unavailable)." };
+    return {
+      requirement: r.canonical,
+      status: "missing",
+      matchedResumeSkill: "",
+      confidence: 0,
+      reason: "No alias overlap found (LLM unavailable).",
+    };
   });
   return { matches };
 }

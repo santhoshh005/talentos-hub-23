@@ -8,8 +8,7 @@
 // extractor.
 // ---------------------------------------------------------------------------
 
-const MONTHS_RE =
-  /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)(?:[a-z]*)\b/i;
+const MONTHS_RE = /\b(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)(?:[a-z]*)\b/i;
 
 const DATE_RANGE_RE =
   /(\d{4}\s*[-–to/]{1,3}\s*(?:\d{4}|present|current|now))|((?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\.?\s+\d{4})/i;
@@ -18,14 +17,33 @@ const PURE_NUMBER_RE = /^\s*\d[\d,./\s-]*\s*$/;
 
 const GENERIC_JUNK = new Set(
   [
-    "present", "current", "now", "n/a", "na", "none", "yes", "no",
-    "responsibilities", "duties", "description", "location", "company",
-    "candidate", "resume", "job", "role", "position", "notice", "salary",
-    "compensation", "benefits", "employer",
+    "present",
+    "current",
+    "now",
+    "n/a",
+    "na",
+    "none",
+    "yes",
+    "no",
+    "responsibilities",
+    "duties",
+    "description",
+    "location",
+    "company",
+    "candidate",
+    "resume",
+    "job",
+    "role",
+    "position",
+    "notice",
+    "salary",
+    "compensation",
+    "benefits",
+    "employer",
   ].map((s) => s.toLowerCase()),
 );
 
-export function looksLikeDate(value: string): boolean {
+function looksLikeDate(value: string): boolean {
   if (!value) return false;
   if (DATE_RANGE_RE.test(value)) return true;
   const stripped = value.replace(/[.,()]/g, " ").trim();

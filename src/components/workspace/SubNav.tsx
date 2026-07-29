@@ -1,20 +1,29 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import {
-  Users,
-  Brain,
-  FileText,
-  SearchCode,
-  MessageSquareQuote,
-} from "lucide-react";
+import { Users, Brain, FileText, SearchCode, MessageSquareQuote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { to: "/workspace/candidate", label: "Candidate Workspace", icon: Users, status: "live" as const },
-  { to: "/workspace/intelligence", label: "Resume Intelligence", icon: Brain, status: "live" as const },
+  {
+    to: "/workspace/candidate",
+    label: "Candidate Workspace",
+    icon: Users,
+    status: "live" as const,
+  },
+  {
+    to: "/workspace/intelligence",
+    label: "Resume Intelligence",
+    icon: Brain,
+    status: "live" as const,
+  },
   { to: "/workspace/jd", label: "JD Studio", icon: FileText, status: "soon" as const },
   { to: "/workspace/boolean", label: "Boolean Builder", icon: SearchCode, status: "soon" as const },
-  { to: "/workspace/interview", label: "Interview Studio", icon: MessageSquareQuote, status: "soon" as const },
+  {
+    to: "/workspace/interview",
+    label: "Interview Studio",
+    icon: MessageSquareQuote,
+    status: "soon" as const,
+  },
 ];
 
 export function WorkspaceSubNav() {

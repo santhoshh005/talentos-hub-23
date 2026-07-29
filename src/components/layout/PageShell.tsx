@@ -24,13 +24,9 @@ export function PageShell({ eyebrow, title, description, children }: PageShellPr
               {eyebrow}
             </span>
           )}
-          <h1 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">
-            {title}
-          </h1>
+          <h1 className="mt-5 text-4xl font-semibold tracking-tight md:text-5xl">{title}</h1>
           {description && (
-            <p className="mt-4 text-base text-muted-foreground md:text-lg">
-              {description}
-            </p>
+            <p className="mt-4 text-base text-muted-foreground md:text-lg">{description}</p>
           )}
         </motion.div>
 

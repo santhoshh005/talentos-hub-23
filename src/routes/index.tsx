@@ -72,8 +72,7 @@ function Index() {
               transition={{ duration: 0.7, delay: 0.15, ease }}
               className="mt-4 text-2xl font-medium tracking-tight text-foreground/90 md:text-3xl"
             >
-              Building the Future of{" "}
-              <span className="text-gradient">AI Recruitment</span>
+              Building the Future of <span className="text-gradient">AI Recruitment</span>
             </motion.p>
 
             <motion.p
@@ -81,8 +80,8 @@ function Index() {
               transition={{ duration: 0.7, delay: 0.25, ease }}
               className="mt-5 max-w-lg text-pretty text-base text-muted-foreground md:text-lg"
             >
-              Helping companies hire top technology talent through AI-powered
-              recruitment, automation and recruiter-first workflows.
+              Helping companies hire top technology talent through AI-powered recruitment,
+              automation and recruiter-first workflows.
             </motion.p>
 
             <motion.div

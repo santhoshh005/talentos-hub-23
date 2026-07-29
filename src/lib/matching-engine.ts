@@ -15,17 +15,17 @@
 
 import type { NormalizedSkill } from "./skill-normalizer";
 
-export type ConfidenceKind = "exact" | "alias" | "semantic" | "related";
+type ConfidenceKind = "exact" | "alias" | "semantic" | "related";
 
 export interface SkillMatch {
-  skill: string;              // canonical normalized value
-  resumeOriginal: string;     // preserved original from resume
-  jdOriginal: string;         // preserved original from JD
+  skill: string; // canonical normalized value
+  resumeOriginal: string; // preserved original from resume
+  jdOriginal: string; // preserved original from JD
   confidence: 100 | 95 | 90 | 80;
   kind: ConfidenceKind;
 }
 
-export interface MatchingSimilarity {
+interface MatchingSimilarity {
   totalRequiredSkills: number;
   matchedRequiredSkills: number;
   missingRequiredSkills: number;
@@ -33,7 +33,7 @@ export interface MatchingSimilarity {
   additionalSkills: number;
 }
 
-export interface MatchingConfidence {
+interface MatchingConfidence {
   averageConfidence: number;
   exactMatches: number;
   aliasMatches: number;
@@ -87,9 +87,19 @@ const RELATED_TECHNOLOGIES: Record<string, string[]> = {
 
   // Salesforce ontology
   "Salesforce Platform": [
-    "Apex", "Apex Triggers", "Lightning Web Components (LWC)", "Aura Components",
-    "Visualforce", "SOQL", "SOSL", "Sales Cloud", "Service Cloud",
-    "Experience Cloud", "Flows", "Validation Rules", "Salesforce Administration",
+    "Apex",
+    "Apex Triggers",
+    "Lightning Web Components (LWC)",
+    "Aura Components",
+    "Visualforce",
+    "SOQL",
+    "SOSL",
+    "Sales Cloud",
+    "Service Cloud",
+    "Experience Cloud",
+    "Flows",
+    "Validation Rules",
+    "Salesforce Administration",
   ],
   Apex: ["Apex Triggers", "SOQL", "Salesforce Platform"],
   "Apex Triggers": ["Apex"],
@@ -276,9 +286,7 @@ export function matchSkills(input: MatchingInput): MatchingResult {
 
   const confidence: MatchingConfidence = {
     averageConfidence: matchingSkills.length
-      ? Math.round(
-          matchingSkills.reduce((sum, m) => sum + m.confidence, 0) / matchingSkills.length,
-        )
+      ? Math.round(matchingSkills.reduce((sum, m) => sum + m.confidence, 0) / matchingSkills.length)
       : 0,
     exactMatches: matchingSkills.filter((m) => m.kind === "exact").length,
     aliasMatches: matchingSkills.filter((m) => m.kind === "alias").length,

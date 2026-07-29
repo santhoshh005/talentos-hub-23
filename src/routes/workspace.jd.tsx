@@ -5,7 +5,10 @@ export const Route = createFileRoute("/workspace/jd")({
   head: () => ({
     meta: [
       { title: "JD Studio — TalentOS" },
-      { name: "description", content: "Generate inclusive, high-signal job descriptions in one click." },
+      {
+        name: "description",
+        content: "Generate inclusive, high-signal job descriptions in one click.",
+      },
       { property: "og:title", content: "JD Studio — TalentOS" },
       { property: "og:description", content: "Job description generator for modern recruiters." },
     ],

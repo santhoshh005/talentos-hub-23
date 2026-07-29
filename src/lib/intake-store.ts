@@ -45,7 +45,7 @@ function persist(): void {
   }
 }
 
-export function getIntake(): IntakeState {
+function getIntake(): IntakeState {
   hydrate();
   return current;
 }

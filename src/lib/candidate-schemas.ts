@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const EmploymentEntrySchema = z.object({
+const EmploymentEntrySchema = z.object({
   company: z.string().default(""),
   title: z.string().default(""),
   start: z.string().default(""),
@@ -9,7 +9,7 @@ export const EmploymentEntrySchema = z.object({
 });
 export type EmploymentEntry = z.infer<typeof EmploymentEntrySchema>;
 
-export const EducationEntrySchema = z.object({
+const EducationEntrySchema = z.object({
   degree: z.string().default(""),
   institution: z.string().default(""),
   year: z.string().default(""),
@@ -60,16 +60,25 @@ export const CandidateRecordSchema = z.object({
 });
 export type CandidateRecord = z.infer<typeof CandidateRecordSchema>;
 
-export const emptyCandidateRecord = (): CandidateRecord =>
-  CandidateRecordSchema.parse({});
+export const emptyCandidateRecord = (): CandidateRecord => CandidateRecordSchema.parse({});
 
 // Field registry used by templates + export + completeness.
-export type CandidateFieldKey = keyof CandidateRecord | "recruiterNotes";
+type CandidateFieldKey = keyof CandidateRecord | "recruiterNotes";
 
 export interface CandidateFieldMeta {
   key: string;
   label: string;
-  group: "Identity" | "Contact" | "Employment" | "Experience" | "Skills" | "Location" | "Compensation" | "Education" | "Documents" | "Notes";
+  group:
+    | "Identity"
+    | "Contact"
+    | "Employment"
+    | "Experience"
+    | "Skills"
+    | "Location"
+    | "Compensation"
+    | "Education"
+    | "Documents"
+    | "Notes";
   scalar: boolean;
 }
 
@@ -106,7 +115,7 @@ export const CANDIDATE_FIELDS: readonly CandidateFieldMeta[] = [
 ] as const;
 
 // Fields tracked by the completeness meter (core recruiter must-haves).
-export const COMPLETENESS_KEYS: readonly string[] = [
+const COMPLETENESS_KEYS: readonly string[] = [
   "fullName",
   "email",
   "mobile",

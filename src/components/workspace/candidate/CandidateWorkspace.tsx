@@ -8,11 +8,7 @@ import { extractCandidateRecord } from "@/lib/candidate-extract.functions";
 import type { CandidateRecord } from "@/lib/candidate-schemas";
 import { parseCandidateText, mergeCandidate } from "@/lib/candidate-parse";
 import { CandidateRecordSchema } from "@/lib/candidate-schemas";
-import {
-  clearCandidateState,
-  setCandidateState,
-  useCandidateState,
-} from "@/lib/candidate-store";
+import { clearCandidateState, setCandidateState, useCandidateState } from "@/lib/candidate-store";
 import { CandidateUpload } from "./CandidateUpload";
 import { CandidateWorkspaceSkeleton } from "./CandidateWorkspaceSkeleton";
 import { CandidateSnapshot } from "./CandidateSnapshot";
@@ -64,15 +60,17 @@ export function CandidateWorkspace() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
           >
-            <CandidateUpload
-              busy={false}
-              onExtracted={(text) => void onExtracted(text)}
-            />
+            <CandidateUpload busy={false} onExtracted={(text) => void onExtracted(text)} />
           </motion.div>
         )}
 
         {phase === "extracting" && (
-          <motion.div key="extracting" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div
+            key="extracting"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
             <CandidateWorkspaceSkeleton />
           </motion.div>
         )}
@@ -105,10 +103,20 @@ export function CandidateWorkspace() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-lg font-semibold tracking-tight">Editable candidate record</h2>
                 <div className="flex gap-2">
-                  <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={reset}
+                    className="rounded-lg border-white/10 bg-white/[0.03]"
+                  >
                     <Upload className="h-4 w-4" /> Upload another
                   </Button>
-                  <Button type="button" variant="outline" onClick={reset} className="rounded-lg border-white/10 bg-white/[0.03]">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={reset}
+                    className="rounded-lg border-white/10 bg-white/[0.03]"
+                  >
                     <RotateCcw className="h-4 w-4" /> Start over
                   </Button>
                 </div>

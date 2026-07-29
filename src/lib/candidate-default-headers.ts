@@ -1,13 +1,13 @@
 import { candidateFieldValue, type CandidateRecord } from "./candidate-schemas";
 
-export interface DefaultHeader {
+interface DefaultHeader {
   id: string;
   label: string;
   fieldKey?: keyof CandidateRecord | string; // undefined = manual/custom column
 }
 
 // Fixed recruiter header set requested by the user.
-export const DEFAULT_HEADERS: readonly DefaultHeader[] = [
+const DEFAULT_HEADERS: readonly DefaultHeader[] = [
   { id: "name", label: "Name", fieldKey: "fullName" },
   { id: "mobile", label: "Contact Number", fieldKey: "mobile" },
   { id: "email", label: "Email ID", fieldKey: "email" },

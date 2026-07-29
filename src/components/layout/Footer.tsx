@@ -44,8 +44,16 @@ export function Footer() {
             <div className="mt-5 flex items-center gap-2">
               {[
                 { icon: Mail, href: "mailto:hemanthhemu1104@gmail.com", label: "Email" },
-                { icon: Linkedin, href: "https://www.linkedin.com/in/hemanth-kumar-235078270", label: "LinkedIn" },
-                { icon: Instagram, href: "https://www.instagram.com/heyyy.m_ant/", label: "Instagram" },
+                {
+                  icon: Linkedin,
+                  href: "https://www.linkedin.com/in/hemanth-kumar-235078270",
+                  label: "LinkedIn",
+                },
+                {
+                  icon: Instagram,
+                  href: "https://www.instagram.com/heyyy.m_ant/",
+                  label: "Instagram",
+                },
               ].map(({ icon: Icon, href, label }) => (
                 <a
                   key={label}
@@ -103,7 +111,8 @@ export function Footer() {
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/5 pt-6 text-sm text-muted-foreground md:flex-row md:items-center">
           <p>
-            <span className="font-semibold text-foreground">TalentOS</span> — Building the Future of AI Recruitment.
+            <span className="font-semibold text-foreground">TalentOS</span> — Building the Future of
+            AI Recruitment.
           </p>
           <p>Designed &amp; Built by Hemanth Kumar.</p>
         </div>

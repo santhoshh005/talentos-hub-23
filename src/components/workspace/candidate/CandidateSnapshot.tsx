@@ -13,7 +13,9 @@ export function CandidateSnapshot({
   onContinue: () => void;
   onReset: () => void;
 }) {
-  const skills = (record.primarySkills.length ? record.primarySkills : record.secondarySkills).slice(0, 6);
+  const skills = (
+    record.primarySkills.length ? record.primarySkills : record.secondarySkills
+  ).slice(0, 6);
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -26,12 +28,15 @@ export function CandidateSnapshot({
             {(record.fullName || "?").slice(0, 2)}
           </div>
           <div className="flex-1">
-            <div className="text-xs uppercase tracking-widest text-muted-foreground">Candidate snapshot</div>
+            <div className="text-xs uppercase tracking-widest text-muted-foreground">
+              Candidate snapshot
+            </div>
             <h2 className="mt-1 text-2xl font-semibold tracking-tight md:text-3xl">
               {record.fullName || "Unnamed candidate"}
             </h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {[record.currentDesignation, record.totalExperience].filter(Boolean).join(" · ") || "Ready to edit"}
+              {[record.currentDesignation, record.totalExperience].filter(Boolean).join(" · ") ||
+                "Ready to edit"}
             </p>
           </div>
         </div>
@@ -66,7 +71,12 @@ export function CandidateSnapshot({
           Snapshot is auto-generated. You can edit every field next.
         </div>
         <div className="flex gap-2">
-          <Button type="button" variant="outline" onClick={onReset} className="rounded-lg border-white/10 bg-white/[0.03]">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onReset}
+            className="rounded-lg border-white/10 bg-white/[0.03]"
+          >
             Upload another
           </Button>
           <Button

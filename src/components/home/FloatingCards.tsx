@@ -110,7 +110,8 @@ const cards: Card[] = [
     float: 9,
     body: (
       <div className="mt-3 rounded-md border border-white/5 bg-black/40 p-2 font-mono text-[9.5px] leading-relaxed text-muted-foreground">
-        <span className="text-accent">(</span>"React" <span className="text-primary">OR</span> "Next.js"
+        <span className="text-accent">(</span>"React" <span className="text-primary">OR</span>{" "}
+        "Next.js"
         <span className="text-accent">)</span> <span className="text-primary">AND</span>{" "}
         "TypeScript" <span className="text-primary">AND NOT</span> "junior"
       </div>
@@ -125,16 +126,14 @@ const cards: Card[] = [
     float: 11,
     body: (
       <div className="mt-3 space-y-1.5 text-[10px]">
-        {[
-          "Explain event loop internals",
-          "Design a rate limiter",
-          "Trade-offs: SQL vs NoSQL",
-        ].map((q) => (
-          <div key={q} className="flex items-start gap-1.5 text-muted-foreground">
-            <CheckCircle2 className="mt-0.5 h-3 w-3 flex-none text-accent" />
-            <span>{q}</span>
-          </div>
-        ))}
+        {["Explain event loop internals", "Design a rate limiter", "Trade-offs: SQL vs NoSQL"].map(
+          (q) => (
+            <div key={q} className="flex items-start gap-1.5 text-muted-foreground">
+              <CheckCircle2 className="mt-0.5 h-3 w-3 flex-none text-accent" />
+              <span>{q}</span>
+            </div>
+          ),
+        )}
       </div>
     ),
   },
@@ -200,24 +199,9 @@ export function FloatingCards() {
             <stop offset="100%" stopColor="oklch(0.78 0.15 220)" stopOpacity="0" />
           </linearGradient>
         </defs>
-        <path
-          d="M 25 15 Q 50 45 78 20"
-          fill="none"
-          stroke="url(#line)"
-          strokeWidth="0.25"
-        />
-        <path
-          d="M 20 55 Q 50 70 80 60"
-          fill="none"
-          stroke="url(#line)"
-          strokeWidth="0.25"
-        />
-        <path
-          d="M 40 90 Q 55 60 82 55"
-          fill="none"
-          stroke="url(#line)"
-          strokeWidth="0.25"
-        />
+        <path d="M 25 15 Q 50 45 78 20" fill="none" stroke="url(#line)" strokeWidth="0.25" />
+        <path d="M 20 55 Q 50 70 80 60" fill="none" stroke="url(#line)" strokeWidth="0.25" />
+        <path d="M 40 90 Q 55 60 82 55" fill="none" stroke="url(#line)" strokeWidth="0.25" />
       </svg>
     </div>
   );

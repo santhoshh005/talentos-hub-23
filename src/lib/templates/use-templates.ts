@@ -38,18 +38,22 @@ export function useTemplates(): {
   repo: typeof repo;
 } {
   const v = useSyncExternalStore(subscribe, getVersion, () => 0);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const templates = useMemo(() => (typeof window === "undefined" ? EMPTY : repo.list()), [v]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const recent = useMemo(() => (typeof window === "undefined" ? EMPTY : repo.listRecent()), [v]);
-  const favorites = useMemo(() => (typeof window === "undefined" ? EMPTY : repo.listFavorites()), [v]);
+  const favorites = useMemo(
+    () => (typeof window === "undefined" ? EMPTY : repo.listFavorites()),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [v],
+  );
   return { templates, recent, favorites, repo };
 }
 
-export function useTemplate(id: string | undefined): ClientTemplate | undefined {
+function useTemplate(id: string | undefined): ClientTemplate | undefined {
   const v = useSyncExternalStore(subscribe, getVersion, () => 0);
-  return useMemo(
-    () => (id && typeof window !== "undefined" ? repo.get(id) : undefined),
-    [id, v],
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => (id && typeof window !== "undefined" ? repo.get(id) : undefined), [id, v]);
 }
 
 // silence unused warning for useCallback if tree-shaken

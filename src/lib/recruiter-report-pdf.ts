@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { PipelineResult } from "./pipeline.functions";
@@ -36,9 +37,15 @@ function rgb(hex: string): [number, number, number] {
     parseInt(hex.slice(5, 7), 16),
   ];
 }
-function setFill(pdf: jsPDF, hex: string) { pdf.setFillColor(...rgb(hex)); }
-function setText(pdf: jsPDF, hex: string) { pdf.setTextColor(...rgb(hex)); }
-function setDraw(pdf: jsPDF, hex: string) { pdf.setDrawColor(...rgb(hex)); }
+function setFill(pdf: jsPDF, hex: string) {
+  pdf.setFillColor(...rgb(hex));
+}
+function setText(pdf: jsPDF, hex: string) {
+  pdf.setTextColor(...rgb(hex));
+}
+function setDraw(pdf: jsPDF, hex: string) {
+  pdf.setDrawColor(...rgb(hex));
+}
 
 function ensure(c: Ctx, needed: number) {
   if (c.y + needed > PAGE.h - 20) {
@@ -133,7 +140,10 @@ function paragraph(c: Ctx, text: string, size = 10, color = COLOR.sub) {
 }
 
 function bullets(c: Ctx, items: string[]) {
-  if (!items?.length) { paragraph(c, "Not Found", 10, COLOR.muted); return; }
+  if (!items?.length) {
+    paragraph(c, "Not Found", 10, COLOR.muted);
+    return;
+  }
   c.pdf.setFont("helvetica", "normal");
   c.pdf.setFontSize(10);
   for (const item of items) {
@@ -207,7 +217,9 @@ function skillTable(c: Ctx, title: string, items: string[], tone: string) {
       lineWidth: 0.15,
       overflow: "linebreak",
     },
-    bodyStyles: { fillColor: rgb(tone === COLOR.good ? "#ECFDF5" : tone === COLOR.bad ? "#FEF2F2" : "#EFF6FF") },
+    bodyStyles: {
+      fillColor: rgb(tone === COLOR.good ? "#ECFDF5" : tone === COLOR.bad ? "#FEF2F2" : "#EFF6FF"),
+    },
     columnStyles: {
       0: { cellWidth: CONTENT_W / 3 },
       1: { cellWidth: CONTENT_W / 3 },
@@ -226,12 +238,28 @@ function skillTable(c: Ctx, title: string, items: string[], tone: string) {
 function coverPage(
   c: Ctx,
   meta: {
-    candidate: string; role: string; domain: string; matchPct: number;
-    analysisId: string; generatedAt: string;
-    skillCoverage?: number; evidenceScore?: number; seniority?: string;
+    candidate: string;
+    role: string;
+    domain: string;
+    matchPct: number;
+    analysisId: string;
+    generatedAt: string;
+    skillCoverage?: number;
+    evidenceScore?: number;
+    seniority?: string;
   },
 ) {
-  const { candidate, role, domain, matchPct, analysisId, generatedAt, skillCoverage, evidenceScore, seniority } = meta;
+  const {
+    candidate,
+    role,
+    domain,
+    matchPct,
+    analysisId,
+    generatedAt,
+    skillCoverage,
+    evidenceScore,
+    seniority,
+  } = meta;
   c.y = 40;
   // Brand logo mark
   setFill(c.pdf, COLOR.primary);
@@ -287,7 +315,12 @@ function coverPage(
   for (let i = 0; i < segs; i++) {
     const a1 = -Math.PI / 2 + (i / 60) * Math.PI * 2;
     const a2 = -Math.PI / 2 + ((i + 1) / 60) * Math.PI * 2;
-    c.pdf.line(cx + Math.cos(a1) * r, cy + Math.sin(a1) * r, cx + Math.cos(a2) * r, cy + Math.sin(a2) * r);
+    c.pdf.line(
+      cx + Math.cos(a1) * r,
+      cy + Math.sin(a1) * r,
+      cx + Math.cos(a2) * r,
+      cy + Math.sin(a2) * r,
+    );
   }
   setText(c.pdf, COLOR.ink);
   c.pdf.setFont("helvetica", "bold");
@@ -320,7 +353,11 @@ function coverPage(
   c.pdf.text(`Detected Role: ${role}`, rx, ry + 26);
   c.pdf.text(`Detected Domain: ${domain}`, rx, ry + 32);
   if (typeof skillCoverage === "number") {
-    c.pdf.text(`Skill Coverage: ${skillCoverage}%    Evidence: ${evidenceScore ?? 0}%`, rx, ry + 38);
+    c.pdf.text(
+      `Skill Coverage: ${skillCoverage}%    Evidence: ${evidenceScore ?? 0}%`,
+      rx,
+      ry + 38,
+    );
   }
 
   c.y += cardH + 10;
@@ -377,25 +414,29 @@ function candidateProfilePage(c: Ctx, resume: any) {
   c.pdf.setFont("helvetica", "bold");
   c.pdf.setFontSize(11);
   ensure(c, 8);
-  c.pdf.text("Education", PAGE.margin, c.y); c.y += 3;
+  c.pdf.text("Education", PAGE.margin, c.y);
+  c.y += 3;
   bullets(c, resume.educationHistory?.length ? resume.educationHistory : [resume.education]);
 
   ensure(c, 8);
   c.pdf.setFont("helvetica", "bold");
   c.pdf.setFontSize(11);
-  c.pdf.text("Certifications", PAGE.margin, c.y); c.y += 3;
+  c.pdf.text("Certifications", PAGE.margin, c.y);
+  c.y += 3;
   bullets(c, resume.certifications);
 
   ensure(c, 8);
   c.pdf.setFont("helvetica", "bold");
   c.pdf.setFontSize(11);
-  c.pdf.text("Employment History", PAGE.margin, c.y); c.y += 3;
+  c.pdf.text("Employment History", PAGE.margin, c.y);
+  c.y += 3;
   bullets(c, resume.employmentHistory);
 
   ensure(c, 8);
   c.pdf.setFont("helvetica", "bold");
   c.pdf.setFontSize(11);
-  c.pdf.text("Projects", PAGE.margin, c.y); c.y += 3;
+  c.pdf.text("Projects", PAGE.margin, c.y);
+  c.y += 3;
   bullets(c, resume.projects);
 }
 
@@ -406,7 +447,12 @@ function skillAnalysisPage(
 ) {
   newPage(c);
   sectionTitle(c, "Section 2", "Skill Analysis");
-  skillTable(c, "Matching Skills", matching.matchingSkills.map((m: any) => m.skill), COLOR.good);
+  skillTable(
+    c,
+    "Matching Skills",
+    matching.matchingSkills.map((m: any) => m.skill),
+    COLOR.good,
+  );
   if (missingByCategory && missingByCategory.length) {
     ensure(c, 14);
     setText(c.pdf, COLOR.ink);
@@ -426,7 +472,10 @@ function skillAnalysisPage(
 function evidenceAnalysisPage(c: Ctx, evidence: any[]) {
   newPage(c);
   sectionTitle(c, "Section 4", "Evidence Analysis");
-  if (!evidence.length) { paragraph(c, "No evidence available.", 10, COLOR.muted); return; }
+  if (!evidence.length) {
+    paragraph(c, "No evidence available.", 10, COLOR.muted);
+    return;
+  }
   autoTable(c.pdf, {
     startY: c.y,
     head: [["Skill", "Strength", "Found In", "Occurrences", "Years"]],
@@ -439,8 +488,19 @@ function evidenceAnalysisPage(c: Ctx, evidence: any[]) {
     ]),
     theme: "striped",
     margin: { left: PAGE.margin, right: PAGE.margin },
-    headStyles: { fillColor: rgb(COLOR.ink), textColor: rgb(COLOR.white), fontStyle: "bold", fontSize: 9 },
-    styles: { font: "helvetica", fontSize: 8.5, cellPadding: 2, textColor: rgb(COLOR.ink), overflow: "linebreak" },
+    headStyles: {
+      fillColor: rgb(COLOR.ink),
+      textColor: rgb(COLOR.white),
+      fontStyle: "bold",
+      fontSize: 9,
+    },
+    styles: {
+      font: "helvetica",
+      fontSize: 8.5,
+      cellPadding: 2,
+      textColor: rgb(COLOR.ink),
+      overflow: "linebreak",
+    },
     alternateRowStyles: { fillColor: rgb(COLOR.soft) },
     columnStyles: {
       0: { cellWidth: 45, fontStyle: "bold" },
@@ -504,22 +564,26 @@ function pipelineTransparencyPage(c: Ctx, metadata: any) {
 
 /* ---------------- Public API ---------------- */
 
-export function buildRecruiterReportFileName(candidate: string, date = new Date()): string {
-  const safe = (candidate || "Candidate").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "") || "Candidate";
+function buildRecruiterReportFileName(candidate: string, date = new Date()): string {
+  const safe =
+    (candidate || "Candidate").replace(/[^A-Za-z0-9]+/g, "_").replace(/^_|_$/g, "") || "Candidate";
   const iso = date.toISOString().slice(0, 10);
   return `TalentOS_Report_${safe}_${iso}.pdf`;
 }
 
-export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
+function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   if (!result.ok) {
     throw new Error("No report available to export.");
   }
   const { resume, jobDescription, matching, evidence, metadata, scoring, intelligence } = result;
   // Use the same score the on-page report shows (scoring engine),
   // falling back to the raw similarity ratio only for legacy results.
-  const matchPct = scoring?.matchPercentage ?? Math.round(
-    (matching.similarity.matchedRequiredSkills / (matching.similarity.totalRequiredSkills || 1)) * 100,
-  );
+  const matchPct =
+    scoring?.matchPercentage ??
+    Math.round(
+      (matching.similarity.matchedRequiredSkills / (matching.similarity.totalRequiredSkills || 1)) *
+        100,
+    );
   const domain = intelligence?.inferredDomain || jobDescription.domain;
   const seniority = intelligence?.inferredSeniority || jobDescription.seniorityLevel;
   const generatedAt = new Date().toLocaleString();
@@ -542,9 +606,10 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   });
 
   // Executive Summary
-  const summaryText = intelligence?.summary ??
+  const summaryText =
+    intelligence?.summary ??
     `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany} with ${resume.experience} of overall experience. ` +
-    `The candidate matches ${matching.similarity.matchedRequiredSkills} of ${matching.similarity.totalRequiredSkills} required skills for the ${jobDescription.jobTitle} role in ${domain}.`;
+      `The candidate matches ${matching.similarity.matchedRequiredSkills} of ${matching.similarity.totalRequiredSkills} required skills for the ${jobDescription.jobTitle} role in ${domain}.`;
   executiveSummaryPage(c, summaryText, intelligence?.strengths ?? [], intelligence?.risks ?? []);
 
   skillAnalysisPage(c, matching, intelligence?.missingByCategory);
@@ -563,7 +628,7 @@ export function generateRecruiterReportPdf(result: PipelineResult): jsPDF {
   return pdf;
 }
 
-export function downloadRecruiterReportPdf(result: PipelineResult): void {
+function downloadRecruiterReportPdf(result: PipelineResult): void {
   if (!result.ok) return;
   void downloadRecruiterReportSnapshot(result);
 }
@@ -608,7 +673,9 @@ export async function downloadRecruiterReportSnapshot(result: PipelineResult): P
     boundaries.push((r.bottom - rootRect.top) * pxPerUnit);
   });
   boundaries.push(canvas.height);
-  const sortedBounds = Array.from(new Set(boundaries.map((n) => Math.round(n)))).sort((a, b) => a - b);
+  const sortedBounds = Array.from(new Set(boundaries.map((n) => Math.round(n)))).sort(
+    (a, b) => a - b,
+  );
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", compress: true });
   const PW = 210;
@@ -663,9 +730,14 @@ export async function downloadRecruiterReportSnapshot(result: PipelineResult): P
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(8);
     pdf.setTextColor(148, 163, 184);
-    pdf.text("Recruiter Intelligence Report", MARGIN_X + 24, HEADER_H / 2 + 0.6, { baseline: "middle" });
+    pdf.text("Recruiter Intelligence Report", MARGIN_X + 24, HEADER_H / 2 + 0.6, {
+      baseline: "middle",
+    });
     pdf.setTextColor(226, 232, 240);
-    pdf.text(candidateName, PW - MARGIN_X, HEADER_H / 2 + 0.6, { align: "right", baseline: "middle" });
+    pdf.text(candidateName, PW - MARGIN_X, HEADER_H / 2 + 0.6, {
+      align: "right",
+      baseline: "middle",
+    });
 
     // Slice this page's portion of the canvas
     const sliceH = page.endPx - page.startPx;
@@ -677,7 +749,16 @@ export async function downloadRecruiterReportSnapshot(result: PipelineResult): P
     sctx.fillRect(0, 0, slice.width, slice.height);
     sctx.drawImage(canvas, 0, page.startPx, canvas.width, sliceH, 0, 0, canvas.width, sliceH);
     const imgH = (sliceH / canvas.width) * contentW;
-    pdf.addImage(slice.toDataURL("image/jpeg", 0.92), "JPEG", MARGIN_X, HEADER_H + 2, contentW, imgH, undefined, "FAST");
+    pdf.addImage(
+      slice.toDataURL("image/jpeg", 0.92),
+      "JPEG",
+      MARGIN_X,
+      HEADER_H + 2,
+      contentW,
+      imgH,
+      undefined,
+      "FAST",
+    );
 
     // Footer
     pdf.setDrawColor(226, 232, 240);
@@ -694,5 +775,9 @@ export async function downloadRecruiterReportSnapshot(result: PipelineResult): P
 }
 
 function hexToRgb(hex: string): [number, number, number] {
-  return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+  return [
+    parseInt(hex.slice(1, 3), 16),
+    parseInt(hex.slice(3, 5), 16),
+    parseInt(hex.slice(5, 7), 16),
+  ];
 }

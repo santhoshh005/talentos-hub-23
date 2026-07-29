@@ -13,9 +13,16 @@ export const Route = createFileRoute("/report")({
   head: () => ({
     meta: [
       { title: "Recruiter Intelligence Report — TalentOS" },
-      { name: "description", content: "A premium recruiter-grade intelligence report powered by the TalentOS Resume Intelligence Pipeline." },
+      {
+        name: "description",
+        content:
+          "A premium recruiter-grade intelligence report powered by the TalentOS Resume Intelligence Pipeline.",
+      },
       { property: "og:title", content: "Recruiter Intelligence Report — TalentOS" },
-      { property: "og:description", content: "Explainable candidate intelligence: skills, evidence, pipeline transparency." },
+      {
+        property: "og:description",
+        content: "Explainable candidate intelligence: skills, evidence, pipeline transparency.",
+      },
     ],
   }),
   component: ReportPage,
@@ -48,7 +55,11 @@ function ReportPage() {
     return (
       <PageShell
         eyebrow="Intelligence Report"
-        title={<>Recruiter <span className="text-gradient">Intelligence</span></>}
+        title={
+          <>
+            Recruiter <span className="text-gradient">Intelligence</span>
+          </>
+        }
         description="Explainable candidate intelligence from the TalentOS pipeline — skills, evidence, and transparency."
       >
         <div className="mx-auto max-w-xl rounded-2xl border border-white/10 bg-slate-900/50 p-8 text-center backdrop-blur-xl">
@@ -57,7 +68,8 @@ function ReportPage() {
           </div>
           <h3 className="text-lg font-semibold">No report yet</h3>
           <p className="mt-2 text-sm text-muted-foreground">
-            Start from Resume Intelligence — upload a resume and paste a job description to run the TalentOS Resume Intelligence Pipeline.
+            Start from Resume Intelligence — upload a resume and paste a job description to run the
+            TalentOS Resume Intelligence Pipeline.
           </p>
           <div className="mt-6">
             <Button onClick={() => navigate({ to: "/workspace/intelligence" })} className="gap-2">
@@ -72,7 +84,11 @@ function ReportPage() {
   return (
     <PageShell
       eyebrow="Intelligence Report"
-      title={<>Recruiter <span className="text-gradient">Intelligence</span></>}
+      title={
+        <>
+          Recruiter <span className="text-gradient">Intelligence</span>
+        </>
+      }
       description="Explainable candidate intelligence from the TalentOS pipeline — skills, evidence, and transparency."
     >
       <motion.div key="done" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>

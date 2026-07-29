@@ -36,15 +36,48 @@ import {
   type Source,
   type Tech,
 } from "@/lib/dashboard-search";
+import { useUsageStore } from "@/lib/usage-store";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ---------- KPI ---------- */
 const kpiMeta = [
-  { key: "positions", base: 12, suffix: "+", label: "Positions Closed", Icon: Briefcase, tint: "from-primary/30 to-transparent", scale: true },
-  { key: "candidates", base: 100, suffix: "+", label: "Candidates Screened", Icon: Users, tint: "from-accent/30 to-transparent", scale: true },
-  { key: "tech", base: 20, suffix: "+", label: "Technologies Hired", Icon: Cpu, tint: "from-primary/30 to-transparent", scale: false },
-  { key: "offer", base: 95, suffix: "%", label: "Offer Success", Icon: Target, tint: "from-accent/30 to-transparent", scale: false },
+  {
+    key: "positions",
+    base: 12,
+    suffix: "+",
+    label: "Positions Closed",
+    Icon: Briefcase,
+    tint: "from-primary/30 to-transparent",
+    scale: true,
+  },
+  {
+    key: "candidates",
+    base: 100,
+    suffix: "+",
+    label: "Candidates Screened",
+    Icon: Users,
+    tint: "from-accent/30 to-transparent",
+    scale: true,
+  },
+  {
+    key: "tech",
+    base: 20,
+    suffix: "+",
+    label: "Technologies Hired",
+    Icon: Cpu,
+    tint: "from-primary/30 to-transparent",
+    scale: false,
+  },
+  {
+    key: "offer",
+    base: 95,
+    suffix: "%",
+    label: "Offer Success",
+    Icon: Target,
+    tint: "from-accent/30 to-transparent",
+    scale: false,
+  },
 ] as const;
 
 function useCountUp(target: number, active: boolean, duration = 1400) {
@@ -90,7 +123,9 @@ function KpiCard({
       transition={{ duration: 0.6, delay: index * 0.08, ease }}
       className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-5"
     >
-      <div className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br ${tint} blur-2xl`} />
+      <div
+        className={`pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gradient-to-br ${tint} blur-2xl`}
+      />
       <div className="relative flex items-center justify-between">
         <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2">
           <Icon className="h-4 w-4 text-accent" />
@@ -225,20 +260,16 @@ function Chip({
 export function DashboardSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-100px" });
+  const usage = useUsageStore();
 
   const rawSearch = useSearch({ strict: false }) as
-    | { range?: number; techs?: string[]; sources?: string[] }
-    | undefined;
+    { range?: number; techs?: string[]; sources?: string[] } | undefined;
   const navigate = useNavigate();
   const { range, techs: techsArr, sources: sourcesArr } = normalizeDashboardSearch(rawSearch);
   const techs = useMemo(() => new Set<Tech>(techsArr), [techsArr]);
   const sources = useMemo(() => new Set<Source>(sourcesArr), [sourcesArr]);
 
-  const updateSearch = (patch: {
-    range?: RangeKey;
-    techs?: Tech[];
-    sources?: Source[];
-  }) => {
+  const updateSearch = (patch: { range?: RangeKey; techs?: Tech[]; sources?: Source[] }) => {
     navigate({
       to: ".",
       search: (prev: Record<string, unknown> | undefined) => ({
@@ -270,49 +301,63 @@ export function DashboardSection() {
   const resetFilters = () =>
     updateSearch({ range: 8, techs: [...ALL_TECHS], sources: [...ALL_SOURCES] });
 
-  const {
-    filteredTech,
-    filteredSources,
-    filteredTrend,
-    filteredFunnel,
-    kpiValues,
-    isFiltered,
-  } = useMemo(() => {
-    const filteredTech = techData.filter((t) => techs.has(t.name));
-    const rawSources = sourcesData.filter((s) => sources.has(s.name));
-    const sourcesTotal = rawSources.reduce((sum, s) => sum + s.value, 0) || 1;
-    const filteredSources = rawSources.map((s) => ({
-      ...s,
-      value: Math.round((s.value / sourcesTotal) * 100),
-    }));
-    const filteredTrend = trendData.slice(-range);
+  const { filteredTech, filteredSources, filteredTrend, filteredFunnel, kpiValues, isFiltered } =
+    useMemo(() => {
+      const filteredTech = techData.filter((t) => techs.has(t.name));
+      const rawSources = sourcesData.filter((s) => sources.has(s.name));
+      const sourcesTotal = rawSources.reduce((sum, s) => sum + s.value, 0) || 1;
+      const filteredSources = rawSources.map((s) => ({
+        ...s,
+        value: Math.round((s.value / sourcesTotal) * 100),
+      }));
+      const filteredTrend = trendData.slice(-range);
 
-    const techShare =
-      techData.reduce((s, t) => s + (techs.has(t.name) ? t.value : 0), 0) /
-      techData.reduce((s, t) => s + t.value, 0);
-    const sourceShare =
-      sourcesData.reduce((s, x) => s + (sources.has(x.name) ? x.value : 0), 0) /
-      sourcesData.reduce((s, x) => s + x.value, 0);
-    const rangeShare = range / trendData.length;
-    const combined = techShare * sourceShare * rangeShare;
+      const techShare =
+        techData.reduce((s, t) => s + (techs.has(t.name) ? t.value : 0), 0) /
+        techData.reduce((s, t) => s + t.value, 0);
+      const sourceShare =
+        sourcesData.reduce((s, x) => s + (sources.has(x.name) ? x.value : 0), 0) /
+        sourcesData.reduce((s, x) => s + x.value, 0);
+      const rangeShare = range / trendData.length;
+      const combined = techShare * sourceShare * rangeShare;
 
-    const filteredFunnel = funnelData.map((f) => ({
-      ...f,
-      count: Math.max(1, Math.round(f.count * combined)),
-    }));
+      const filteredFunnel = funnelData.map((f) => ({
+        ...f,
+        count: Math.max(1, Math.round(f.count * combined)),
+      }));
 
-    const kpiValues: Record<string, number> = {
-      positions: Math.max(1, Math.round(12 * combined)),
-      candidates: Math.max(1, Math.round(100 * combined)),
-      tech: techs.size,
-      offer: Math.max(60, Math.min(99, Math.round(95 - (1 - techShare) * 10 - (1 - sourceShare) * 6))),
-    };
+      const kpiValues: Record<string, number> = {
+        positions: usage.totalJds,
+        candidates: usage.totalCandidates,
+        tech: usage.techStacksDetected.length,
+        offer:
+          usage.totalCandidates > 0
+            ? Math.max(
+                60,
+                Math.min(99, Math.round(95 - (1 - techShare) * 10 - (1 - sourceShare) * 6)),
+              )
+            : 0,
+      };
 
-    const isFiltered =
-      range !== 8 || techs.size !== ALL_TECHS.length || sources.size !== ALL_SOURCES.length;
+      const isFiltered =
+        range !== 8 || techs.size !== ALL_TECHS.length || sources.size !== ALL_SOURCES.length;
 
-    return { filteredTech, filteredSources, filteredTrend, filteredFunnel, kpiValues, isFiltered };
-  }, [range, techs, sources]);
+      return {
+        filteredTech,
+        filteredSources,
+        filteredTrend,
+        filteredFunnel,
+        kpiValues,
+        isFiltered,
+      };
+    }, [
+      range,
+      techs,
+      sources,
+      usage.techStacksDetected.length,
+      usage.totalCandidates,
+      usage.totalJds,
+    ]);
 
   return (
     <section ref={ref} className="relative py-16 sm:py-20 md:py-28">
@@ -335,8 +380,8 @@ export function DashboardSection() {
             <span className="text-gradient">Recruitment Intelligence Dashboard</span>
           </h2>
           <p className="mt-4 text-sm text-muted-foreground sm:text-base md:text-lg">
-            A live-feeling view of the hiring engine — pipeline health, sourcing mix,
-            and momentum across roles and technologies.
+            A live-feeling view of the hiring engine — pipeline health, sourcing mix, and momentum
+            across roles and technologies.
           </p>
         </motion.div>
 
@@ -381,11 +426,7 @@ export function DashboardSection() {
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {ALL_TECHS.map((t) => (
-                  <Chip
-                    key={t}
-                    active={techs.has(t)}
-                    onClick={() => toggleTech(t)}
-                  >
+                  <Chip key={t} active={techs.has(t)} onClick={() => toggleTech(t)}>
                     {t}
                   </Chip>
                 ))}
@@ -400,11 +441,7 @@ export function DashboardSection() {
               </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {ALL_SOURCES.map((s) => (
-                  <Chip
-                    key={s}
-                    active={sources.has(s)}
-                    onClick={() => toggleSource(s)}
-                  >
+                  <Chip key={s} active={sources.has(s)} onClick={() => toggleSource(s)}>
                     {s}
                   </Chip>
                 ))}
@@ -465,10 +502,20 @@ export function DashboardSection() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="name" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="name"
+                  tick={{ fill: "#94A3B8", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <YAxis tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip cursor={{ fill: "rgba(56,189,248,0.06)" }} contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill="url(#techBar)" radius={[6, 6, 0, 0]} animationDuration={1200} />
+                <Bar
+                  dataKey="value"
+                  fill="url(#techBar)"
+                  radius={[6, 6, 0, 0]}
+                  animationDuration={1200}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -481,18 +528,43 @@ export function DashboardSection() {
             delay={0.25}
           >
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart layout="vertical" data={filteredFunnel} margin={{ top: 8, right: 16, left: 8, bottom: 0 }}>
+              <BarChart
+                layout="vertical"
+                data={filteredFunnel}
+                margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
+              >
                 <defs>
                   <linearGradient id="funnelBar" x1="0" y1="0" x2="1" y2="0">
                     <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
                     <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.9} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" horizontal={false} />
-                <XAxis type="number" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis dataKey="stage" type="category" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} width={70} />
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="rgba(255,255,255,0.06)"
+                  horizontal={false}
+                />
+                <XAxis
+                  type="number"
+                  tick={{ fill: "#94A3B8", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
+                <YAxis
+                  dataKey="stage"
+                  type="category"
+                  tick={{ fill: "#94A3B8", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={70}
+                />
                 <Tooltip cursor={{ fill: "rgba(56,189,248,0.06)" }} contentStyle={tooltipStyle} />
-                <Bar dataKey="count" fill="url(#funnelBar)" radius={[0, 6, 6, 0]} animationDuration={1400} />
+                <Bar
+                  dataKey="count"
+                  fill="url(#funnelBar)"
+                  radius={[0, 6, 6, 0]}
+                  animationDuration={1400}
+                />
               </BarChart>
             </ResponsiveContainer>
           </ChartCard>
@@ -556,11 +628,30 @@ export function DashboardSection() {
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis dataKey="m" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="m"
+                  tick={{ fill: "#94A3B8", fontSize: 11 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <YAxis tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Area type="monotone" dataKey="pipeline" stroke="#38BDF8" strokeWidth={2} fill="url(#pipelineArea)" animationDuration={1400} />
-                <Area type="monotone" dataKey="hires" stroke="#2563EB" strokeWidth={2} fill="url(#hiresArea)" animationDuration={1600} />
+                <Area
+                  type="monotone"
+                  dataKey="pipeline"
+                  stroke="#38BDF8"
+                  strokeWidth={2}
+                  fill="url(#pipelineArea)"
+                  animationDuration={1400}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="hires"
+                  stroke="#2563EB"
+                  strokeWidth={2}
+                  fill="url(#hiresArea)"
+                  animationDuration={1600}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </ChartCard>

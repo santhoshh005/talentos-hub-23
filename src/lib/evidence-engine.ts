@@ -17,7 +17,7 @@ import type { NormalizedSkill } from "./skill-normalizer";
 import { normalizeSkill } from "./skill-normalizer";
 import { extractYearsFromExperience } from "./token-sanitizer";
 
-export type EvidenceSource =
+type EvidenceSource =
   | "Professional Summary"
   | "Skills"
   | "Technical Skills"
@@ -30,14 +30,14 @@ export type EvidenceSource =
 
 export interface SkillEvidence {
   skill: string;
-  evidenceStrength: number;      // 0-100
+  evidenceStrength: number; // 0-100
   foundIn: EvidenceSource[];
   occurrenceCount: number;
-  yearsReferenced: number;       // total years spanned by employment entries mentioning the skill
+  yearsReferenced: number; // total years spanned by employment entries mentioning the skill
 }
 
 export interface EvidenceEngineInput {
-  resume: unknown;               // Structured Resume JSON (ParsedResumeData shape or compatible)
+  resume: unknown; // Structured Resume JSON (ParsedResumeData shape or compatible)
   normalizedSkills: NormalizedSkill[];
 }
 
@@ -114,9 +114,13 @@ export function buildEvidence(input: EvidenceEngineInput): SkillEvidence[] {
     // name, attribute a conservative share of the candidate's total tenure
     // so downstream summaries stop reporting 0 years for real skills.
     if (yearsReferenced === 0 && totalCandidateYears > 0 && foundIn.length > 0) {
-      const tenureBearing = foundIn.some((s) =>
-        s === "Employment History" || s === "Projects" ||
-        s === "Technical Skills" || s === "Skills" || s === "Core Competencies",
+      const tenureBearing = foundIn.some(
+        (s) =>
+          s === "Employment History" ||
+          s === "Projects" ||
+          s === "Technical Skills" ||
+          s === "Skills" ||
+          s === "Core Competencies",
       );
       if (tenureBearing) yearsReferenced = Math.round(totalCandidateYears * 0.6 * 10) / 10;
     }
@@ -197,7 +201,7 @@ function countOccurrences(text: string, skill: string): number {
   // resume text like "ReactJS" still counts as evidence for "React".
   const forms = new Set<string>([skill]);
   // Look for any token in the text that normalizes to this skill.
-  const tokenRegex = /[A-Za-z][A-Za-z0-9+.#/\-]*(?:\s[A-Za-z][A-Za-z0-9+.#/\-]*){0,3}/g;
+  const tokenRegex = /[A-Za-z][A-Za-z0-9+.#/-]*(?:\s[A-Za-z][A-Za-z0-9+.#/-]*){0,3}/g;
   const target = skill.toLowerCase();
   let count = 0;
   const matches = text.match(tokenRegex) ?? [];
@@ -247,7 +251,9 @@ function extractYearsFromEntry(entry: string): number {
     const startYear = parseInt(range[2], 10);
     const endToken = range[4].toLowerCase();
     const endYear =
-      endToken === "present" || endToken === "current" ? new Date().getFullYear() : parseInt(endToken, 10);
+      endToken === "present" || endToken === "current"
+        ? new Date().getFullYear()
+        : parseInt(endToken, 10);
     if (Number.isFinite(startYear) && Number.isFinite(endYear) && endYear >= startYear) {
       return Math.max(0.25, endYear - startYear);
     }

@@ -1,10 +1,5 @@
 import { motion } from "framer-motion";
-import {
-  Award,
-  BadgeCheck,
-  ExternalLink,
-  Calendar,
-} from "lucide-react";
+import { Award, BadgeCheck, ExternalLink, Calendar } from "lucide-react";
 import googleDA from "@/assets/certificates/google-data-analytics.png.asset.json";
 import naukri from "@/assets/certificates/naukri-maestro.jpg.asset.json";
 import ibmML from "@/assets/certificates/ibm-ml-python.png.asset.json";
@@ -144,7 +139,13 @@ export function CertificationsGrid() {
   );
 }
 
-function CertificationCard({ item, featured = false }: { item: Certification; featured?: boolean }) {
+function CertificationCard({
+  item,
+  featured = false,
+}: {
+  item: Certification;
+  featured?: boolean;
+}) {
   return (
     <div
       className={`
@@ -168,9 +169,13 @@ function CertificationCard({ item, featured = false }: { item: Certification; fe
         style={{ background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)` }}
       />
 
-      <div className={`relative z-10 ${featured ? "grid gap-6 md:grid-cols-2 md:gap-8 p-6 md:p-8" : "flex flex-col p-5"}`}>
+      <div
+        className={`relative z-10 ${featured ? "grid gap-6 md:grid-cols-2 md:gap-8 p-6 md:p-8" : "flex flex-col p-5"}`}
+      >
         {/* Preview image */}
-        <div className={`relative overflow-hidden rounded-xl border border-white/10 bg-black/30 ${featured ? "aspect-[4/3] md:aspect-auto" : "aspect-[16/10] mb-5"}`}>
+        <div
+          className={`relative overflow-hidden rounded-xl border border-white/10 bg-black/30 ${featured ? "aspect-[4/3] md:aspect-auto" : "aspect-[16/10] mb-5"}`}
+        >
           <img
             src={item.image}
             alt={`${item.title} certificate preview`}
@@ -186,7 +191,9 @@ function CertificationCard({ item, featured = false }: { item: Certification; fe
 
         {/* Body */}
         <div className="flex flex-col">
-          <h3 className={`font-semibold tracking-tight text-foreground ${featured ? "text-2xl md:text-3xl" : "text-lg"}`}>
+          <h3
+            className={`font-semibold tracking-tight text-foreground ${featured ? "text-2xl md:text-3xl" : "text-lg"}`}
+          >
             {item.title}
           </h3>
 
@@ -201,7 +208,9 @@ function CertificationCard({ item, featured = false }: { item: Certification; fe
             </span>
           </div>
 
-          <p className={`mt-4 leading-relaxed text-muted-foreground ${featured ? "text-base" : "text-sm"}`}>
+          <p
+            className={`mt-4 leading-relaxed text-muted-foreground ${featured ? "text-base" : "text-sm"}`}
+          >
             {item.description}
           </p>
 

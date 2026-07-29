@@ -8,8 +8,8 @@ export function CandidateCompleteness({ record }: { record: CandidateRecord }) {
     color === "emerald"
       ? "from-emerald-500 to-emerald-300"
       : color === "amber"
-      ? "from-amber-500 to-amber-300"
-      : "from-rose-500 to-rose-300";
+        ? "from-amber-500 to-amber-300"
+        : "from-rose-500 to-rose-300";
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl">
       <div className="flex items-center justify-between">
@@ -20,7 +20,9 @@ export function CandidateCompleteness({ record }: { record: CandidateRecord }) {
           <div className="mt-1 text-2xl font-semibold tracking-tight">{percent}%</div>
         </div>
         <div className="text-right text-xs text-muted-foreground">
-          {missing.length === 0 ? "All core fields filled" : `${missing.length} field${missing.length === 1 ? "" : "s"} missing`}
+          {missing.length === 0
+            ? "All core fields filled"
+            : `${missing.length} field${missing.length === 1 ? "" : "s"} missing`}
         </div>
       </div>
       <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.05]">

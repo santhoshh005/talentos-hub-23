@@ -55,8 +55,7 @@ export function Navbar() {
 
           <ul className="hidden lg:flex items-center gap-1">
             {links.map((l) => {
-              const active =
-                l.to === "/" ? pathname === "/" : pathname.startsWith(l.to);
+              const active = l.to === "/" ? pathname === "/" : pathname.startsWith(l.to);
               return (
                 <li key={l.to} className="relative">
                   <Link
@@ -114,7 +113,9 @@ export function Navbar() {
                       to={l.to}
                       className="block rounded-lg px-3 py-2 text-sm"
                       activeProps={{ className: "bg-white/5 text-foreground" }}
-                      inactiveProps={{ className: "text-muted-foreground hover:text-foreground hover:bg-white/5" }}
+                      inactiveProps={{
+                        className: "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                      }}
                       activeOptions={{ exact: l.to === "/" }}
                     >
                       {l.label}

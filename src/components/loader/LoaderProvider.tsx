@@ -9,7 +9,7 @@ interface LoaderContextValue {
 
 const LoaderContext = createContext<LoaderContextValue | null>(null);
 
-export function useLoader() {
+function useLoader() {
   const ctx = useContext(LoaderContext);
   if (!ctx) throw new Error("useLoader must be used within LoaderProvider");
   return ctx;

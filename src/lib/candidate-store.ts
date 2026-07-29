@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from "react";
 import { emptyCandidateRecord, type CandidateRecord } from "./candidate-schemas";
 
-export type CandidatePhase = "upload" | "extracting" | "snapshot" | "edit";
+type CandidatePhase = "upload" | "extracting" | "snapshot" | "edit";
 
 export interface CandidateWorkspaceState {
   phase: CandidatePhase;
@@ -50,7 +50,7 @@ function persist(): void {
   }
 }
 
-export function getCandidateState(): CandidateWorkspaceState {
+function getCandidateState(): CandidateWorkspaceState {
   hydrate();
   return current;
 }

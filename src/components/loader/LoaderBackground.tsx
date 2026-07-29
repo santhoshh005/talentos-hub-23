@@ -1,7 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 
-const ghostCards = ["Resume", "JD", "Candidate", "Offer", "LinkedIn", "Boolean Search", "Interview"];
+const ghostCards = [
+  "Resume",
+  "JD",
+  "Candidate",
+  "Offer",
+  "LinkedIn",
+  "Boolean Search",
+  "Interview",
+];
 
 export function LoaderBackground() {
   const ref = useRef<HTMLDivElement>(null);
@@ -23,7 +31,12 @@ export function LoaderBackground() {
   const particles = reduce ? [] : Array.from({ length: 22 });
 
   return (
-    <div ref={ref} aria-hidden className="absolute inset-0 overflow-hidden" style={{ backgroundColor: "#020617" }}>
+    <div
+      ref={ref}
+      aria-hidden
+      className="absolute inset-0 overflow-hidden"
+      style={{ backgroundColor: "#020617" }}
+    >
       <div
         className="absolute inset-0"
         style={{

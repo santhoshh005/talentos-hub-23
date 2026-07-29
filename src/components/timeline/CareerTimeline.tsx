@@ -25,7 +25,8 @@ const timelineItems: TimelineItem[] = [
     period: "Jul 2024 – Jan 2025",
     company: "Rubixe",
     role: "Data Analyst Intern",
-    description: "Started my career working with data — cleaning, analyzing, and visualizing datasets that shaped business decisions and sparked my interest in technology hiring.",
+    description:
+      "Started my career working with data — cleaning, analyzing, and visualizing datasets that shaped business decisions and sparked my interest in technology hiring.",
     icon: TrendingUp,
     color: "oklch(0.65 0.2 250)",
     glow: "shadow-[oklch(0.65_0.2_250)/0.4]",
@@ -37,7 +38,8 @@ const timelineItems: TimelineItem[] = [
     period: "Jun 2025 – Jul 2026",
     company: "Xevyte Technologies",
     role: "Technical Recruiter",
-    description: "Moved into full-cycle technical recruiting. Sourced software engineers, ran interviews, and partnered with engineering leaders to scale teams across multiple stacks.",
+    description:
+      "Moved into full-cycle technical recruiting. Sourced software engineers, ran interviews, and partnered with engineering leaders to scale teams across multiple stacks.",
     icon: Briefcase,
     color: "oklch(0.7 0.18 220)",
     glow: "shadow-[oklch(0.7_0.18_220)/0.4]",
@@ -49,7 +51,8 @@ const timelineItems: TimelineItem[] = [
     period: "Jul 2026 – Present",
     company: "Hardwin Software Solutions",
     role: "Talent Acquisition Specialist",
-    description: "Leading specialized hiring for product and platform engineering teams. Focusing on high-growth startups, AI-driven sourcing, and recruiter workflow automation.",
+    description:
+      "Leading specialized hiring for product and platform engineering teams. Focusing on high-growth startups, AI-driven sourcing, and recruiter workflow automation.",
     icon: Code2,
     color: "oklch(0.75 0.15 200)",
     glow: "shadow-[oklch(0.75_0.15_200)/0.4]",
@@ -61,7 +64,8 @@ const timelineItems: TimelineItem[] = [
     period: "Future",
     company: "TalentOS",
     role: "Building AI Recruitment Products",
-    description: "Combining recruitment expertise with AI to build tools that help recruiters generate JDs, analyze resumes, score candidates, and hire faster.",
+    description:
+      "Combining recruitment expertise with AI to build tools that help recruiters generate JDs, analyze resumes, score candidates, and hire faster.",
     icon: Sparkles,
     color: "oklch(0.55 0.22 264)",
     glow: "shadow-[oklch(0.55_0.22_264)/0.5]",
@@ -136,7 +140,7 @@ export function CareerTimeline() {
     <div ref={containerRef} className="relative mx-auto max-w-5xl px-4 py-8">
       {/* Central glowing timeline rail */}
       <div className="absolute inset-y-0 left-8 w-px bg-gradient-to-b from-primary/30 via-accent/20 to-transparent md:left-1/2 md:-translate-x-px" />
-      
+
       {/* Progress glow line */}
       <motion.div
         className="absolute left-8 top-0 w-px origin-top md:left-1/2 md:-translate-x-px"
@@ -185,7 +189,9 @@ export function CareerTimeline() {
               {/* Connector line from rail to card */}
               <div
                 className={`absolute top-9 hidden h-px bg-gradient-to-r md:block ${
-                  isLeft ? "left-1/2 right-[50%] to-transparent" : "right-1/2 left-[50%] to-transparent"
+                  isLeft
+                    ? "left-1/2 right-[50%] to-transparent"
+                    : "right-1/2 left-[50%] to-transparent"
                 }`}
                 style={{
                   width: "calc(50% - 3rem)",
@@ -213,12 +219,18 @@ export function CareerTimeline() {
                       className={`group relative block max-w-lg overflow-hidden rounded-2xl border border-white/[0.08] bg-white/[0.02] transition-all duration-300 hover:-translate-y-1 hover:border-white/[0.14] hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background md:w-[calc(50%-3rem)] ${
                         isLeft ? "md:mr-auto md:text-right" : "md:ml-auto md:text-left"
                       } ${item.href ? "cursor-pointer" : ""}`}
-                      style={item.href ? ({ ["--tw-ring-color" as string]: item.color } as React.CSSProperties) : undefined}
+                      style={
+                        item.href
+                          ? ({ ["--tw-ring-color" as string]: item.color } as React.CSSProperties)
+                          : undefined
+                      }
                     >
                       {/* Radial hover glow */}
                       <div
                         className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full opacity-0 blur-3xl transition-opacity duration-500 group-hover:opacity-50"
-                        style={{ background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)` }}
+                        style={{
+                          background: `radial-gradient(circle, ${item.color} 0%, transparent 70%)`,
+                        }}
                       />
 
                       {/* Logo header strip */}
@@ -238,12 +250,16 @@ export function CareerTimeline() {
                         </div>
                       ) : null}
 
-                      <div className={`relative z-10 flex flex-col p-6 ${isLeft ? "md:items-end" : "md:items-start"}`}>
+                      <div
+                        className={`relative z-10 flex flex-col p-6 ${isLeft ? "md:items-end" : "md:items-start"}`}
+                      >
                         {/* Icon chip (only when no logo header) */}
                         {!item.logo && (
                           <div
                             className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.05] transition-transform duration-300 group-hover:scale-110"
-                            style={{ boxShadow: `0 0 20px -4px ${item.color.replace(")", "/ 0.3)")}` }}
+                            style={{
+                              boxShadow: `0 0 20px -4px ${item.color.replace(")", "/ 0.3)")}`,
+                            }}
                           >
                             <Icon className="h-5 w-5 text-white/90" strokeWidth={1.5} />
                           </div>
@@ -255,10 +271,15 @@ export function CareerTimeline() {
                         </span>
 
                         {/* Role */}
-                        <h3 className={`mt-2 inline-flex items-center gap-1.5 text-lg font-semibold tracking-tight text-foreground ${isLeft ? "md:flex-row-reverse" : ""}`}>
+                        <h3
+                          className={`mt-2 inline-flex items-center gap-1.5 text-lg font-semibold tracking-tight text-foreground ${isLeft ? "md:flex-row-reverse" : ""}`}
+                        >
                           {item.role}
                           {item.href ? (
-                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground" strokeWidth={2} />
+                            <ExternalLink
+                              className="h-3.5 w-3.5 text-muted-foreground transition-colors group-hover:text-foreground"
+                              strokeWidth={2}
+                            />
                           ) : null}
                         </h3>
 

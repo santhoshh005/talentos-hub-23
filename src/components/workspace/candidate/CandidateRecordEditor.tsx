@@ -16,8 +16,16 @@ export function CandidateRecordEditor({
     <div className="space-y-4">
       <Section title="Identity">
         <TwoCol>
-          <TextField label="Candidate name" value={record.fullName} onChange={(v) => update("fullName", v)} />
-          <TextField label="Headline" value={record.headline} onChange={(v) => update("headline", v)} />
+          <TextField
+            label="Candidate name"
+            value={record.fullName}
+            onChange={(v) => update("fullName", v)}
+          />
+          <TextField
+            label="Headline"
+            value={record.headline}
+            onChange={(v) => update("headline", v)}
+          />
         </TwoCol>
         <TextareaField
           label="Professional summary"
@@ -33,18 +41,38 @@ export function CandidateRecordEditor({
           <TextField label="Mobile" value={record.mobile} onChange={(v) => update("mobile", v)} />
         </TwoCol>
         <TwoCol>
-          <TextField label="LinkedIn" value={record.linkedin} onChange={(v) => update("linkedin", v)} />
+          <TextField
+            label="LinkedIn"
+            value={record.linkedin}
+            onChange={(v) => update("linkedin", v)}
+          />
           <TextField label="GitHub" value={record.github} onChange={(v) => update("github", v)} />
         </TwoCol>
-        <TextField label="Portfolio" value={record.portfolio} onChange={(v) => update("portfolio", v)} />
+        <TextField
+          label="Portfolio"
+          value={record.portfolio}
+          onChange={(v) => update("portfolio", v)}
+        />
       </Section>
 
       <Section title="Current employment">
         <TwoCol>
-          <TextField label="Current company" value={record.currentCompany} onChange={(v) => update("currentCompany", v)} />
-          <TextField label="Current designation" value={record.currentDesignation} onChange={(v) => update("currentDesignation", v)} />
+          <TextField
+            label="Current company"
+            value={record.currentCompany}
+            onChange={(v) => update("currentCompany", v)}
+          />
+          <TextField
+            label="Current designation"
+            value={record.currentDesignation}
+            onChange={(v) => update("currentDesignation", v)}
+          />
         </TwoCol>
-        <TextField label="Employment type" value={record.employmentType} onChange={(v) => update("employmentType", v)} />
+        <TextField
+          label="Employment type"
+          value={record.employmentType}
+          onChange={(v) => update("employmentType", v)}
+        />
       </Section>
 
       <Section title="Previous employment">
@@ -56,8 +84,16 @@ export function CandidateRecordEditor({
 
       <Section title="Experience">
         <TwoCol>
-          <TextField label="Total experience" value={record.totalExperience} onChange={(v) => update("totalExperience", v)} />
-          <TextField label="Relevant experience" value={record.relevantExperience} onChange={(v) => update("relevantExperience", v)} />
+          <TextField
+            label="Total experience"
+            value={record.totalExperience}
+            onChange={(v) => update("totalExperience", v)}
+          />
+          <TextField
+            label="Relevant experience"
+            value={record.relevantExperience}
+            onChange={(v) => update("relevantExperience", v)}
+          />
         </TwoCol>
       </Section>
 
@@ -78,21 +114,50 @@ export function CandidateRecordEditor({
 
       <Section title="Location">
         <TwoCol>
-          <TextField label="Current location" value={record.currentLocation} onChange={(v) => update("currentLocation", v)} />
-          <TextField label="Preferred location" value={record.preferredLocation} onChange={(v) => update("preferredLocation", v)} />
+          <TextField
+            label="Current location"
+            value={record.currentLocation}
+            onChange={(v) => update("currentLocation", v)}
+          />
+          <TextField
+            label="Preferred location"
+            value={record.preferredLocation}
+            onChange={(v) => update("preferredLocation", v)}
+          />
         </TwoCol>
       </Section>
 
       <Section title="Compensation">
         <TwoCol>
-          <TextField label="Current CTC" value={record.currentCTC} onChange={(v) => update("currentCTC", v)} />
-          <TextField label="Expected CTC" value={record.expectedCTC} onChange={(v) => update("expectedCTC", v)} />
+          <TextField
+            label="Current CTC"
+            value={record.currentCTC}
+            onChange={(v) => update("currentCTC", v)}
+          />
+          <TextField
+            label="Expected CTC"
+            value={record.expectedCTC}
+            onChange={(v) => update("expectedCTC", v)}
+          />
         </TwoCol>
         <TwoCol>
-          <TextField label="Notice period" value={record.noticePeriod} onChange={(v) => update("noticePeriod", v)} />
-          <TextField label="Current offer" value={record.currentOffer} onChange={(v) => update("currentOffer", v)} />
+          <TextField
+            label="Notice period"
+            value={record.noticePeriod}
+            onChange={(v) => update("noticePeriod", v)}
+          />
+          <TextField
+            label="Current offer"
+            value={record.currentOffer}
+            onChange={(v) => update("currentOffer", v)}
+          />
         </TwoCol>
-        <TextareaField label="Reason for change" value={record.reasonForChange} onChange={(v) => update("reasonForChange", v)} rows={2} />
+        <TextareaField
+          label="Reason for change"
+          value={record.reasonForChange}
+          onChange={(v) => update("reasonForChange", v)}
+          rows={2}
+        />
       </Section>
 
       <Section title="Education">
@@ -112,9 +177,17 @@ export function CandidateRecordEditor({
       <Section title="Documents">
         <TwoCol>
           <TextField label="PAN" value={record.pan} onChange={(v) => update("pan", v)} />
-          <TextField label="Passport" value={record.passport} onChange={(v) => update("passport", v)} />
+          <TextField
+            label="Passport"
+            value={record.passport}
+            onChange={(v) => update("passport", v)}
+          />
         </TwoCol>
-        <TextField label="Visa status" value={record.visaStatus} onChange={(v) => update("visaStatus", v)} />
+        <TextField
+          label="Visa status"
+          value={record.visaStatus}
+          onChange={(v) => update("visaStatus", v)}
+        />
       </Section>
 
       <Section title="Recruiter notes">
@@ -135,7 +208,9 @@ export function CandidateRecordEditor({
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-xl">
-      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{title}</h3>
+      <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {title}
+      </h3>
       <div className="mt-4 space-y-3">{children}</div>
     </section>
   );
@@ -158,7 +233,9 @@ function TextField({
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       <input
         type="text"
         value={value}
@@ -185,7 +262,9 @@ function TextareaField({
 }) {
   return (
     <label className="block">
-      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </span>
       <textarea
         rows={rows}
         value={value}
@@ -220,7 +299,9 @@ function ChipList({
   return (
     <div>
       {!hideLabel && (
-        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
       )}
       <div className="mt-1.5 flex flex-wrap gap-1.5">
         {items.map((it, i) => (
@@ -254,7 +335,12 @@ function ChipList({
           placeholder={placeholder}
           className="flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm outline-none focus:border-accent focus:ring-2 focus:ring-accent/30"
         />
-        <Button type="button" onClick={add} variant="outline" className="rounded-lg border-white/10 bg-white/[0.03]">
+        <Button
+          type="button"
+          onClick={add}
+          variant="outline"
+          className="rounded-lg border-white/10 bg-white/[0.03]"
+        >
           <Plus className="h-4 w-4" /> Add
         </Button>
       </div>
@@ -293,11 +379,15 @@ function EmploymentList({
             >
               <GripVertical className="h-3.5 w-3.5" />
             </button>
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Role {i + 1}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Role {i + 1}
+            </span>
             <div className="ml-auto flex gap-1">
               <button
                 type="button"
-                onClick={() => onChange([...items.slice(0, i + 1), { ...e }, ...items.slice(i + 1)])}
+                onClick={() =>
+                  onChange([...items.slice(0, i + 1), { ...e }, ...items.slice(i + 1)])
+                }
                 className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground hover:bg-white/[0.04]"
                 aria-label="Duplicate"
               >
@@ -314,12 +404,26 @@ function EmploymentList({
             </div>
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
-            <TextField label="Company" value={e.company} onChange={(v) => patch(i, { company: v })} />
+            <TextField
+              label="Company"
+              value={e.company}
+              onChange={(v) => patch(i, { company: v })}
+            />
             <TextField label="Title" value={e.title} onChange={(v) => patch(i, { title: v })} />
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-2">
-            <TextField label="Start" value={e.start} onChange={(v) => patch(i, { start: v })} placeholder="Jan 2020" />
-            <TextField label="End" value={e.end} onChange={(v) => patch(i, { end: v })} placeholder="Dec 2022 or Present" />
+            <TextField
+              label="Start"
+              value={e.start}
+              onChange={(v) => patch(i, { start: v })}
+              placeholder="Jan 2020"
+            />
+            <TextField
+              label="End"
+              value={e.end}
+              onChange={(v) => patch(i, { end: v })}
+              placeholder="Dec 2022 or Present"
+            />
           </div>
         </div>
       ))}
@@ -352,7 +456,9 @@ function EducationList({
       {items.map((e, i) => (
         <div key={i} className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">Education {i + 1}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+              Education {i + 1}
+            </span>
             <button
               type="button"
               onClick={() => onChange(items.filter((_, idx) => idx !== i))}
@@ -364,7 +470,11 @@ function EducationList({
           </div>
           <div className="mt-2 grid gap-2 md:grid-cols-3">
             <TextField label="Degree" value={e.degree} onChange={(v) => patch(i, { degree: v })} />
-            <TextField label="Institution" value={e.institution} onChange={(v) => patch(i, { institution: v })} />
+            <TextField
+              label="Institution"
+              value={e.institution}
+              onChange={(v) => patch(i, { institution: v })}
+            />
             <TextField label="Year" value={e.year} onChange={(v) => patch(i, { year: v })} />
           </div>
         </div>
