@@ -1,10 +1,8 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { createAiGatewayProvider } from "./ai-gateway.server";
+import { getAiModel } from "./ai-gateway.server";
 import { CandidateRecordSchema, type CandidateRecord } from "./candidate-schemas";
 import { mergeCandidate } from "./candidate-parse";
-
-const MODEL = "gemini-1.5-flash";
 
 export const CandidateExtractInputSchema = z.object({
   resumeText: z.string().min(20, "Resume text is too short"),
@@ -70,10 +68,8 @@ export async function runExtractCandidate(
   const seedMerged = (llm: Partial<CandidateRecord>): CandidateRecord =>
     CandidateRecordSchema.parse(mergeCandidate(llm, seedRecord));
 
-  const key = process.env.AI_API_KEY;
-  if (!key) return seedMerged({});
-  const gateway = createAiGatewayProvider(key);
-  const model = gateway(MODEL);
+  const model = getAiModel();
+  if (!model) return seedMerged({});
 
   const call = async () => {
     const { text } = await generateText({
@@ -89,6 +85,7 @@ export async function runExtractCandidate(
     return await call();
   } catch (err) {
     console.warn("[candidate-extract] first attempt failed, retrying", err);
+    await delay(1000);
     try {
       return await call();
     } catch (err2) {
@@ -135,4 +132,8 @@ function parseJsonObject(text: string): unknown {
     }
     return {};
   }
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

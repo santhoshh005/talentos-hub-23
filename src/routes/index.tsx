@@ -2,12 +2,10 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { dashboardSearchSchema } from "@/lib/dashboard-search";
 import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, PlayCircle, ChevronDown } from "lucide-react";
+import { ArrowRight, Sparkles, PlayCircle } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { HeroBackground } from "@/components/home/HeroBackground";
 import { FloatingCards } from "@/components/home/FloatingCards";
-import { DashboardSection } from "@/components/home/DashboardSection";
-import { RecruitmentInsights } from "@/components/home/RecruitmentInsights";
 
 export const Route = createFileRoute("/")({
   validateSearch: zodValidator(dashboardSearchSchema),
@@ -128,38 +126,7 @@ function Index() {
             <FloatingCards />
           </motion.div>
         </div>
-
-        {/* Scroll indicator */}
-        <motion.a
-          href="#next"
-          aria-label="Scroll down"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.1, duration: 0.6 }}
-          className="absolute bottom-6 left-1/2 z-10 -translate-x-1/2 text-muted-foreground"
-        >
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-[10px] uppercase tracking-[0.25em]">Scroll</span>
-            <div className="relative flex h-9 w-5 justify-center rounded-full border border-white/15 bg-white/[0.03] backdrop-blur">
-              <motion.span
-                animate={{ y: [2, 14, 2], opacity: [1, 0.2, 1] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                className="mt-1 h-1.5 w-1.5 rounded-full bg-gradient-to-b from-primary to-accent"
-              />
-            </div>
-            <motion.div
-              animate={{ y: [0, 4, 0], opacity: [0.6, 1, 0.6] }}
-              transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            >
-              <ChevronDown className="h-3.5 w-3.5" />
-            </motion.div>
-          </div>
-        </motion.a>
       </section>
-
-      <div id="next" />
-      <DashboardSection />
-      <RecruitmentInsights />
     </AppLayout>
   );
 }

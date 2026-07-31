@@ -7,15 +7,13 @@
 // ---------------------------------------------------------------------------
 
 import { generateText } from "ai";
-import { createAiGatewayProvider } from "./ai-gateway.server";
+import { getAiModel } from "./ai-gateway.server";
 import {
   ParsedJDV3Schema,
   ParsedResumeV3Schema,
   type ParsedJDV3,
   type ParsedResumeV3,
 } from "./intelligence-schemas";
-
-const MODEL = "gemini-1.5-flash";
 
 const RESUME_SYSTEM = [
   "You are TalentOS Resume Extractor v3.",
@@ -122,10 +120,8 @@ ${jd.slice(0, 20000)}`;
 }
 
 export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV3> {
-  const key = process.env.AI_API_KEY;
-  if (!key) return ParsedResumeV3Schema.parse({});
-  const gateway = createAiGatewayProvider(key);
-  const model = gateway(MODEL);
+  const model = getAiModel();
+  if (!model) return ParsedResumeV3Schema.parse({});
 
   const call = async () => {
     const { text } = await generateText({
@@ -141,6 +137,7 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
     return await call();
   } catch (error) {
     console.warn("[llm-extract] resume v3 first attempt failed, retrying once", error);
+    await delay(1000);
     try {
       return await call();
     } catch (error2) {
@@ -151,10 +148,8 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
 }
 
 export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
-  const key = process.env.AI_API_KEY;
-  if (!key) return ParsedJDV3Schema.parse({});
-  const gateway = createAiGatewayProvider(key);
-  const model = gateway(MODEL);
+  const model = getAiModel();
+  if (!model) return ParsedJDV3Schema.parse({});
 
   const call = async () => {
     const { text } = await generateText({
@@ -170,6 +165,7 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
     return await call();
   } catch (error) {
     console.warn("[llm-extract] jd v3 first attempt failed, retrying once", error);
+    await delay(1000);
     try {
       return await call();
     } catch (error2) {
@@ -373,4 +369,8 @@ function num(v: unknown): number {
 function strArr(v: unknown): string[] {
   if (!Array.isArray(v)) return [];
   return v.map((x) => (typeof x === "string" ? x.trim() : "")).filter(Boolean);
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

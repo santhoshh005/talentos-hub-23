@@ -2,7 +2,7 @@
 // TalentOS Intelligence v3 — Semantic Matcher
 // ---------------------------------------------------------------------------
 import { generateText } from "ai";
-import { createAiGatewayProvider } from "./ai-gateway.server";
+import { getAiModel } from "./ai-gateway.server";
 import {
   SemanticMatchV3Schema,
   type ParsedJDV3,
@@ -10,8 +10,6 @@ import {
   type SemanticMatchEntry,
   type SemanticMatchV3,
 } from "./intelligence-schemas";
-
-const MODEL = "gemini-1.5-flash";
 
 const SYSTEM = [
   "You are TalentOS Semantic Matcher v3.",
@@ -80,11 +78,8 @@ export async function runSemanticMatch(
     });
   }
 
-  const key = process.env.AI_API_KEY;
-  if (!key) return deterministicFallback(resume, jd);
-
-  const gateway = createAiGatewayProvider(key);
-  const model = gateway(MODEL);
+  const model = getAiModel();
+  if (!model) return deterministicFallback(resume, jd);
 
   const call = async () => {
     const { text } = await generateText({
@@ -100,6 +95,7 @@ export async function runSemanticMatch(
     return await call();
   } catch (error) {
     console.warn("[semantic-match] first attempt failed, retrying once", error);
+    await delay(1000);
     try {
       return await call();
     } catch (error2) {
@@ -204,4 +200,8 @@ function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): Semantic
     };
   });
   return { matches };
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

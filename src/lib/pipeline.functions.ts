@@ -11,7 +11,7 @@ export type { PipelineResult } from "./pipeline.server";
 // Runs Resume Parser → JD Intelligence → Skill Normalization → Matching →
 // Evidence. Future services are appended in pipeline.server.ts, not here.
 export const runResumeIntelligence = createServerFn({ method: "POST" })
-  .inputValidator((data: unknown) => PipelineInputSchema.parse(data))
+  .validator((data: unknown) => PipelineInputSchema.parse(data))
   .handler(async ({ data }): Promise<PipelineResult> => {
     return runResumeIntelligencePipeline(data);
   });

@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { createAiGatewayProvider } from "./ai-gateway.server";
+import { getAiModel } from "./ai-gateway.server";
 import crypto from "crypto";
 
 const analysisCache = new Map<string, ResumeAnalysis>();
@@ -186,13 +186,12 @@ const KNOWN_TECHNOLOGIES = [
 export async function runParseResume(data: ParsedInput): Promise<ParsedResumeData> {
   const resumeText = normalizeText(data.resumeText);
   const local = parseResumeLocally(resumeText);
-  const key = process.env.AI_API_KEY;
-  if (!key) return finalizeNotFound(local);
+  const model = getAiModel();
+  if (!model) return finalizeNotFound(local);
 
   try {
-    const gateway = createAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("gemini-1.5-flash"),
+      model,
       temperature: 0,
       instructions: [
         "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
@@ -270,8 +269,8 @@ function finalizeNotFound(parsed: ParsedResumeData): ParsedResumeData {
 
 async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysis> {
   const local = createLocalAnalysis(data.resumeText, data.jobDescription, data.candidateName);
-  const key = process.env.AI_API_KEY;
-  if (!key) return local;
+  const model = getAiModel();
+  if (!model) return local;
 
   const hashId = crypto
     .createHash("sha256")
@@ -282,9 +281,8 @@ async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysi
   }
 
   try {
-    const gateway = createAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("gemini-1.5-flash"),
+      model,
       temperature: 0,
       instructions:
         "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Provide a highly accurate and strict 'overallScore' (0-100) based on direct evidence of mandatory skills and depth of experience. Never hallucinate skills. Return only valid JSON matching the requested keys.",

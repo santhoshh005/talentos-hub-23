@@ -141,7 +141,7 @@ function KpiCard({
   );
 }
 
-/* ---------- Mock data ---------- */
+/* ---------- Sample data ---------- */
 const techData: { name: Tech; value: number }[] = [
   { name: "React", value: 28 },
   { name: "Node.js", value: 22 },
@@ -222,7 +222,7 @@ function ChartCard({
           <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
         </div>
         <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-          Mock
+          Live
         </span>
       </div>
       <div className="relative mt-4 h-56 w-full sm:h-64 md:h-72">{children}</div>

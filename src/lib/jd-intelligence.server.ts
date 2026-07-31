@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { z } from "zod";
-import { createAiGatewayProvider } from "./ai-gateway.server";
+import { getAiModel } from "./ai-gateway.server";
 import { isCleanSkillToken } from "./token-sanitizer";
 
 // ---------------------------------------------------------------------------
@@ -195,13 +195,12 @@ const SECTION_MAP: Array<{ bucket: SectionBucket; headers: string[] }> = [
 export async function runJdIntelligence(data: JdInput): Promise<JdIntelligence> {
   const jd = normalize(data.jobDescription);
   const local = parseJdLocally(jd);
-  const key = process.env.AI_API_KEY;
-  if (!key) return finalize(local);
+  const model = getAiModel();
+  if (!model) return finalize(local);
 
   try {
-    const gateway = createAiGatewayProvider(key);
     const { text } = await generateText({
-      model: gateway("gemini-1.5-flash"),
+      model,
       temperature: 0,
       instructions: [
         "You are the TalentOS JD Intelligence Engine.",
