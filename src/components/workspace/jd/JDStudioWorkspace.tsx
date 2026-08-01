@@ -322,7 +322,16 @@ export function JDStudioWorkspace() {
                         className="inline-flex items-center rounded-full bg-white/5 px-2.5 py-1 text-xs text-muted-foreground"
                       >
                         {skill.trim()}{" "}
-                        <span className="ml-1 cursor-pointer hover:text-white">×</span>
+                        <span 
+                          className="ml-1 cursor-pointer hover:text-white"
+                          onClick={() => {
+                            const parts = mustHaveSkills.split(",").filter((s) => s.trim());
+                            parts.splice(i, 1);
+                            setMustHaveSkills(parts.join(", "));
+                          }}
+                        >
+                          ×
+                        </span>
                       </span>
                     ))}
                 </div>
