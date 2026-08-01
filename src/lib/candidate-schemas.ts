@@ -18,45 +18,45 @@ export type EducationEntry = z.infer<typeof EducationEntrySchema>;
 
 export const CandidateRecordSchema = z.object({
   // Identity
-  fullName: z.string().default(""),
-  headline: z.string().default(""),
-  summary: z.string().default(""),
+  fullName: z.string().default("").describe("Candidate's full name"),
+  headline: z.string().default("").describe("Professional headline or title"),
+  summary: z.string().default("").describe("Professional summary or objective"),
   // Contact
-  email: z.string().default(""),
-  mobile: z.string().default(""),
-  linkedin: z.string().default(""),
-  github: z.string().default(""),
-  portfolio: z.string().default(""),
+  email: z.string().default("").describe("Email address"),
+  mobile: z.string().default("").describe("Phone or mobile number"),
+  linkedin: z.string().default("").describe("LinkedIn profile URL"),
+  github: z.string().default("").describe("GitHub profile URL"),
+  portfolio: z.string().default("").describe("Personal website or portfolio URL"),
   // Current employment
-  currentCompany: z.string().default(""),
-  currentDesignation: z.string().default(""),
-  employmentType: z.string().default(""),
+  currentCompany: z.string().default("").describe("Current or most recent employer"),
+  currentDesignation: z.string().default("").describe("Current or most recent job title"),
+  employmentType: z.string().default("").describe("Employment type e.g., Full-time, Contract"),
   // Previous employment
-  previousEmployment: z.array(EmploymentEntrySchema).default([]),
+  previousEmployment: z.array(EmploymentEntrySchema).default([]).describe("List of all past employments"),
   // Experience
-  totalExperience: z.string().default(""),
-  relevantExperience: z.string().default(""),
+  totalExperience: z.string().default("").describe("Total years of professional experience"),
+  relevantExperience: z.string().default("").describe("Years of experience relevant to their primary field"),
   // Skills
-  primarySkills: z.array(z.string()).default([]),
-  secondarySkills: z.array(z.string()).default([]),
+  primarySkills: z.array(z.string()).default([]).describe("Core, primary, or must-have skills"),
+  secondarySkills: z.array(z.string()).default([]).describe("Secondary or nice-to-have skills"),
   // Location
-  currentLocation: z.string().default(""),
-  preferredLocation: z.string().default(""),
+  currentLocation: z.string().default("").describe("Current city, state, or country"),
+  preferredLocation: z.string().default("").describe("Preferred locations for jobs if mentioned"),
   // Compensation
-  currentCTC: z.string().default(""),
-  expectedCTC: z.string().default(""),
-  noticePeriod: z.string().default(""),
-  currentOffer: z.string().default(""),
-  reasonForChange: z.string().default(""),
+  currentCTC: z.string().default("").describe("Current salary or CTC if mentioned"),
+  expectedCTC: z.string().default("").describe("Expected salary or CTC if mentioned"),
+  noticePeriod: z.string().default("").describe("Notice period duration if mentioned"),
+  currentOffer: z.string().default("").describe("Any current offers in hand if mentioned"),
+  reasonForChange: z.string().default("").describe("Reason for looking for a change if mentioned"),
   // Education & Certifications
-  education: z.array(EducationEntrySchema).default([]),
-  certifications: z.array(z.string()).default([]),
+  education: z.array(EducationEntrySchema).default([]).describe("List of degrees and institutions"),
+  certifications: z.array(z.string()).default([]).describe("List of certifications, courses, or licenses"),
   // Documents
-  pan: z.string().default(""),
-  passport: z.string().default(""),
-  visaStatus: z.string().default(""),
+  pan: z.string().default("").describe("PAN card number if mentioned"),
+  passport: z.string().default("").describe("Passport number if mentioned"),
+  visaStatus: z.string().default("").describe("Visa or work authorization status if mentioned"),
   // Recruiter notes
-  recruiterNotes: z.string().default(""),
+  recruiterNotes: z.string().default("").describe("Leave this blank"),
 });
 export type CandidateRecord = z.infer<typeof CandidateRecordSchema>;
 
