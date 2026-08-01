@@ -9,6 +9,7 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
 import { AppLayout } from "../components/layout/AppLayout";
 import { LoaderProvider } from "../components/loader/LoaderProvider";
@@ -142,6 +143,7 @@ function RootComponent() {
         <FirstVisitGate>
           <Outlet />
         </FirstVisitGate>
+        <Toaster theme="dark" position="top-center" richColors />
       </LoaderProvider>
     </QueryClientProvider>
   );
