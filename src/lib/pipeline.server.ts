@@ -339,7 +339,7 @@ function adaptResumeV3ToLegacy(r: ParsedResumeV3): ParsedResumeData {
     certifications: r.certifications,
     technologies,
     currentDesignation: scalar(r.currentDesignation),
-    relevantExperience: "Not Found",
+    relevantExperience: r.relevantYears && r.relevantYears > 0 ? `${r.relevantYears} years` : "Not Found",
     employmentHistory,
     educationHistory: r.education,
     tools: [],

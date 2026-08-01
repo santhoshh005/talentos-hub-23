@@ -72,6 +72,7 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
       currentCompany: str(legacy.currentCompany),
       currentDesignation: str(legacy.currentDesignation),
       totalYears: num(legacy.experience),
+      relevantYears: 0,
       noticePeriod: str(legacy.noticePeriod),
       employment,
       education,
