@@ -1,24 +1,37 @@
 import { createGroq } from "@ai-sdk/groq";
+import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 
-/** Default model used across all AI extractions. */
-export const AI_MODEL = "llama-3.3-70b-versatile";
+/** Default model used across all AI extractions (Lovable AI Gateway). */
+export const AI_MODEL = "google/gemini-3.6-flash";
+/** Model used when falling back to a direct Groq key. */
+export const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 /**
- * Returns a configured Google Generative AI provider.
- * Reads `AI_API_KEY` from the environment when no key is supplied.
+ * Returns a configured chat model.
+ * Prefers the Lovable AI Gateway (`LOVABLE_API_KEY`); falls back to a direct
+ * Groq key (`AI_API_KEY`) when one is configured.
  */
-export function createAiGatewayProvider(apiKey?: string) {
-  const key = apiKey ?? process.env.AI_API_KEY;
-  if (!key) {
-    console.warn("[ai-gateway] AI_API_KEY is not set — AI features will be disabled.");
-    return null;
+export function getAiModel() {
+  const lovableKey = process.env["LOVABLE_API_KEY"];
+  if (lovableKey) {
+    const gateway = createOpenAICompatible({
+      name: "lovable",
+      baseURL: "https://ai.gateway.lovable.dev/v1",
+      headers: { "Lovable-API-Key": lovableKey },
+    });
+    return gateway(AI_MODEL);
   }
-  return createGroq({ apiKey: key });
+
+  const groqKey = process.env["AI_API_KEY"];
+  if (groqKey) return createGroq({ apiKey: groqKey })(GROQ_MODEL);
+
+  console.warn("[ai-gateway] No AI key configured — AI features are disabled.");
+  return null;
 }
 
-/** Convenience: get the gateway + model in one call. Returns null when no key is configured. */
-export function getAiModel() {
-  const gateway = createAiGatewayProvider();
-  if (!gateway) return null;
-  return gateway(AI_MODEL);
+/** Back-compat helper. */
+export function createAiGatewayProvider(apiKey?: string) {
+  const key = apiKey ?? process.env["AI_API_KEY"];
+  if (!key) return null;
+  return createGroq({ apiKey: key });
 }
