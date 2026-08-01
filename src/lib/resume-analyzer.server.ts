@@ -314,8 +314,8 @@ ${data.jobDescription.slice(0, 8000)}`,
   }
 }
 
-function parseResumeLocally(rawText: string): ParsedResumeData {
-  const text = normalizeText(rawText);
+export function parseResumeLocally(resumeText: string): ParsedResumeData {
+  const text = normalizeText(resumeText);
   const lines = text
     .split("\n")
     .map((line) => line.trim())

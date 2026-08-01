@@ -14,6 +14,8 @@ import {
   type ParsedJDV3,
   type ParsedResumeV3,
 } from "./intelligence-schemas";
+import { parseResumeLocally } from "./resume-analyzer.server";
+import { parseJdLocally } from "./jd-intelligence.server";
 
 const RESUME_SYSTEM = [
   "You are TalentOS Resume Extractor v3.",
@@ -47,7 +49,36 @@ function buildJdPrompt(jdText: string): string {
 
 export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV3> {
   const model = getAiModel();
-  if (!model) return ParsedResumeV3Schema.parse({});
+
+  const fallback = () => {
+    const legacy = parseResumeLocally(resumeText);
+    const skills = arr(legacy.skills).map((s) => coerceSkillEntry(str(s)));
+    const education = legacy.educationHistory ? arr(legacy.educationHistory).map(str) : (legacy.education ? [str(legacy.education)] : []);
+    
+    return ParsedResumeV3Schema.parse({
+      name: str(legacy.name),
+      email: str(legacy.email),
+      phone: str(legacy.phone),
+      location: str(legacy.location),
+      currentCompany: str(legacy.currentCompany),
+      currentDesignation: str(legacy.currentDesignation),
+      totalYears: num(legacy.experience),
+      noticePeriod: str(legacy.noticePeriod),
+      employment: [],
+      education,
+      certifications: strArr(legacy.certifications),
+      projects: strArr(legacy.projects),
+      languages: strArr(legacy.languages),
+      skills: dedupeSkills(skills),
+      inferredDomain: "",
+      inferredSeniority: "",
+      strengths: [],
+      risks: [],
+      summary: "",
+    });
+  };
+
+  if (!model) return fallback();
 
   const call = async () => {
     const { object } = await generateObject({
@@ -68,15 +99,40 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
     try {
       return await call();
     } catch (error2) {
-      console.error("[llm-extract] resume v3 failed twice, returning empty shell", error2);
-      return ParsedResumeV3Schema.parse({});
+      console.error("[llm-extract] resume v3 failed twice, returning local parse", error2);
+      return fallback();
     }
   }
 }
 
 export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
   const model = getAiModel();
-  if (!model) return ParsedJDV3Schema.parse({});
+
+  const fallback = () => {
+    const legacy = parseJdLocally(jdText);
+    const required = arr(legacy.requiredSkills).map((s) => coerceRequirement(str(s)));
+    const preferred = arr(legacy.preferredSkills).map((s) => coerceRequirement(str(s)));
+    
+    return ParsedJDV3Schema.parse({
+      jobTitle: str(legacy.jobTitle),
+      domain: str(legacy.domain),
+      industry: str(legacy.industry),
+      department: str(legacy.department),
+      employmentType: str(legacy.employmentType),
+      seniorityLevel: str(legacy.seniorityLevel),
+      experienceRequired: str(legacy.experienceRequired),
+      minYears: 0,
+      maxYears: 0,
+      educationRequired: strArr(legacy.educationRequired),
+      required: dedupeRequirements(required),
+      preferred: dedupeRequirements(preferred),
+      responsibilities: strArr(legacy.responsibilities),
+      softSkills: strArr(legacy.softSkills),
+      certifications: strArr(legacy.certifications),
+    });
+  };
+
+  if (!model) return fallback();
 
   const call = async () => {
     const { object } = await generateObject({
@@ -97,8 +153,8 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
     try {
       return await call();
     } catch (error2) {
-      console.error("[llm-extract] jd v3 failed twice, returning empty shell", error2);
-      return ParsedJDV3Schema.parse({});
+      console.error("[llm-extract] jd v3 failed twice, returning local parse", error2);
+      return fallback();
     }
   }
 }

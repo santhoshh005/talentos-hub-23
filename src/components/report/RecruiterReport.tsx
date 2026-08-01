@@ -1,29 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  Sparkles,
-  CheckCircle2,
-  AlertTriangle,
-  PlusCircle,
-  ChevronDown,
-  Briefcase,
-  GraduationCap,
-  Award,
-  FolderKanban,
-  Clock,
-  Cpu,
-  FileSearch,
-  Brain,
-  Layers,
-  Target,
-  ShieldCheck,
-  Lock,
-  Mail,
-  Phone,
-  MapPin,
-  TrendingUp,
-  ShieldAlert,
-} from "lucide-react";
+import { Download, ChevronDown, Calendar, Briefcase, Award, FolderKanban, Cpu, Brain, Sparkles, Target, Layers, Clock, ShieldCheck, FileText, Code2, HeartHandshake, Database, Lock, CheckCircle2, AlertTriangle, PlusCircle, GraduationCap, FileSearch, MapPin, TrendingUp, ShieldAlert, Mail, Phone } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import type { PipelineResult } from "@/lib/pipeline.functions";
 
@@ -424,7 +402,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
         </GlassCard>
       </motion.div>
 
-      {/* Section 6: Future AI Insights */}
+      {/* Section 6: AI Insights */}
       <motion.div
         initial="hidden"
         whileInView="show"
@@ -433,35 +411,84 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
       >
         <SectionHeader
           eyebrow="Section 6"
-          title="Future AI Insights"
+          title="AI Insights"
           icon={Brain}
-          description="Plug-in intelligence services arriving next."
+          description="Context-aware intelligence from the TalentOS pipeline."
         />
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FUTURE_INSIGHTS.map((f, i) => (
+        <div className="grid gap-4 sm:grid-cols-2">
+          {intelligence?.aiFitSummary ? (
             <motion.div
-              key={f.title}
-              custom={i}
               initial="hidden"
               whileInView="show"
               viewport={{ once: true }}
               variants={fadeUp}
             >
-              <GlassCard className="relative overflow-hidden p-5 opacity-70">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_60%)]" />
-                <div className="mb-3 flex items-center justify-between">
-                  <div className="rounded-lg border border-white/10 bg-white/[0.04] p-2 text-accent">
-                    <f.icon className="h-4 w-4" />
+              <GlassCard className="h-full p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-medium text-foreground">
+                    <Brain className="h-4 w-4 text-accent" />
+                    AI Fit Summary
                   </div>
-                  <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-                    <Lock className="h-3 w-3" /> Coming Soon
-                  </span>
                 </div>
-                <div className="text-base font-medium">{f.title}</div>
-                <p className="mt-1 text-sm text-muted-foreground">{f.description}</p>
+                <div className="prose prose-invert prose-sm max-w-none text-muted-foreground">
+                  <ReactMarkdown>{intelligence.aiFitSummary}</ReactMarkdown>
+                </div>
               </GlassCard>
             </motion.div>
-          ))}
+          ) : (
+            <GlassCard className="p-5 opacity-70">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-medium">
+                  <Brain className="h-4 w-4" /> Recruiter Intelligence
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[8px] uppercase tracking-widest text-muted-foreground">
+                  <Lock className="mr-1 inline-block h-2 w-2" /> Missing AI Key
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Set AI_API_KEY to generate an AI-authored fit summary and hiring rationale.
+              </div>
+            </GlassCard>
+          )}
+
+          {intelligence?.aiInterviewQuestions && intelligence.aiInterviewQuestions.length > 0 ? (
+            <motion.div
+              initial="hidden"
+              whileInView="show"
+              viewport={{ once: true }}
+              variants={fadeUp}
+            >
+              <GlassCard className="h-full p-5">
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-medium text-foreground">
+                    <Sparkles className="h-4 w-4 text-accent" />
+                    Suggested Interview Questions
+                  </div>
+                </div>
+                <ul className="space-y-3">
+                  {intelligence.aiInterviewQuestions.map((q, i) => (
+                    <li key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-sm text-muted-foreground">
+                      <ReactMarkdown>{q}</ReactMarkdown>
+                    </li>
+                  ))}
+                </ul>
+              </GlassCard>
+            </motion.div>
+          ) : (
+            <GlassCard className="p-5 opacity-70">
+              <div className="mb-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 font-medium">
+                  <Sparkles className="h-4 w-4" /> Interview Questions
+                </div>
+                <div className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[8px] uppercase tracking-widest text-muted-foreground">
+                  <Lock className="mr-1 inline-block h-2 w-2" /> Missing AI Key
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Set AI_API_KEY to generate role-calibrated technical and behavioral question sets.
+              </div>
+            </GlassCard>
+          )}
         </div>
       </motion.div>
     </div>

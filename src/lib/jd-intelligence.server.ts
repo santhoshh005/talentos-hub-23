@@ -256,7 +256,7 @@ ${jd.slice(0, 20000)}`,
 // Deterministic fallback
 // ---------------------------------------------------------------------------
 
-function parseJdLocally(jd: string): JdIntelligence {
+export function parseJdLocally(jd: string): JdIntelligence {
   const lines = jd
     .split("\n")
     .map((l) => l.trim())

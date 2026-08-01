@@ -28,7 +28,7 @@ export function Footer() {
         className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent"
       />
       <div className="mx-auto max-w-7xl px-4 py-16">
-        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <Link to="/" className="flex items-center gap-2">
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-[0_0_20px_-4px] shadow-primary/60">
@@ -89,24 +89,6 @@ export function Footer() {
             </div>
           ))}
 
-          <div>
-            <h4 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Stay in the loop
-            </h4>
-            <p className="mt-4 text-sm text-muted-foreground">
-              Product updates and AI recruitment insights.
-            </p>
-            <form className="mt-3 flex gap-2" onSubmit={(e) => e.preventDefault()}>
-              <input
-                type="email"
-                placeholder="you@company.com"
-                className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/60"
-              />
-              <button className="shrink-0 rounded-lg bg-gradient-to-r from-primary to-accent px-3 py-2 text-sm font-medium text-white shadow-[0_10px_30px_-10px] shadow-primary/60">
-                Join
-              </button>
-            </form>
-          </div>
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/5 pt-6 text-sm text-muted-foreground md:flex-row md:items-center">

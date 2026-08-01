@@ -48,6 +48,8 @@ export interface RecruiterIntelligence {
   strengths: string[];
   risks: string[];
   missingByCategory: GroupedSkills[];
+  aiFitSummary?: string;
+  aiInterviewQuestions?: string[];
 }
 
 // ---------------------------------------------------------------------------

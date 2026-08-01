@@ -17,6 +17,8 @@
 // ---------------------------------------------------------------------------
 
 import { z } from "zod";
+import { getAiModel } from "./ai-gateway.server";
+import { generateObject } from "ai";
 import { runParseResume, type ParsedResumeData } from "./resume-analyzer.server";
 import { runJdIntelligence, type JdIntelligence } from "./jd-intelligence.server";
 import { normalizeSkills, type SkillNormalizationOutput } from "./skill-normalizer";
@@ -178,6 +180,24 @@ const defaultPipelineStages: PipelineStage[] = [
         resumeV3: ctx.resumeV3,
         jdV3: ctx.jdV3,
       });
+
+      const aiModel = getAiModel();
+      if (aiModel) {
+        try {
+          const { object } = await generateObject({
+            model: aiModel,
+            schema: z.object({
+              aiFitSummary: z.string().describe("A summary of why the candidate is a good fit or not"),
+              aiInterviewQuestions: z.array(z.string()).describe("List of suggested interview questions"),
+            }),
+            prompt: `Based on this resume and job description, provide a fit summary and interview questions.\n\nResume: ${ctx.input.resumeText.slice(0, 10000)}\n\nJob Description: ${ctx.input.jobDescription.slice(0, 10000)}`,
+          });
+          ctx.intelligence.aiFitSummary = object.aiFitSummary;
+          ctx.intelligence.aiInterviewQuestions = object.aiInterviewQuestions;
+        } catch (err) {
+          console.warn("[Pipeline] ai generation failed in recruiterIntelligence", err);
+        }
+      }
     },
   },
 ];
