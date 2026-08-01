@@ -197,6 +197,7 @@ function coerceParsedResume(raw: unknown): ParsedResumeV3 {
       employment[0]?.title ||
       "",
     totalYears: num(src.totalYears),
+    relevantYears: num(src.relevantYears),
     noticePeriod: str(src.noticePeriod),
     employment,
     education: strArr(src.education),

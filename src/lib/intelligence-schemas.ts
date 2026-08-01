@@ -9,11 +9,11 @@
 import { z } from "zod";
 
 const SkillEntryV3Schema = z.object({
-  canonical: z.string(),
-  aliases: z.array(z.string()).default([]),
-  category: z.string().default("Other"),
-  years: z.number().default(0),
-  evidence: z.array(z.string()).default([]),
+  canonical: z.string().describe("The canonical, industry-standard name of the skill (e.g., 'React.js', 'Python')"),
+  aliases: z.array(z.string()).default([]).describe("Alternative names or variations found in the text (e.g., ['React', 'ReactJS'])"),
+  category: z.string().default("Other").describe("A broad category for the skill (e.g., 'Frontend', 'Backend', 'Data')"),
+  years: z.number().default(0).describe("Years of experience with this skill if explicitly mentioned, else 0"),
+  evidence: z.array(z.string()).default([]).describe("Short excerpts from the text proving this skill"),
 });
 type SkillEntryV3 = z.infer<typeof SkillEntryV3Schema>;
 
@@ -52,29 +52,29 @@ export const ParsedResumeV3Schema = z.object({
 export type ParsedResumeV3 = z.infer<typeof ParsedResumeV3Schema>;
 
 const JdRequirementV3Schema = z.object({
-  canonical: z.string(),
-  aliases: z.array(z.string()).default([]),
-  category: z.string().default("Other"),
-  weight: z.number().default(1),
+  canonical: z.string().describe("The canonical, industry-standard name of the skill (e.g., 'React.js', 'Python')"),
+  aliases: z.array(z.string()).default([]).describe("Alternative names or variations found in the text (e.g., ['React', 'ReactJS'])"),
+  category: z.string().default("Other").describe("A broad category for the skill (e.g., 'Frontend', 'Backend', 'Data')"),
+  weight: z.number().default(1).describe("Importance weight: 1 (nice to have), 2 (important), 3 (critical)"),
 });
 type JdRequirementV3 = z.infer<typeof JdRequirementV3Schema>;
 
 export const ParsedJDV3Schema = z.object({
-  jobTitle: z.string().default(""),
-  domain: z.string().default(""),
-  industry: z.string().default(""),
-  department: z.string().default(""),
-  employmentType: z.string().default(""),
-  seniorityLevel: z.string().default(""),
-  experienceRequired: z.string().default(""),
-  minYears: z.number().default(0),
-  maxYears: z.number().default(0),
-  educationRequired: z.array(z.string()).default([]),
-  required: z.array(JdRequirementV3Schema).default([]),
-  preferred: z.array(JdRequirementV3Schema).default([]),
-  responsibilities: z.array(z.string()).default([]),
-  softSkills: z.array(z.string()).default([]),
-  certifications: z.array(z.string()).default([]),
+  jobTitle: z.string().default("").describe("Job title or position name"),
+  domain: z.string().default("").describe("Inferred professional domain (e.g., Software Engineering, Sales)"),
+  industry: z.string().default("").describe("Industry (e.g., Tech, Healthcare, Finance)"),
+  department: z.string().default("").describe("Department within the company"),
+  employmentType: z.string().default("").describe("Employment type (e.g., Full-time, Contract)"),
+  seniorityLevel: z.string().default("").describe("Seniority level (e.g., Junior, Senior, Staff)"),
+  experienceRequired: z.string().default("").describe("Raw text description of experience required"),
+  minYears: z.number().default(0).describe("Minimum years of experience required"),
+  maxYears: z.number().default(0).describe("Maximum years of experience required, or 0 if unstated"),
+  educationRequired: z.array(z.string()).default([]).describe("Required or preferred education degrees"),
+  required: z.array(JdRequirementV3Schema).default([]).describe("Mandatory hard skills and requirements"),
+  preferred: z.array(JdRequirementV3Schema).default([]).describe("Nice-to-have or preferred hard skills"),
+  responsibilities: z.array(z.string()).default([]).describe("List of core job responsibilities"),
+  softSkills: z.array(z.string()).default([]).describe("Required soft skills (e.g., Communication, Leadership)"),
+  certifications: z.array(z.string()).default([]).describe("Required or preferred certifications/licenses"),
 });
 export type ParsedJDV3 = z.infer<typeof ParsedJDV3Schema>;
 
