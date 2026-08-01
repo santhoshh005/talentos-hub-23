@@ -52,8 +52,17 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
 
   const fallback = () => {
     const legacy = parseResumeLocally(resumeText);
-    const skills = arr(legacy.skills).map((s) => coerceSkillEntry(str(s)));
+    const combinedSkills = Array.from(new Set([...arr(legacy.skills), ...arr(legacy.technologies)]));
+    const skills = combinedSkills.map((s) => coerceSkillEntry(str(s)));
     const education = legacy.educationHistory ? arr(legacy.educationHistory).map(str) : (legacy.education ? [str(legacy.education)] : []);
+    const employment = legacy.employmentHistory ? arr(legacy.employmentHistory).map(str).map(e => ({
+      company: "",
+      title: e,
+      start: "",
+      end: "",
+      isCurrent: false,
+      description: []
+    })) : [];
     
     return ParsedResumeV3Schema.parse({
       name: str(legacy.name),
@@ -64,7 +73,7 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
       currentDesignation: str(legacy.currentDesignation),
       totalYears: num(legacy.experience),
       noticePeriod: str(legacy.noticePeriod),
-      employment: [],
+      employment,
       education,
       certifications: strArr(legacy.certifications),
       projects: strArr(legacy.projects),

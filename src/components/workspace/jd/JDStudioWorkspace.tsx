@@ -52,6 +52,9 @@ export function JDStudioWorkspace() {
     onSuccess: (data) => {
       setFinalJD(data);
     },
+    onError: (error) => {
+      toast.error(error.message || "Failed to generate job description.");
+    },
   });
 
   const { mutate, isPending } = useMutation({
@@ -72,6 +75,9 @@ export function JDStudioWorkspace() {
     },
     onSuccess: (data) => {
       setFinalJD(data);
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to generate job description.");
     },
   });
 
