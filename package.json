@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "NITRO_PRESET=vercel vite build",
+    "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
@@ -33,6 +33,7 @@
     "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.575.0",
     "mammoth": "^1.12.0",
+    "nitro": "^3.0.260610-beta",
     "pdfjs-dist": "^6.1.200",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
