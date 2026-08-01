@@ -260,21 +260,6 @@ function normalize(text: string): string {
     .trim();
 }
 
-function parseJsonObject(text: string): unknown {
-  const cleaned = text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return {};
-  try {
-    return JSON.parse(cleaned.slice(start, end + 1));
-  } catch {
-    return {};
-  }
-}
-
 function obj(v: unknown): Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v)
     ? (v as Record<string, unknown>)

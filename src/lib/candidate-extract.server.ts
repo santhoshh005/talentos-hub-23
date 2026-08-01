@@ -75,25 +75,6 @@ function walkNullToEmpty(value: unknown): unknown {
   return value;
 }
 
-function parseJsonObject(text: string): unknown {
-  const trimmed = text.trim().replace(/^```(?:json)?\s*|\s*```$/g, "");
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    // Extract first {...} block
-    const start = trimmed.indexOf("{");
-    const end = trimmed.lastIndexOf("}");
-    if (start >= 0 && end > start) {
-      try {
-        return JSON.parse(trimmed.slice(start, end + 1));
-      } catch {
-        /* fall through */
-      }
-    }
-    return {};
-  }
-}
-
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }

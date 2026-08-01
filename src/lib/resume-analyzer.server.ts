@@ -193,7 +193,7 @@ export async function runParseResume(data: ParsedInput): Promise<ParsedResumeDat
     const { text } = await generateText({
       model,
       temperature: 0,
-      instructions: [
+      system: [
         "You are TalentOS Resume Parser — a domain-agnostic parser that works across ALL industries:",
         "IT, Talent Acquisition, HR, Finance, Banking, Accounting, Sales, Marketing, Healthcare, Pharma,",
         "Manufacturing, Mechanical / Civil / Electrical / Electronics / Embedded / Automotive / Aerospace",
@@ -284,7 +284,7 @@ async function runAnalyzeResumeMatch(data: AnalysisInput): Promise<ResumeAnalysi
     const { text } = await generateText({
       model,
       temperature: 0,
-      instructions:
+      system:
         "You are a senior technical recruiter. Analyze the exact resume against the exact job description. Provide a highly accurate and strict 'overallScore' (0-100) based on direct evidence of mandatory skills and depth of experience. Never hallucinate skills. Return only valid JSON matching the requested keys.",
       prompt: `Return JSON with these keys:
 overallScore number 0-100, verdict string, scores { technicalSkills, experience, education, communication, cultureFit }, matchingSkills string[], additionalSkills string[], missingSkills string[], summary string, strengths string[], weaknesses string[], resumeImprovements string[], hiringRecommendation string, interviewQuestions { technical string[], hr string[], scenario string[] }, scorecard { overallResumeQuality, atsCompatibility, keywordOptimization, formatting, experienceQuality, education, softSkills }.
@@ -299,6 +299,10 @@ ${data.jobDescription.slice(0, 8000)}`,
     });
 
     const parsed = normalizeAnalysis(parseJsonObject(text), local);
+    if (analysisCache.size >= 100) {
+      const firstKey = analysisCache.keys().next().value;
+      if (firstKey) analysisCache.delete(firstKey);
+    }
     analysisCache.set(hashId, parsed);
     return parsed;
   } catch (error) {

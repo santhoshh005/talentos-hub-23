@@ -85,7 +85,7 @@ export async function runSemanticMatch(
     const { text } = await generateText({
       model,
       temperature: 0,
-      instructions: SYSTEM,
+      system: SYSTEM,
       prompt: buildPrompt(resume, jd),
     });
     return coerceMatches(parseJsonObject(text), jdRequirements);

@@ -202,7 +202,7 @@ export async function runJdIntelligence(data: JdInput): Promise<JdIntelligence> 
     const { text } = await generateText({
       model,
       temperature: 0,
-      instructions: [
+      system: [
         "You are the TalentOS JD Intelligence Engine.",
         "You ONLY understand and structure a Job Description.",
         "You NEVER compare against candidates, score, or generate interview content.",
