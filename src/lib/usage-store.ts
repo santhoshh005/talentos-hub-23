@@ -4,16 +4,16 @@ export interface UsageState {
   totalCandidates: number;
   totalJds: number;
   positionsClosed: number;
-  techStacksDetected: string[];
+  techStacksDetected: Record<string, number>;
 }
 
-const STORAGE_KEY = "talentos:usage-tracker:v1";
+const STORAGE_KEY = "talentos:usage-tracker:v1.1";
 
 const empty: UsageState = {
   totalCandidates: 0,
   totalJds: 0,
   positionsClosed: 0,
-  techStacksDetected: [],
+  techStacksDetected: {},
 };
 
 let current: UsageState = { ...empty };
@@ -25,7 +25,27 @@ function hydrate(): void {
   hydrated = true;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) current = { ...empty, ...(JSON.parse(raw) as Partial<UsageState>) };
+    const legacyRaw = window.localStorage.getItem("talentos:usage-tracker:v1");
+
+    if (raw) {
+      current = { ...empty, ...(JSON.parse(raw) as Partial<UsageState>) };
+    } else if (legacyRaw) {
+      // Migrate legacy v1 data
+      const legacy = JSON.parse(legacyRaw);
+      const migratedTech: Record<string, number> = {};
+      if (Array.isArray(legacy.techStacksDetected)) {
+        legacy.techStacksDetected.forEach((t: string) => {
+          migratedTech[t] = 1;
+        });
+      }
+      current = {
+        totalCandidates: legacy.totalCandidates || 0,
+        totalJds: legacy.totalJds || 0,
+        positionsClosed: legacy.positionsClosed || 0,
+        techStacksDetected: migratedTech,
+      };
+      persist();
+    }
   } catch {
     current = { ...empty };
   }
@@ -54,11 +74,15 @@ function trackUsage(patch: Partial<UsageState>): void {
 
 export function trackCandidateAnalysis(techs: string[] = []): void {
   hydrate();
-  const nextTechs = new Set([...current.techStacksDetected, ...techs]);
+  const nextTechs = { ...current.techStacksDetected };
+  techs.forEach((t) => {
+    nextTechs[t] = (nextTechs[t] || 0) + 1;
+  });
+
   current = {
     ...current,
     totalCandidates: current.totalCandidates + 1,
-    techStacksDetected: Array.from(nextTechs),
+    techStacksDetected: nextTechs,
   };
   persist();
   listeners.forEach((fn) => fn());

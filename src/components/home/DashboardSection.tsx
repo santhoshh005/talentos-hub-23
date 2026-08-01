@@ -1,82 +1,40 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useInView } from "framer-motion";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Users, Cpu, Activity, FileText } from "lucide-react";
+import { useUsageStore } from "@/lib/usage-store";
 import {
-  Area,
-  AreaChart,
-  Bar,
   BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  ResponsiveContainer,
-  Tooltip,
+  Bar,
   XAxis,
   YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
-import {
-  Briefcase,
-  Users,
-  Cpu,
-  Target,
-  TrendingUp,
-  Activity,
-  CalendarRange,
-  Filter,
-  RotateCcw,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  ALL_SOURCES,
-  ALL_TECHS,
-  RANGE_KEYS,
-  normalizeDashboardSearch,
-  type RangeKey,
-  type Source,
-  type Tech,
-} from "@/lib/dashboard-search";
-import { useUsageStore } from "@/lib/usage-store";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
 /* ---------- KPI ---------- */
 const kpiMeta = [
   {
-    key: "positions",
-    base: 12,
-    suffix: "+",
-    label: "Positions Closed",
-    Icon: Briefcase,
+    key: "jds",
+    label: "JDs Analyzed",
+    Icon: FileText,
     tint: "from-primary/30 to-transparent",
-    scale: true,
   },
   {
     key: "candidates",
-    base: 100,
-    suffix: "+",
-    label: "Candidates Screened",
+    label: "Candidates Analyzed",
     Icon: Users,
     tint: "from-accent/30 to-transparent",
-    scale: true,
   },
   {
     key: "tech",
-    base: 20,
-    suffix: "+",
-    label: "Technologies Hired",
+    label: "Tech Stacks Detected",
     Icon: Cpu,
     tint: "from-primary/30 to-transparent",
-    scale: false,
-  },
-  {
-    key: "offer",
-    base: 95,
-    suffix: "%",
-    label: "Offer Success",
-    Icon: Target,
-    tint: "from-accent/30 to-transparent",
-    scale: false,
   },
 ] as const;
 
@@ -100,7 +58,6 @@ function useCountUp(target: number, active: boolean, duration = 1400) {
 
 function KpiCard({
   value,
-  suffix,
   label,
   Icon,
   tint,
@@ -108,9 +65,8 @@ function KpiCard({
   inView,
 }: {
   value: number;
-  suffix: string;
   label: string;
-  Icon: typeof Briefcase;
+  Icon: React.ElementType;
   tint: string;
   index: number;
   inView: boolean;
@@ -134,125 +90,9 @@ function KpiCard({
       </div>
       <div className="relative mt-5 flex items-baseline gap-1 sm:mt-6">
         <span className="text-4xl font-semibold tracking-tight text-gradient sm:text-5xl">{n}</span>
-        <span className="text-xl font-semibold text-accent sm:text-2xl">{suffix}</span>
       </div>
       <p className="relative mt-1 text-xs text-muted-foreground sm:text-sm">{label}</p>
     </motion.div>
-  );
-}
-
-/* ---------- Sample data ---------- */
-const techData: { name: Tech; value: number }[] = [
-  { name: "React", value: 28 },
-  { name: "Node.js", value: 22 },
-  { name: "Python", value: 18 },
-  { name: "Go", value: 12 },
-  { name: "AWS/Cloud", value: 14 },
-  { name: "Data/ML", value: 6 },
-];
-const funnelData = [
-  { stage: "Sourced", count: 420 },
-  { stage: "Screened", count: 260 },
-  { stage: "Interview", count: 120 },
-  { stage: "Offer", count: 32 },
-  { stage: "Hired", count: 24 },
-];
-const sourcesData: { name: Source; value: number }[] = [
-  { name: "LinkedIn", value: 46 },
-  { name: "Referrals", value: 22 },
-  { name: "Boolean Search", value: 18 },
-  { name: "Inbound", value: 14 },
-];
-const trendData = [
-  { m: "Jan", hires: 1, pipeline: 8 },
-  { m: "Feb", hires: 2, pipeline: 12 },
-  { m: "Mar", hires: 1, pipeline: 14 },
-  { m: "Apr", hires: 3, pipeline: 18 },
-  { m: "May", hires: 2, pipeline: 22 },
-  { m: "Jun", hires: 4, pipeline: 28 },
-  { m: "Jul", hires: 3, pipeline: 26 },
-  { m: "Aug", hires: 5, pipeline: 34 },
-];
-
-const RANGE_LABELS: Record<RangeKey, string> = { 3: "3M", 6: "6M", 8: "YTD" };
-
-const PIE_COLORS = ["#2563EB", "#38BDF8", "#7C3AED", "#22D3EE", "#3B82F6", "#0EA5E9"];
-
-const tooltipStyle = {
-  background: "rgba(15,23,42,0.9)",
-  border: "1px solid rgba(255,255,255,0.1)",
-  borderRadius: 12,
-  color: "#fff",
-  fontSize: 12,
-  backdropFilter: "blur(12px)",
-} as const;
-
-/* ---------- Chart card ---------- */
-function ChartCard({
-  title,
-  subtitle,
-  Icon,
-  inView,
-  delay,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  Icon: typeof Briefcase;
-  inView: boolean;
-  delay: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 30 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.7, delay, ease }}
-      className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-5"
-    >
-      <div className="pointer-events-none absolute inset-x-0 -top-24 h-48 bg-gradient-to-b from-primary/10 to-transparent blur-2xl" />
-      <div className="relative flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <div className="shrink-0 rounded-md border border-white/10 bg-white/[0.04] p-1.5">
-              <Icon className="h-3.5 w-3.5 text-accent" />
-            </div>
-            <h3 className="truncate text-sm font-medium text-foreground">{title}</h3>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">{subtitle}</p>
-        </div>
-        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
-          Live
-        </span>
-      </div>
-      <div className="relative mt-4 h-56 w-full sm:h-64 md:h-72">{children}</div>
-    </motion.div>
-  );
-}
-
-/* ---------- Filter Chip ---------- */
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-full border px-3 py-1 text-xs font-medium transition-all",
-        active
-          ? "border-accent/50 bg-accent/15 text-accent shadow-[0_0_20px_-6px] shadow-accent/60"
-          : "border-white/10 bg-white/[0.03] text-muted-foreground hover:border-white/20 hover:text-foreground",
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -262,102 +102,25 @@ export function DashboardSection() {
   const inView = useInView(ref, { once: true, margin: "-100px" });
   const usage = useUsageStore();
 
-  const rawSearch = useSearch({ strict: false }) as
-    { range?: number; techs?: string[]; sources?: string[] } | undefined;
-  const navigate = useNavigate();
-  const { range, techs: techsArr, sources: sourcesArr } = normalizeDashboardSearch(rawSearch);
-  const techs = useMemo(() => new Set<Tech>(techsArr), [techsArr]);
-  const sources = useMemo(() => new Set<Source>(sourcesArr), [sourcesArr]);
+  const techEntries = Object.entries(usage.techStacksDetected);
 
-  const updateSearch = (patch: { range?: RangeKey; techs?: Tech[]; sources?: Source[] }) => {
-    navigate({
-      to: ".",
-      search: (prev: Record<string, unknown> | undefined) => ({
-        ...(prev ?? {}),
-        ...patch,
-      }),
-      replace: true,
-    });
+  const kpiValues: Record<string, number> = {
+    jds: usage.totalJds,
+    candidates: usage.totalCandidates,
+    tech: techEntries.length,
   };
 
-  const setRange = (r: RangeKey) => updateSearch({ range: r });
+  const topTechs = [...techEntries]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10)
+    .map(([name, count]) => ({ name, count }));
 
-  const toggleTech = (t: Tech) => {
-    const next = new Set(techs);
-    if (next.has(t)) {
-      if (next.size > 1) next.delete(t);
-    } else next.add(t);
-    updateSearch({ techs: [...ALL_TECHS].filter((x) => next.has(x)) });
-  };
+  const pieData = [
+    { name: "JDs", value: usage.totalJds },
+    { name: "Candidates", value: usage.totalCandidates },
+  ].filter((d) => d.value > 0);
 
-  const toggleSource = (s: Source) => {
-    const next = new Set(sources);
-    if (next.has(s)) {
-      if (next.size > 1) next.delete(s);
-    } else next.add(s);
-    updateSearch({ sources: [...ALL_SOURCES].filter((x) => next.has(x)) });
-  };
-
-  const resetFilters = () =>
-    updateSearch({ range: 8, techs: [...ALL_TECHS], sources: [...ALL_SOURCES] });
-
-  const { filteredTech, filteredSources, filteredTrend, filteredFunnel, kpiValues, isFiltered } =
-    useMemo(() => {
-      const filteredTech = techData.filter((t) => techs.has(t.name));
-      const rawSources = sourcesData.filter((s) => sources.has(s.name));
-      const sourcesTotal = rawSources.reduce((sum, s) => sum + s.value, 0) || 1;
-      const filteredSources = rawSources.map((s) => ({
-        ...s,
-        value: Math.round((s.value / sourcesTotal) * 100),
-      }));
-      const filteredTrend = trendData.slice(-range);
-
-      const techShare =
-        techData.reduce((s, t) => s + (techs.has(t.name) ? t.value : 0), 0) /
-        techData.reduce((s, t) => s + t.value, 0);
-      const sourceShare =
-        sourcesData.reduce((s, x) => s + (sources.has(x.name) ? x.value : 0), 0) /
-        sourcesData.reduce((s, x) => s + x.value, 0);
-      const rangeShare = range / trendData.length;
-      const combined = techShare * sourceShare * rangeShare;
-
-      const filteredFunnel = funnelData.map((f) => ({
-        ...f,
-        count: Math.max(1, Math.round(f.count * combined)),
-      }));
-
-      const kpiValues: Record<string, number> = {
-        positions: usage.totalJds,
-        candidates: usage.totalCandidates,
-        tech: usage.techStacksDetected.length,
-        offer:
-          usage.totalCandidates > 0
-            ? Math.max(
-                60,
-                Math.min(99, Math.round(95 - (1 - techShare) * 10 - (1 - sourceShare) * 6)),
-              )
-            : 0,
-      };
-
-      const isFiltered =
-        range !== 8 || techs.size !== ALL_TECHS.length || sources.size !== ALL_SOURCES.length;
-
-      return {
-        filteredTech,
-        filteredSources,
-        filteredTrend,
-        filteredFunnel,
-        kpiValues,
-        isFiltered,
-      };
-    }, [
-      range,
-      techs,
-      sources,
-      usage.techStacksDetected.length,
-      usage.totalCandidates,
-      usage.totalJds,
-    ]);
+  const COLORS = ["#0284c7", "#4338ca"];
 
   return (
     <section ref={ref} className="relative py-16 sm:py-20 md:py-28">
@@ -380,101 +143,17 @@ export function DashboardSection() {
             <span className="text-gradient">Recruitment Intelligence Dashboard</span>
           </h2>
           <p className="mt-4 text-sm text-muted-foreground sm:text-base md:text-lg">
-            A live-feeling view of the hiring engine — pipeline health, sourcing mix, and momentum
-            across roles and technologies.
+            A live-feeling view of the hiring engine — tracking the exact volume of analyzed JDs,
+            processed candidates, and detected technology stacks.
           </p>
         </motion.div>
 
-        {/* Filter bar */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6, delay: 0.1, ease }}
-          className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-xl sm:p-5"
-        >
-          <div className="grid gap-4 lg:grid-cols-[auto_1fr_1fr_auto] lg:items-start">
-            {/* Date range */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                <CalendarRange className="h-3.5 w-3.5 text-accent" />
-                Date Range
-              </div>
-              <div className="mt-2 inline-flex rounded-full border border-white/10 bg-white/[0.03] p-0.5">
-                {RANGE_KEYS.map((r) => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setRange(r)}
-                    className={cn(
-                      "rounded-full px-3 py-1 text-xs font-medium transition-colors",
-                      range === r
-                        ? "bg-gradient-to-r from-primary to-accent text-white"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    {RANGE_LABELS[r]}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Technologies */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                <Cpu className="h-3.5 w-3.5 text-accent" />
-                Technologies
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {ALL_TECHS.map((t) => (
-                  <Chip key={t} active={techs.has(t)} onClick={() => toggleTech(t)}>
-                    {t}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-
-            {/* Sources */}
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-muted-foreground">
-                <Filter className="h-3.5 w-3.5 text-accent" />
-                Sources
-              </div>
-              <div className="mt-2 flex flex-wrap gap-1.5">
-                {ALL_SOURCES.map((s) => (
-                  <Chip key={s} active={sources.has(s)} onClick={() => toggleSource(s)}>
-                    {s}
-                  </Chip>
-                ))}
-              </div>
-            </div>
-
-            {/* Reset */}
-            <div className="flex items-end justify-end lg:h-full">
-              <button
-                type="button"
-                onClick={resetFilters}
-                disabled={!isFiltered}
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-xs font-medium transition-colors",
-                  isFiltered
-                    ? "text-foreground hover:bg-white/[0.06]"
-                    : "cursor-not-allowed text-muted-foreground/60",
-                )}
-              >
-                <RotateCcw className="h-3.5 w-3.5" />
-                Reset
-              </button>
-            </div>
-          </div>
-        </motion.div>
-
         {/* KPIs */}
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
           {kpiMeta.map((k, i) => (
             <KpiCard
               key={k.key}
               value={kpiValues[k.key]}
-              suffix={k.suffix}
               label={k.label}
               Icon={k.Icon}
               tint={k.tint}
@@ -484,177 +163,162 @@ export function DashboardSection() {
           ))}
         </div>
 
-        {/* Charts */}
-        <div className="mt-4 grid gap-3 sm:mt-6 sm:gap-4 lg:grid-cols-2">
-          <ChartCard
-            title="Technology Distribution"
-            subtitle="Hires by primary technology stack"
-            Icon={Cpu}
-            inView={inView}
-            delay={0.15}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filteredTech} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="techBar" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.95} />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0.7} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis
-                  dataKey="name"
-                  tick={{ fill: "#94A3B8", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip cursor={{ fill: "rgba(56,189,248,0.06)" }} contentStyle={tooltipStyle} />
-                <Bar
-                  dataKey="value"
-                  fill="url(#techBar)"
-                  radius={[6, 6, 0, 0]}
-                  animationDuration={1200}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
+        {/* Charts Section */}
+        <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-3">
+          {/* Bar Chart - Top Tech Stacks */}
+          <div className="lg:col-span-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
+            <h3 className="mb-6 flex items-center gap-2 text-lg font-medium text-foreground">
+              <Cpu className="h-5 w-5 text-primary" />
+              Most Common Tech Stacks Detected
+            </h3>
+            {topTechs.length > 0 ? (
+              <div className="h-[320px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={topTechs} margin={{ top: 20, right: 20, left: -20, bottom: 20 }}>
+                    <defs>
+                      <linearGradient id="colorBar" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={1} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.2} />
+                      </linearGradient>
+                      <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                        <feGaussianBlur stdDeviation="4" result="blur" />
+                        <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                      </filter>
+                    </defs>
+                    <XAxis
+                      dataKey="name"
+                      stroke="#888888"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      dy={10}
+                    />
+                    <YAxis
+                      stroke="#888888"
+                      fontSize={11}
+                      tickLine={false}
+                      axisLine={false}
+                      tickFormatter={(value) => `${value}`}
+                      dx={-10}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "rgba(255, 255, 255, 0.02)" }}
+                      contentStyle={{
+                        backgroundColor: "rgba(9, 9, 11, 0.8)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "12px",
+                        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+                        color: "#fff",
+                      }}
+                      itemStyle={{ color: "#38bdf8", fontWeight: 600 }}
+                    />
+                    <Bar
+                      dataKey="count"
+                      fill="url(#colorBar)"
+                      radius={[6, 6, 0, 0]}
+                      barSize={40}
+                      animationDuration={1500}
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            ) : (
+              <div className="flex h-[300px] items-center justify-center rounded-lg border border-white/5 bg-white/[0.01]">
+                <p className="text-sm text-muted-foreground">
+                  Analyze candidates to populate data.
+                </p>
+              </div>
+            )}
+          </div>
 
-          <ChartCard
-            title="Hiring Funnel"
-            subtitle="Candidates across every stage"
-            Icon={Target}
-            inView={inView}
-            delay={0.25}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                layout="vertical"
-                data={filteredFunnel}
-                margin={{ top: 8, right: 16, left: 8, bottom: 0 }}
-              >
-                <defs>
-                  <linearGradient id="funnelBar" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#38BDF8" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="rgba(255,255,255,0.06)"
-                  horizontal={false}
-                />
-                <XAxis
-                  type="number"
-                  tick={{ fill: "#94A3B8", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  dataKey="stage"
-                  type="category"
-                  tick={{ fill: "#94A3B8", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                  width={70}
-                />
-                <Tooltip cursor={{ fill: "rgba(56,189,248,0.06)" }} contentStyle={tooltipStyle} />
-                <Bar
-                  dataKey="count"
-                  fill="url(#funnelBar)"
-                  radius={[0, 6, 6, 0]}
-                  animationDuration={1400}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartCard>
-
-          <ChartCard
-            title="Candidate Sources"
-            subtitle="Where top candidates come from"
-            Icon={Users}
-            inView={inView}
-            delay={0.35}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Tooltip contentStyle={tooltipStyle} />
-                <Pie
-                  data={filteredSources}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={55}
-                  outerRadius={90}
-                  paddingAngle={3}
-                  stroke="rgba(2,6,23,0.6)"
-                  animationDuration={1400}
-                >
-                  {filteredSources.map((_, i) => (
-                    <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              {filteredSources.map((s, i) => (
-                <div key={s.name} className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i] }} />
-                    {s.name}
-                  </span>
-                  <span className="text-foreground/80">{s.value}%</span>
+          {/* Pie Chart - AI Usage Split */}
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
+            <h3 className="mb-6 flex items-center gap-2 text-lg font-medium text-foreground">
+              <Activity className="h-5 w-5 text-accent" />
+              AI Activity Breakdown
+            </h3>
+            {pieData.length > 0 ? (
+              <div className="flex h-[320px] w-full flex-col items-center justify-center relative">
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="flex flex-col items-center justify-center">
+                    <span className="text-3xl font-bold text-foreground">
+                      {usage.totalJds + usage.totalCandidates}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+                      Total
+                    </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-          </ChartCard>
-
-          <ChartCard
-            title="Hiring Trend"
-            subtitle="Monthly hires and pipeline growth"
-            Icon={TrendingUp}
-            inView={inView}
-            delay={0.45}
-          >
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={filteredTrend} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="pipelineArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#38BDF8" stopOpacity={0.55} />
-                    <stop offset="100%" stopColor="#38BDF8" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="hiresArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" stopOpacity={0.6} />
-                    <stop offset="100%" stopColor="#2563EB" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-                <XAxis
-                  dataKey="m"
-                  tick={{ fill: "#94A3B8", fontSize: 11 }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Area
-                  type="monotone"
-                  dataKey="pipeline"
-                  stroke="#38BDF8"
-                  strokeWidth={2}
-                  fill="url(#pipelineArea)"
-                  animationDuration={1400}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="hires"
-                  stroke="#2563EB"
-                  strokeWidth={2}
-                  fill="url(#hiresArea)"
-                  animationDuration={1600}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </ChartCard>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <defs>
+                      <linearGradient id="pie1" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#38bdf8" />
+                        <stop offset="100%" stopColor="#0284c7" />
+                      </linearGradient>
+                      <linearGradient id="pie2" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="#818cf8" />
+                        <stop offset="100%" stopColor="#4338ca" />
+                      </linearGradient>
+                    </defs>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={80}
+                      outerRadius={100}
+                      paddingAngle={8}
+                      dataKey="value"
+                      stroke="none"
+                      cornerRadius={6}
+                      animationDuration={1500}
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={index === 0 ? "url(#pie1)" : "url(#pie2)"}
+                          style={{ filter: "drop-shadow(0px 4px 10px rgba(0,0,0,0.5))" }}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      cursor={false}
+                      contentStyle={{
+                        backgroundColor: "rgba(9, 9, 11, 0.8)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid rgba(255,255,255,0.1)",
+                        borderRadius: "12px",
+                        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+                        color: "#fff",
+                      }}
+                      itemStyle={{ color: "#fff", fontWeight: 600 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+                <div className="mt-2 flex justify-center gap-6 text-sm">
+                  {pieData.map((d, i) => (
+                    <div key={d.name} className="flex items-center gap-2 text-muted-foreground">
+                      <div
+                        className="h-3 w-3 rounded-full"
+                        style={{
+                          background:
+                            i === 0
+                              ? "linear-gradient(to right, #38bdf8, #0284c7)"
+                              : "linear-gradient(to right, #818cf8, #4338ca)",
+                        }}
+                      />
+                      <span className="font-medium text-foreground/80">{d.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-[320px] items-center justify-center rounded-lg border border-white/5 bg-white/[0.01]">
+                <p className="text-sm text-muted-foreground">Generate JDs or Analyze Resumes.</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>

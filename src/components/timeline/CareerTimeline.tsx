@@ -1,9 +1,9 @@
 import { motion, useScroll, useSpring } from "framer-motion";
 import { useRef } from "react";
 import { Briefcase, TrendingUp, Code2, Sparkles, ChevronDown, ExternalLink } from "lucide-react";
-import rubixeLogo from "@/assets/companies/rubixe.png.asset.json";
-import xevyteLogo from "@/assets/companies/xevyte.png.asset.json";
-import hardwinLogo from "@/assets/companies/hardwin.svg.asset.json";
+import rubixeLogo from "@/assets/companies/rubixe.png";
+import xevyteLogo from "@/assets/companies/xevyte.png";
+import hardwinLogo from "@/assets/companies/hardwin.svg";
 import talentosLogo from "@/assets/companies/talentos-ai.png";
 
 interface TimelineItem {
@@ -30,7 +30,7 @@ const timelineItems: TimelineItem[] = [
     icon: TrendingUp,
     color: "oklch(0.65 0.2 250)",
     glow: "shadow-[oklch(0.65_0.2_250)/0.4]",
-    logo: rubixeLogo.url,
+    logo: rubixeLogo,
     href: "https://rubixe.com/",
   },
   {
@@ -43,7 +43,7 @@ const timelineItems: TimelineItem[] = [
     icon: Briefcase,
     color: "oklch(0.7 0.18 220)",
     glow: "shadow-[oklch(0.7_0.18_220)/0.4]",
-    logo: xevyteLogo.url,
+    logo: xevyteLogo,
     href: "https://xevyte.com/",
   },
   {
@@ -56,7 +56,7 @@ const timelineItems: TimelineItem[] = [
     icon: Code2,
     color: "oklch(0.75 0.15 200)",
     glow: "shadow-[oklch(0.75_0.15_200)/0.4]",
-    logo: hardwinLogo.url,
+    logo: hardwinLogo,
     href: "https://www.hardwinsoftware.com/",
   },
   {

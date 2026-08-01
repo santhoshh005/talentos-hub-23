@@ -16,7 +16,7 @@ const items = [
     icon: Brain,
     status: "live" as const,
   },
-  { to: "/workspace/jd", label: "JD Studio", icon: FileText, status: "soon" as const },
+  { to: "/workspace/jd", label: "JD Studio", icon: FileText, status: "live" as const },
   { to: "/workspace/boolean", label: "Boolean Builder", icon: SearchCode, status: "soon" as const },
   {
     to: "/workspace/interview",

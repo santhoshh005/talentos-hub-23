@@ -1,4 +1,4 @@
-import { generateText } from "ai";
+import { generateObject } from "ai";
 import { z } from "zod";
 import { getAiModel } from "./ai-gateway.server";
 import { CandidateRecordSchema, type CandidateRecord } from "./candidate-schemas";
@@ -16,48 +16,7 @@ const SYSTEM = [
 ].join(" ");
 
 function buildPrompt(resumeText: string): string {
-  return `Return ONE JSON object with EXACTLY these keys:
-
-{
-  "fullName": string,
-  "headline": string,              // e.g. "Senior Java Developer"
-  "summary": string,               // 2-3 sentence professional summary
-  "email": string,
-  "mobile": string,
-  "linkedin": string,              // Full URL if present
-  "github": string,
-  "portfolio": string,
-  "currentCompany": string,
-  "currentDesignation": string,
-  "employmentType": string,        // Full-Time | Contract | Freelance | ""
-  "previousEmployment": [ { "company": string, "title": string, "start": string, "end": string, "isCurrent": boolean } ],
-  "totalExperience": string,       // e.g. "7 years"
-  "relevantExperience": string,
-  "primarySkills": string[],       // Top 6-10 core skills
-  "secondarySkills": string[],     // Additional tools / methodologies
-  "currentLocation": string,
-  "preferredLocation": string,
-  "currentCTC": string,
-  "expectedCTC": string,
-  "noticePeriod": string,
-  "currentOffer": string,
-  "reasonForChange": string,
-  "education": [ { "degree": string, "institution": string, "year": string } ],
-  "certifications": string[],
-  "pan": string,
-  "passport": string,
-  "visaStatus": string
-}
-
-RULES:
-1. Copy verbatim where possible. Never fabricate.
-2. previousEmployment: newest first, exclude the current role.
-3. Multi-word skills stay together ("Sales Cloud", "Spring Boot").
-4. Absent field -> "" or [].
-5. Return ONLY the JSON object.
-
-RESUME TEXT:
-${resumeText.slice(0, 28000)}`;
+  return `Extract the candidate record from this resume. Copy verbatim where possible. Never fabricate.\n\nRESUME TEXT:\n${resumeText.slice(0, 28000)}`;
 }
 
 export async function runExtractCandidate(
@@ -72,13 +31,14 @@ export async function runExtractCandidate(
   if (!model) return seedMerged({});
 
   const call = async () => {
-    const { text } = await generateText({
+    const { object } = await generateObject({
       model,
       temperature: 0,
-      instructions: SYSTEM,
+      schema: CandidateRecordSchema,
+      system: SYSTEM,
       prompt: buildPrompt(resumeText.trim()),
     });
-    return seedMerged(coerce(parseJsonObject(text)));
+    return seedMerged(coerce(object));
   };
 
   try {

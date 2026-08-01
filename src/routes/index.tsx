@@ -1,14 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { zodValidator } from "@tanstack/zod-adapter";
-import { dashboardSearchSchema } from "@/lib/dashboard-search";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles, PlayCircle } from "lucide-react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { HeroBackground } from "@/components/home/HeroBackground";
 import { FloatingCards } from "@/components/home/FloatingCards";
+import { DashboardSection } from "@/components/home/DashboardSection";
 
 export const Route = createFileRoute("/")({
-  validateSearch: zodValidator(dashboardSearchSchema),
   head: () => ({
     meta: [
       { title: "TalentOS | AI Recruitment Platform" },
@@ -88,18 +86,18 @@ function Index() {
               className="mt-8 flex flex-wrap items-center gap-3"
             >
               <Link
-                to="/dashboard"
+                to="/workspace/candidate"
                 className="group inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-medium text-white shadow-[0_20px_60px_-20px] shadow-primary/70 transition-transform hover:scale-[1.02]"
               >
-                Explore Platform
+                Open Candidate Workspace
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link
-                to="/workspace/candidate"
+                to="/workspace/jd"
                 className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.04] px-5 py-2.5 text-sm font-medium text-foreground backdrop-blur transition-colors hover:bg-white/[0.08]"
               >
                 <Sparkles className="h-4 w-4 text-accent" />
-                Open Workspace
+                JD Studio
               </Link>
               <button
                 type="button"
@@ -127,6 +125,9 @@ function Index() {
           </motion.div>
         </div>
       </section>
+
+      {/* Dashboard Metrics (Merged from former /dashboard) */}
+      <DashboardSection />
     </AppLayout>
   );
 }

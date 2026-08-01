@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Award, BadgeCheck, ExternalLink, Calendar } from "lucide-react";
-import googleDA from "@/assets/certificates/google-data-analytics.png.asset.json";
-import naukri from "@/assets/certificates/naukri-maestro.jpg.asset.json";
-import ibmML from "@/assets/certificates/ibm-ml-python.png.asset.json";
-import introAI from "@/assets/certificates/intro-to-ai.png.asset.json";
+import googleDA from "@/assets/certificates/google-data-analytics.png";
+import naukri from "@/assets/certificates/naukri-maestro.jpg";
+import ibmML from "@/assets/certificates/ibm-ml-python.png";
+import introAI from "@/assets/certificates/intro-to-ai.png";
 
 interface Certification {
   id: string;
@@ -29,7 +29,7 @@ const certifications: Certification[] = [
     description:
       "Comprehensive specialization covering data cleaning, analysis, visualization, SQL, R programming, and Tableau — building the analytical foundation behind recruitment intelligence.",
     skills: ["SQL", "R Programming", "Tableau", "Data Visualization", "Spreadsheets"],
-    image: googleDA.url,
+    image: googleDA,
     url: "https://www.coursera.org/account/accomplishments/specialization/APBHCN2UHB8K",
     gradient: "from-primary/20 to-accent/20",
     color: "rgba(37, 99, 235, 0.4)",
@@ -44,7 +44,7 @@ const certifications: Certification[] = [
     description:
       "Certified on advanced sourcing workflows, candidate engagement, and end-to-end recruiter operations on India's largest hiring platform.",
     skills: ["Sourcing", "Candidate Engagement", "Pipeline Management", "Naukri RMS"],
-    image: naukri.url,
+    image: naukri,
     url: "https://disprzcdn.disprz.com/skilltronassetspublic/Content/naukricom1/Files/Certificates/hemanthxevytecom//7ff39d92-a8bc-4fe8-8b65-ba2c4c3c1f81certificate_images/certificate-naukri_maestro_recruitment_program_-_fundamental_level-gaddam_hemanth_kumar.jpg",
     gradient: "from-cyan-500/20 to-emerald-500/20",
     color: "rgba(56, 189, 248, 0.4)",
@@ -58,7 +58,7 @@ const certifications: Certification[] = [
     description:
       "Hands-on training in supervised and unsupervised learning, regression, classification, and clustering using Python and scikit-learn.",
     skills: ["Python", "scikit-learn", "Regression", "Classification", "Clustering"],
-    image: ibmML.url,
+    image: ibmML,
     url: "https://courses.cognitiveclass.ai/certificates/dd38d1f7ec824522a0ef92c7b1e108e5",
     gradient: "from-violet-500/20 to-fuchsia-500/20",
     color: "rgba(139, 92, 246, 0.4)",
@@ -72,7 +72,7 @@ const certifications: Certification[] = [
     description:
       "Foundational course on AI concepts, machine learning basics, neural networks, and real-world applications powering modern intelligent systems.",
     skills: ["Artificial Intelligence", "Machine Learning", "Neural Networks", "AI Applications"],
-    image: introAI.url,
+    image: introAI,
     url: "https://certificates.simplicdn.net/share/4680004.pdf",
     gradient: "from-amber-500/20 to-orange-500/20",
     color: "rgba(251, 191, 36, 0.4)",

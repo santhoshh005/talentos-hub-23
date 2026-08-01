@@ -14,7 +14,6 @@ import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as CertificationsRouteImport } from './routes/certifications'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ContentRouteImport } from './routes/content'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TimelineRouteImport } from './routes/timeline'
@@ -50,11 +49,6 @@ const ContactRoute = ContactRouteImport.update({
 const ContentRoute = ContentRouteImport.update({
   id: '/content',
   path: '/content',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportRoute = ReportRouteImport.update({
@@ -119,7 +113,6 @@ export interface FileRoutesByFullPath {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
-  '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/timeline': typeof TimelineRoute
@@ -138,7 +131,6 @@ export interface FileRoutesByTo {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
-  '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/timeline': typeof TimelineRoute
@@ -157,7 +149,6 @@ export interface FileRoutesById {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
-  '/dashboard': typeof DashboardRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/timeline': typeof TimelineRoute
@@ -178,7 +169,6 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/content'
-    | '/dashboard'
     | '/report'
     | '/sitemap.xml'
     | '/timeline'
@@ -197,7 +187,6 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/content'
-    | '/dashboard'
     | '/report'
     | '/sitemap.xml'
     | '/timeline'
@@ -215,7 +204,6 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/content'
-    | '/dashboard'
     | '/report'
     | '/sitemap.xml'
     | '/timeline'
@@ -235,7 +223,6 @@ export interface RootRouteChildren {
   CertificationsRoute: typeof CertificationsRoute
   ContactRoute: typeof ContactRoute
   ContentRoute: typeof ContentRoute
-  DashboardRoute: typeof DashboardRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TimelineRoute: typeof TimelineRoute
@@ -277,13 +264,6 @@ declare module '@tanstack/react-router' {
       path: '/content'
       fullPath: '/content'
       preLoaderRoute: typeof ContentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/report': {
@@ -396,7 +376,6 @@ const rootRouteChildren: RootRouteChildren = {
   CertificationsRoute: CertificationsRoute,
   ContactRoute: ContactRoute,
   ContentRoute: ContentRoute,
-  DashboardRoute: DashboardRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TimelineRoute: TimelineRoute,
