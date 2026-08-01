@@ -1,7 +1,7 @@
 // ---------------------------------------------------------------------------
 // TalentOS Intelligence v3 — Semantic Matcher
 // ---------------------------------------------------------------------------
-import { generateText } from "ai";
+import { generateObject } from "ai";
 import { getAiModel } from "./ai-gateway.server";
 import {
   SemanticMatchV3Schema,
@@ -33,26 +33,12 @@ function buildPrompt(resume: ParsedResumeV3, jd: ParsedJDV3): string {
     aliases: r.aliases,
     category: r.category,
   }));
-  return `Return ONE JSON object with EXACTLY this shape:
 
-{
-  "matches": [
-    {
-      "requirement": string,
-      "status": "exact" | "equivalent" | "related" | "missing",
-      "matchedResumeSkill": string,
-      "confidence": number,
-      "reason": string
-    }
-  ]
-}
-
-RULES:
+  return `RULES:
 1. Produce ONE entry for EVERY JD requirement — never skip.
 2. Confidence bands: exact=100, equivalent=95, related=80, missing=0.
 3. "matchedResumeSkill" MUST come from CANDIDATE_SKILLS (canonical or alias). Empty when status is "missing".
 4. Never invent a candidate skill. If unsure, mark missing.
-5. Return ONLY the JSON object.
 
 CANDIDATE_SKILLS:
 ${JSON.stringify(resumeSkills)}
@@ -82,13 +68,14 @@ export async function runSemanticMatch(
   if (!model) return deterministicFallback(resume, jd);
 
   const call = async () => {
-    const { text } = await generateText({
+    const { object } = await generateObject({
       model,
       temperature: 0,
+      schema: SemanticMatchV3Schema,
       system: SYSTEM,
       prompt: buildPrompt(resume, jd),
     });
-    return coerceMatches(parseJsonObject(text), jdRequirements);
+    return coerceMatches(object, jdRequirements);
   };
 
   try {
@@ -153,20 +140,7 @@ function clampConfidence(raw: unknown, status: SemanticMatchEntry["status"]): nu
   return Math.max(0, Math.min(100, n));
 }
 
-function parseJsonObject(text: string): unknown {
-  const cleaned = text
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/```\s*$/i, "")
-    .trim();
-  const start = cleaned.indexOf("{");
-  const end = cleaned.lastIndexOf("}");
-  if (start === -1 || end === -1 || end <= start) return {};
-  try {
-    return JSON.parse(cleaned.slice(start, end + 1));
-  } catch {
-    return {};
-  }
-}
+
 
 function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): SemanticMatchV3 {
   const candidateIndex = new Map<string, string>();

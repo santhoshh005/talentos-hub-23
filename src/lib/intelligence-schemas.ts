@@ -81,11 +81,11 @@ export type ParsedJDV3 = z.infer<typeof ParsedJDV3Schema>;
 type SemanticMatchStatus = "exact" | "equivalent" | "related" | "missing";
 
 const SemanticMatchEntrySchema = z.object({
-  requirement: z.string(),
-  status: z.string(),
-  matchedResumeSkill: z.string().default(""),
-  confidence: z.number().default(0),
-  reason: z.string().default(""),
+  requirement: z.string().describe("The JD requirement being evaluated"),
+  status: z.enum(["exact", "equivalent", "related", "missing"]).describe("Match status based on rules"),
+  matchedResumeSkill: z.string().default("").describe("The skill from the resume that matched, if any"),
+  confidence: z.number().default(0).describe("Confidence score: 100 for exact, 95 for equivalent, 80 for related, 0 for missing"),
+  reason: z.string().default("").describe("Brief reason for this match classification"),
 });
 export type SemanticMatchEntry = z.infer<typeof SemanticMatchEntrySchema>;
 

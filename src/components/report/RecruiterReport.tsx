@@ -404,6 +404,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
 
       {/* Section 6: AI Insights */}
       <motion.div
+        className="print:hidden"
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}

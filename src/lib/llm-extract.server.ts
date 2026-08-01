@@ -40,11 +40,11 @@ const JD_SYSTEM = [
 ].join(" ");
 
 function buildResumePrompt(resumeText: string): string {
-  return `Extract the structured facts from this resume.\n\nRESUME TEXT:\n${resumeText.slice(0, 28000)}`;
+  return `Extract the structured facts from this resume.\n\nRESUME TEXT:\n${resumeText.slice(0, 14000)}`;
 }
 
 function buildJdPrompt(jdText: string): string {
-  return `Extract the structured facts from this job description.\n\nJOB DESCRIPTION TEXT:\n${jdText.slice(0, 28000)}`;
+  return `Extract the structured facts from this job description.\n\nJOB DESCRIPTION TEXT:\n${jdText.slice(0, 14000)}`;
 }
 
 export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV3> {

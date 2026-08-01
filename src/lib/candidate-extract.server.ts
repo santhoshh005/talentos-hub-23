@@ -16,7 +16,7 @@ const SYSTEM = [
 ].join(" ");
 
 function buildPrompt(resumeText: string): string {
-  return `Extract the candidate record from this resume. Copy verbatim where possible. Never fabricate.\n\nRESUME TEXT:\n${resumeText.slice(0, 28000)}`;
+  return `Extract the candidate record from this resume. Copy verbatim where possible. Never fabricate.\n\nRESUME TEXT:\n${resumeText.slice(0, 14000)}`;
 }
 
 export async function runExtractCandidate(
