@@ -1,7 +1,7 @@
 import { createGroq } from "@ai-sdk/groq";
 
 /** Default model used across all AI extractions. */
-export const AI_MODEL = "llama-3.1-70b-versatile";
+export const AI_MODEL = "llama-3.3-70b-versatile";
 
 /**
  * Returns a configured Google Generative AI provider.
