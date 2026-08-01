@@ -1,7 +1,7 @@
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { createGroq } from "@ai-sdk/groq";
 
 /** Default model used across all AI extractions. */
-export const AI_MODEL = "gemini-2.0-flash";
+export const AI_MODEL = "llama-3.1-70b-versatile";
 
 /**
  * Returns a configured Google Generative AI provider.
@@ -13,7 +13,7 @@ export function createAiGatewayProvider(apiKey?: string) {
     console.warn("[ai-gateway] AI_API_KEY is not set — AI features will be disabled.");
     return null;
   }
-  return createGoogleGenerativeAI({ apiKey: key });
+  return createGroq({ apiKey: key });
 }
 
 /** Convenience: get the gateway + model in one call. Returns null when no key is configured. */
