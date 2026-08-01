@@ -154,7 +154,7 @@ export function ContactSection() {
         },
         {
           publicKey: import.meta.env.VITE_EMAILJS_PUBLIC_KEY || "YOUR_PUBLIC_KEY",
-        }
+        },
       );
       toast.success("Message sent successfully!");
       setIsSuccess(true);
