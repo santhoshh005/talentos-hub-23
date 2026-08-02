@@ -169,11 +169,14 @@ export function JDStudioWorkspace() {
         {mode === "manual" ? (
           <form onSubmit={handleGenerate} className="space-y-5">
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="position-title"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Select Position <span className="text-red-500">*</span>
               </label>
-              <Select value={positionTitle} onValueChange={setPositionTitle}>
-                <SelectTrigger>
+              <Select name="positionTitle" value={positionTitle} onValueChange={setPositionTitle}>
+                <SelectTrigger id="position-title">
                   <SelectValue placeholder="Choose a position title..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -187,10 +190,15 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="custom-position"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Or Enter Custom Position Title <span className="text-red-500">*</span>
               </label>
               <input
+                id="custom-position"
+                name="customPosition"
                 type="text"
                 value={customPosition}
                 onChange={(e) => setCustomPosition(e.target.value)}
@@ -201,11 +209,14 @@ export function JDStudioWorkspace() {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="mb-1 block text-sm font-medium text-muted-foreground">
+                <label
+                  htmlFor="department"
+                  className="mb-1 block text-sm font-medium text-muted-foreground"
+                >
                   Department
                 </label>
-                <Select value={department} onValueChange={setDepartment}>
-                  <SelectTrigger>
+                <Select name="department" value={department} onValueChange={setDepartment}>
+                  <SelectTrigger id="department">
                     <SelectValue placeholder="Select department" />
                   </SelectTrigger>
                   <SelectContent>
@@ -219,11 +230,14 @@ export function JDStudioWorkspace() {
                 </Select>
               </div>
               <div>
-                <label className="mb-1 block text-sm font-medium text-muted-foreground">
+                <label
+                  htmlFor="level"
+                  className="mb-1 block text-sm font-medium text-muted-foreground"
+                >
                   Level
                 </label>
-                <Select value={level} onValueChange={setLevel}>
-                  <SelectTrigger>
+                <Select name="level" value={level} onValueChange={setLevel}>
+                  <SelectTrigger id="level">
                     <SelectValue placeholder="Select level" />
                   </SelectTrigger>
                   <SelectContent>
@@ -241,10 +255,15 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="location"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Location <span className="text-red-500">*</span>
               </label>
               <input
+                id="location"
+                name="location"
                 type="text"
                 required
                 value={location}
@@ -255,11 +274,18 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="employment-type"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Employment type
               </label>
-              <Select value={employmentType} onValueChange={setEmploymentType}>
-                <SelectTrigger>
+              <Select
+                name="employmentType"
+                value={employmentType}
+                onValueChange={setEmploymentType}
+              >
+                <SelectTrigger id="employment-type">
                   <SelectValue placeholder="Select type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -273,11 +299,18 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="required-experience"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Required Experience <span className="text-red-500">*</span>
               </label>
-              <Select value={requiredExperience} onValueChange={setRequiredExperience}>
-                <SelectTrigger>
+              <Select
+                name="requiredExperience"
+                value={requiredExperience}
+                onValueChange={setRequiredExperience}
+              >
+                <SelectTrigger id="required-experience">
                   <SelectValue placeholder="Select experience" />
                 </SelectTrigger>
                 <SelectContent>
@@ -292,10 +325,15 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="role-description"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Role Description / Overview <span className="text-red-500">*</span>
               </label>
               <textarea
+                id="role-description"
+                name="roleDescription"
                 required
                 rows={3}
                 value={roleDescription}
@@ -306,10 +344,15 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="must-have-skills"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Must-have skills <span className="text-red-500">*</span>
               </label>
               <input
+                id="must-have-skills"
+                name="mustHaveSkills"
                 type="text"
                 required
                 value={mustHaveSkills}
@@ -345,9 +388,14 @@ export function JDStudioWorkspace() {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium text-muted-foreground">Tone</label>
-              <Select value={tone} onValueChange={setTone}>
-                <SelectTrigger>
+              <label
+                htmlFor="tone"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
+                Tone
+              </label>
+              <Select name="tone" value={tone} onValueChange={setTone}>
+                <SelectTrigger id="tone">
                   <SelectValue placeholder="Select tone" />
                 </SelectTrigger>
                 <SelectContent>
@@ -428,6 +476,8 @@ export function JDStudioWorkspace() {
               </Button>
               <input
                 ref={resumeInputRef}
+                id="resume-upload-jd"
+                name="resumeUploadJd"
                 type="file"
                 accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                 className="hidden"
