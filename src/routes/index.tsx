@@ -102,7 +102,6 @@ function Index() {
               <button
                 type="button"
                 disabled
-                aria-label="Watch demo — coming soon"
                 className="inline-flex cursor-not-allowed items-center gap-2 rounded-lg border border-dashed border-white/10 bg-transparent px-5 py-2.5 text-sm font-medium text-muted-foreground"
               >
                 <PlayCircle className="h-4 w-4" />

@@ -20,8 +20,12 @@ export function LoaderLogo() {
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
         <div className="relative flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-primary to-accent shadow-[0_0_40px_-4px] shadow-primary/70">
-            <Sparkles className="h-6 w-6 text-white" />
+          <span className="grid h-12 w-12 place-items-center rounded-full overflow-hidden">
+            <img
+              src="/logo.png"
+              alt="TalentOS Logo"
+              className="h-full w-full object-contain drop-shadow-[0_0_20px_rgba(6,182,212,0.6)]"
+            />
           </span>
           <span className="text-4xl font-semibold tracking-tight md:text-5xl">
             Talent<span className="text-gradient">OS</span>

@@ -3,4 +3,4 @@ Allow: /
 Disallow: /workspace
 Disallow: /report
 
-Sitemap: /sitemap.xml
+Sitemap: https://talentos.com/sitemap.xml

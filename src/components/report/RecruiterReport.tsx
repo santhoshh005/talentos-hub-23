@@ -1,6 +1,35 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, ChevronDown, Calendar, Briefcase, Award, FolderKanban, Cpu, Brain, Sparkles, Target, Layers, Clock, ShieldCheck, FileText, Code2, HeartHandshake, Database, Lock, CheckCircle2, AlertTriangle, PlusCircle, GraduationCap, FileSearch, MapPin, TrendingUp, ShieldAlert, Mail, Phone } from "lucide-react";
+import {
+  Download,
+  ChevronDown,
+  Calendar,
+  Briefcase,
+  Award,
+  FolderKanban,
+  Cpu,
+  Brain,
+  Sparkles,
+  Target,
+  Layers,
+  Clock,
+  ShieldCheck,
+  FileText,
+  Code2,
+  HeartHandshake,
+  Database,
+  Lock,
+  CheckCircle2,
+  AlertTriangle,
+  PlusCircle,
+  GraduationCap,
+  FileSearch,
+  MapPin,
+  TrendingUp,
+  ShieldAlert,
+  Mail,
+  Phone,
+} from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import type { PipelineResult } from "@/lib/pipeline.functions";
@@ -468,7 +497,10 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
                 </div>
                 <ul className="space-y-3">
                   {intelligence.aiInterviewQuestions.map((q, i) => (
-                    <li key={i} className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-sm text-muted-foreground">
+                    <li
+                      key={i}
+                      className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-sm text-muted-foreground"
+                    >
                       <ReactMarkdown>{q}</ReactMarkdown>
                     </li>
                   ))}

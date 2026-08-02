@@ -187,8 +187,12 @@ const defaultPipelineStages: PipelineStage[] = [
           const { object } = await generateObject({
             model: aiModel,
             schema: z.object({
-              aiFitSummary: z.string().describe("A summary of why the candidate is a good fit or not"),
-              aiInterviewQuestions: z.array(z.string()).describe("List of suggested interview questions"),
+              aiFitSummary: z
+                .string()
+                .describe("A summary of why the candidate is a good fit or not"),
+              aiInterviewQuestions: z
+                .array(z.string())
+                .describe("List of suggested interview questions"),
             }),
             prompt: `Based on this resume and job description, provide a fit summary and interview questions.\n\nResume: ${ctx.input.resumeText.slice(0, 10000)}\n\nJob Description: ${ctx.input.jobDescription.slice(0, 10000)}`,
           });
@@ -339,7 +343,8 @@ function adaptResumeV3ToLegacy(r: ParsedResumeV3): ParsedResumeData {
     certifications: r.certifications,
     technologies,
     currentDesignation: scalar(r.currentDesignation),
-    relevantExperience: r.relevantYears && r.relevantYears > 0 ? `${r.relevantYears} years` : "Not Found",
+    relevantExperience:
+      r.relevantYears && r.relevantYears > 0 ? `${r.relevantYears} years` : "Not Found",
     employmentHistory,
     educationHistory: r.education,
     tools: [],

@@ -9,56 +9,26 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorkspaceRouteImport } from './routes/workspace'
-import { Route as TimelineRouteImport } from './routes/timeline'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as ReportRouteImport } from './routes/report'
-import { Route as ContentRouteImport } from './routes/content'
-import { Route as ContactRouteImport } from './routes/contact'
-import { Route as CertificationsRouteImport } from './routes/certifications'
-import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AiLabRouteImport } from './routes/ai-lab'
+import { Route as CertificationsRouteImport } from './routes/certifications'
+import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ContentRouteImport } from './routes/content'
+import { Route as ReportRouteImport } from './routes/report'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TimelineRouteImport } from './routes/timeline'
+import { Route as WorkspaceRouteImport } from './routes/workspace'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
-import { Route as WorkspaceTemplatesRouteImport } from './routes/workspace.templates'
-import { Route as WorkspaceJdRouteImport } from './routes/workspace.jd'
-import { Route as WorkspaceInterviewRouteImport } from './routes/workspace.interview'
-import { Route as WorkspaceIntelligenceRouteImport } from './routes/workspace.intelligence'
-import { Route as WorkspaceCandidateRouteImport } from './routes/workspace.candidate'
 import { Route as WorkspaceBooleanRouteImport } from './routes/workspace.boolean'
+import { Route as WorkspaceCandidateRouteImport } from './routes/workspace.candidate'
+import { Route as WorkspaceIntelligenceRouteImport } from './routes/workspace.intelligence'
+import { Route as WorkspaceInterviewRouteImport } from './routes/workspace.interview'
+import { Route as WorkspaceJdRouteImport } from './routes/workspace.jd'
+import { Route as WorkspaceTemplatesRouteImport } from './routes/workspace.templates'
 
-const WorkspaceRoute = WorkspaceRouteImport.update({
-  id: '/workspace',
-  path: '/workspace',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const TimelineRoute = TimelineRouteImport.update({
-  id: '/timeline',
-  path: '/timeline',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportRoute = ReportRouteImport.update({
-  id: '/report',
-  path: '/report',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContentRoute = ContentRouteImport.update({
-  id: '/content',
-  path: '/content',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ContactRoute = ContactRouteImport.update({
-  id: '/contact',
-  path: '/contact',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CertificationsRoute = CertificationsRouteImport.update({
-  id: '/certifications',
-  path: '/certifications',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiLabRoute = AiLabRouteImport.update({
@@ -66,9 +36,39 @@ const AiLabRoute = AiLabRouteImport.update({
   path: '/ai-lab',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const CertificationsRoute = CertificationsRouteImport.update({
+  id: '/certifications',
+  path: '/certifications',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContentRoute = ContentRouteImport.update({
+  id: '/content',
+  path: '/content',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportRoute = ReportRouteImport.update({
+  id: '/report',
+  path: '/report',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TimelineRoute = TimelineRouteImport.update({
+  id: '/timeline',
+  path: '/timeline',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/workspace',
+  path: '/workspace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
@@ -76,24 +76,9 @@ const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
   path: '/',
   getParentRoute: () => WorkspaceRoute,
 } as any)
-const WorkspaceTemplatesRoute = WorkspaceTemplatesRouteImport.update({
-  id: '/templates',
-  path: '/templates',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceJdRoute = WorkspaceJdRouteImport.update({
-  id: '/jd',
-  path: '/jd',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceInterviewRoute = WorkspaceInterviewRouteImport.update({
-  id: '/interview',
-  path: '/interview',
-  getParentRoute: () => WorkspaceRoute,
-} as any)
-const WorkspaceIntelligenceRoute = WorkspaceIntelligenceRouteImport.update({
-  id: '/intelligence',
-  path: '/intelligence',
+const WorkspaceBooleanRoute = WorkspaceBooleanRouteImport.update({
+  id: '/boolean',
+  path: '/boolean',
   getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceCandidateRoute = WorkspaceCandidateRouteImport.update({
@@ -101,9 +86,24 @@ const WorkspaceCandidateRoute = WorkspaceCandidateRouteImport.update({
   path: '/candidate',
   getParentRoute: () => WorkspaceRoute,
 } as any)
-const WorkspaceBooleanRoute = WorkspaceBooleanRouteImport.update({
-  id: '/boolean',
-  path: '/boolean',
+const WorkspaceIntelligenceRoute = WorkspaceIntelligenceRouteImport.update({
+  id: '/intelligence',
+  path: '/intelligence',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceInterviewRoute = WorkspaceInterviewRouteImport.update({
+  id: '/interview',
+  path: '/interview',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceJdRoute = WorkspaceJdRouteImport.update({
+  id: '/jd',
+  path: '/jd',
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceTemplatesRoute = WorkspaceTemplatesRouteImport.update({
+  id: '/templates',
+  path: '/templates',
   getParentRoute: () => WorkspaceRoute,
 } as any)
 
@@ -231,53 +231,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/workspace': {
-      id: '/workspace'
-      path: '/workspace'
-      fullPath: '/workspace'
-      preLoaderRoute: typeof WorkspaceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/timeline': {
-      id: '/timeline'
-      path: '/timeline'
-      fullPath: '/timeline'
-      preLoaderRoute: typeof TimelineRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/report': {
-      id: '/report'
-      path: '/report'
-      fullPath: '/report'
-      preLoaderRoute: typeof ReportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/content': {
-      id: '/content'
-      path: '/content'
-      fullPath: '/content'
-      preLoaderRoute: typeof ContentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/contact': {
-      id: '/contact'
-      path: '/contact'
-      fullPath: '/contact'
-      preLoaderRoute: typeof ContactRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/certifications': {
-      id: '/certifications'
-      path: '/certifications'
-      fullPath: '/certifications'
-      preLoaderRoute: typeof CertificationsRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-lab': {
@@ -287,11 +245,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AiLabRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/certifications': {
+      id: '/certifications'
+      path: '/certifications'
+      fullPath: '/certifications'
+      preLoaderRoute: typeof CertificationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/content': {
+      id: '/content'
+      path: '/content'
+      fullPath: '/content'
+      preLoaderRoute: typeof ContentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/report': {
+      id: '/report'
+      path: '/report'
+      fullPath: '/report'
+      preLoaderRoute: typeof ReportRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/timeline': {
+      id: '/timeline'
+      path: '/timeline'
+      fullPath: '/timeline'
+      preLoaderRoute: typeof TimelineRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/workspace': {
+      id: '/workspace'
+      path: '/workspace'
+      fullPath: '/workspace'
+      preLoaderRoute: typeof WorkspaceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/workspace/': {
@@ -301,32 +301,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceIndexRouteImport
       parentRoute: typeof WorkspaceRoute
     }
-    '/workspace/templates': {
-      id: '/workspace/templates'
-      path: '/templates'
-      fullPath: '/workspace/templates'
-      preLoaderRoute: typeof WorkspaceTemplatesRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/jd': {
-      id: '/workspace/jd'
-      path: '/jd'
-      fullPath: '/workspace/jd'
-      preLoaderRoute: typeof WorkspaceJdRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/interview': {
-      id: '/workspace/interview'
-      path: '/interview'
-      fullPath: '/workspace/interview'
-      preLoaderRoute: typeof WorkspaceInterviewRouteImport
-      parentRoute: typeof WorkspaceRoute
-    }
-    '/workspace/intelligence': {
-      id: '/workspace/intelligence'
-      path: '/intelligence'
-      fullPath: '/workspace/intelligence'
-      preLoaderRoute: typeof WorkspaceIntelligenceRouteImport
+    '/workspace/boolean': {
+      id: '/workspace/boolean'
+      path: '/boolean'
+      fullPath: '/workspace/boolean'
+      preLoaderRoute: typeof WorkspaceBooleanRouteImport
       parentRoute: typeof WorkspaceRoute
     }
     '/workspace/candidate': {
@@ -336,11 +315,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceCandidateRouteImport
       parentRoute: typeof WorkspaceRoute
     }
-    '/workspace/boolean': {
-      id: '/workspace/boolean'
-      path: '/boolean'
-      fullPath: '/workspace/boolean'
-      preLoaderRoute: typeof WorkspaceBooleanRouteImport
+    '/workspace/intelligence': {
+      id: '/workspace/intelligence'
+      path: '/intelligence'
+      fullPath: '/workspace/intelligence'
+      preLoaderRoute: typeof WorkspaceIntelligenceRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/interview': {
+      id: '/workspace/interview'
+      path: '/interview'
+      fullPath: '/workspace/interview'
+      preLoaderRoute: typeof WorkspaceInterviewRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/jd': {
+      id: '/workspace/jd'
+      path: '/jd'
+      fullPath: '/workspace/jd'
+      preLoaderRoute: typeof WorkspaceJdRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/workspace/templates': {
+      id: '/workspace/templates'
+      path: '/templates'
+      fullPath: '/workspace/templates'
+      preLoaderRoute: typeof WorkspaceTemplatesRouteImport
       parentRoute: typeof WorkspaceRoute
     }
   }

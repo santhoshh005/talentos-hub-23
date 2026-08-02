@@ -140,8 +140,6 @@ function clampConfidence(raw: unknown, status: SemanticMatchEntry["status"]): nu
   return Math.max(0, Math.min(100, n));
 }
 
-
-
 function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): SemanticMatchV3 {
   const candidateIndex = new Map<string, string>();
   for (const s of resume.skills) {

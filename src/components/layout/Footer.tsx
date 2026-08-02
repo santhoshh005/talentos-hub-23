@@ -31,8 +31,12 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
           <div>
             <Link to="/" className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-[0_0_20px_-4px] shadow-primary/60">
-                <Sparkles className="h-4 w-4 text-white" />
+              <span className="grid h-8 w-8 place-items-center rounded-full overflow-hidden">
+                <img
+                  src="/logo.png"
+                  alt="TalentOS Logo"
+                  className="h-full w-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.6)]"
+                />
               </span>
               <span className="text-base font-semibold tracking-tight">
                 Talent<span className="text-gradient">OS</span>
@@ -88,7 +92,6 @@ export function Footer() {
               </ul>
             </div>
           ))}
-
         </div>
 
         <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-white/5 pt-6 text-sm text-muted-foreground md:flex-row md:items-center">

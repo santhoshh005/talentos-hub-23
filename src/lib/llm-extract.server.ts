@@ -52,18 +52,28 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
 
   const fallback = () => {
     const legacy = parseResumeLocally(resumeText);
-    const combinedSkills = Array.from(new Set([...arr(legacy.skills), ...arr(legacy.technologies)]));
+    const combinedSkills = Array.from(
+      new Set([...arr(legacy.skills), ...arr(legacy.technologies)]),
+    );
     const skills = combinedSkills.map((s) => coerceSkillEntry(str(s)));
-    const education = legacy.educationHistory ? arr(legacy.educationHistory).map(str) : (legacy.education ? [str(legacy.education)] : []);
-    const employment = legacy.employmentHistory ? arr(legacy.employmentHistory).map(str).map(e => ({
-      company: "",
-      title: e,
-      start: "",
-      end: "",
-      isCurrent: false,
-      description: []
-    })) : [];
-    
+    const education = legacy.educationHistory
+      ? arr(legacy.educationHistory).map(str)
+      : legacy.education
+        ? [str(legacy.education)]
+        : [];
+    const employment = legacy.employmentHistory
+      ? arr(legacy.employmentHistory)
+          .map(str)
+          .map((e) => ({
+            company: "",
+            title: e,
+            start: "",
+            end: "",
+            isCurrent: false,
+            description: [],
+          }))
+      : [];
+
     return ParsedResumeV3Schema.parse({
       name: str(legacy.name),
       email: str(legacy.email),
@@ -122,7 +132,7 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
     const legacy = parseJdLocally(jdText);
     const required = arr(legacy.requiredSkills).map((s) => coerceRequirement(str(s)));
     const preferred = arr(legacy.preferredSkills).map((s) => coerceRequirement(str(s)));
-    
+
     return ParsedJDV3Schema.parse({
       jobTitle: str(legacy.jobTitle),
       domain: str(legacy.domain),

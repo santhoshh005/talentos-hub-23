@@ -32,10 +32,16 @@ export const CandidateRecordSchema = z.object({
   currentDesignation: z.string().default("").describe("Current or most recent job title"),
   employmentType: z.string().default("").describe("Employment type e.g., Full-time, Contract"),
   // Previous employment
-  previousEmployment: z.array(EmploymentEntrySchema).default([]).describe("List of all past employments"),
+  previousEmployment: z
+    .array(EmploymentEntrySchema)
+    .default([])
+    .describe("List of all past employments"),
   // Experience
   totalExperience: z.string().default("").describe("Total years of professional experience"),
-  relevantExperience: z.string().default("").describe("Years of experience relevant to their primary field"),
+  relevantExperience: z
+    .string()
+    .default("")
+    .describe("Years of experience relevant to their primary field"),
   // Skills
   primarySkills: z.array(z.string()).default([]).describe("Core, primary, or must-have skills"),
   secondarySkills: z.array(z.string()).default([]).describe("Secondary or nice-to-have skills"),
@@ -50,7 +56,10 @@ export const CandidateRecordSchema = z.object({
   reasonForChange: z.string().default("").describe("Reason for looking for a change if mentioned"),
   // Education & Certifications
   education: z.array(EducationEntrySchema).default([]).describe("List of degrees and institutions"),
-  certifications: z.array(z.string()).default([]).describe("List of certifications, courses, or licenses"),
+  certifications: z
+    .array(z.string())
+    .default([])
+    .describe("List of certifications, courses, or licenses"),
   // Documents
   pan: z.string().default("").describe("PAN card number if mentioned"),
   passport: z.string().default("").describe("Passport number if mentioned"),

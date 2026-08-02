@@ -52,9 +52,9 @@ Return ONLY the raw markdown content.
       prompt,
     });
     return text.trim();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[jd-studio] Failed to generate JD", error);
-    throw new Error(error?.message || "Failed to generate job description.");
+    throw new Error(error instanceof Error ? error.message : "Failed to generate job description.");
   }
 }
 
@@ -96,8 +96,10 @@ Return ONLY the raw markdown content.
       prompt,
     });
     return text.trim();
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("[jd-studio] Failed to generate JD from resume", error);
-    throw new Error(error?.message || "Failed to generate job description from resume.");
+    throw new Error(
+      error instanceof Error ? error.message : "Failed to generate job description from resume.",
+    );
   }
 }

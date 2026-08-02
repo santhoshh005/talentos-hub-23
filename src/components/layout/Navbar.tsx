@@ -44,10 +44,14 @@ export function Navbar() {
           )}
         >
           <Link to="/" className="flex items-center gap-2 group">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent shadow-[0_0_20px_-4px] shadow-primary/60">
-              <Sparkles className="h-4 w-4 text-white" />
+            <span className="grid h-9 w-9 place-items-center rounded-full overflow-hidden">
+              <img
+                src="/logo.png"
+                alt="TalentOS Logo"
+                className="h-full w-full object-contain drop-shadow-[0_0_12px_rgba(6,182,212,0.6)]"
+              />
             </span>
-            <span className="text-base font-semibold tracking-tight">
+            <span className="text-lg font-semibold tracking-tight ml-1">
               Talent<span className="text-gradient">OS</span>
             </span>
           </Link>
