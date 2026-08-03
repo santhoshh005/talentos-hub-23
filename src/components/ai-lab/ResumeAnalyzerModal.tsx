@@ -191,7 +191,8 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       if (output.ok) {
         setActiveStep(LOADING_STEPS.length - 1);
         setResult(output);
-        trackCandidateAnalysis(output.resume?.technologies || []);
+        const matchScore = output.scoring?.matchPercentage ?? undefined;
+        trackCandidateAnalysis(output.resume?.technologies || [], matchScore);
         // brief hold so the last step visibly illuminates, then navigate
         setTimeout(() => {
           onClose();

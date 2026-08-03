@@ -64,6 +64,7 @@ design system in Stitch.
 
 1. **Upload `DESIGN.md`**:
    - **Option A (Recommended - Uploader Script)**: Use the modified `upload-to-stitch` Python script which natively handles `.md` files. It base64-encodes the markdown file in-process and sends it to the `/v1/projects/{projectId}/screens:batchCreate` endpoint, bypassing output token limits.
+
      ```bash
      python3 stitch-skills/plugins/stitch-design/skills/upload-to-stitch/scripts/upload_to_stitch.py \
        --project-id <PROJECT_ID> \
@@ -71,6 +72,7 @@ design system in Stitch.
        --api-key <API_KEY> \
        --generated-by <GENERATED_BY>
      ```
+
      Set `<GENERATED_BY>` to identify the skill or tool that produced the
      `DESIGN.md`. Use the calling skill name when invoked from another skill
      (e.g. `stitch::code-to-design`), or the agent/tool name for standalone
@@ -78,6 +80,7 @@ design system in Stitch.
      `UserUploadedDesignMd`.
 
      This returns the `sourceScreen` ID and the `screenInstance` ID.
+
    - **Option B (Direct MCP Tool)**: If the `DESIGN.md` is small (under ~5KB), you can call the `upload_design_md` MCP tool directly, passing the base64-encoded design markdown content as `designMdBase64`.
 2. **Create Design System**: Call the `create_design_system_from_design_md` tool immediately after the upload, passing the `projectId` and the `selectedScreenInstance` (containing the `id` and `sourceScreen` returned from the upload step).
 
@@ -109,6 +112,7 @@ Use `apply_design_system` to apply a design system to existing screens.
 ```
 
 **How to get the required IDs:**
+
 1. Call `get_project` to retrieve `screenInstances` — each has an `id` and
    `sourceScreen`.
 2. Call `list_design_systems` to retrieve the design system `name` (format:

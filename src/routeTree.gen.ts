@@ -10,14 +10,19 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AiLabRouteImport } from './routes/ai-lab'
 import { Route as CertificationsRouteImport } from './routes/certifications'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as ContentRouteImport } from './routes/content'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TimelineRouteImport } from './routes/timeline'
 import { Route as WorkspaceRouteImport } from './routes/workspace'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
+import { Route as AdminAnalyticsRouteImport } from './routes/admin/analytics'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as WorkspaceIndexRouteImport } from './routes/workspace.index'
 import { Route as WorkspaceBooleanRouteImport } from './routes/workspace.boolean'
 import { Route as WorkspaceCandidateRouteImport } from './routes/workspace.candidate'
@@ -29,6 +34,11 @@ import { Route as WorkspaceTemplatesRouteImport } from './routes/workspace.templ
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiLabRoute = AiLabRouteImport.update({
@@ -51,6 +61,11 @@ const ContentRoute = ContentRouteImport.update({
   path: '/content',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportRoute = ReportRouteImport.update({
   id: '/report',
   path: '/report',
@@ -70,6 +85,21 @@ const WorkspaceRoute = WorkspaceRouteImport.update({
   id: '/workspace',
   path: '/workspace',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminAnalyticsRoute = AdminAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRoute,
 } as any)
 const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
   id: '/',
@@ -109,20 +139,25 @@ const WorkspaceTemplatesRoute = WorkspaceTemplatesRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ai-lab': typeof AiLabRoute
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
+  '/login': typeof LoginRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/timeline': typeof TimelineRoute
   '/workspace': typeof WorkspaceRouteWithChildren
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/workspace/boolean': typeof WorkspaceBooleanRoute
   '/workspace/candidate': typeof WorkspaceCandidateRoute
   '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
   '/workspace/interview': typeof WorkspaceInterviewRoute
   '/workspace/jd': typeof WorkspaceJdRoute
   '/workspace/templates': typeof WorkspaceTemplatesRoute
+  '/admin/': typeof AdminIndexRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesByTo {
@@ -131,54 +166,68 @@ export interface FileRoutesByTo {
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
+  '/login': typeof LoginRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/timeline': typeof TimelineRoute
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/workspace/boolean': typeof WorkspaceBooleanRoute
   '/workspace/candidate': typeof WorkspaceCandidateRoute
   '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
   '/workspace/interview': typeof WorkspaceInterviewRoute
   '/workspace/jd': typeof WorkspaceJdRoute
   '/workspace/templates': typeof WorkspaceTemplatesRoute
+  '/admin': typeof AdminIndexRoute
   '/workspace': typeof WorkspaceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ai-lab': typeof AiLabRoute
   '/certifications': typeof CertificationsRoute
   '/contact': typeof ContactRoute
   '/content': typeof ContentRoute
+  '/login': typeof LoginRoute
   '/report': typeof ReportRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/timeline': typeof TimelineRoute
   '/workspace': typeof WorkspaceRouteWithChildren
+  '/admin/analytics': typeof AdminAnalyticsRoute
+  '/admin/users': typeof AdminUsersRoute
   '/workspace/boolean': typeof WorkspaceBooleanRoute
   '/workspace/candidate': typeof WorkspaceCandidateRoute
   '/workspace/intelligence': typeof WorkspaceIntelligenceRoute
   '/workspace/interview': typeof WorkspaceInterviewRoute
   '/workspace/jd': typeof WorkspaceJdRoute
   '/workspace/templates': typeof WorkspaceTemplatesRoute
+  '/admin/': typeof AdminIndexRoute
   '/workspace/': typeof WorkspaceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
     | '/ai-lab'
     | '/certifications'
     | '/contact'
     | '/content'
+    | '/login'
     | '/report'
     | '/sitemap.xml'
     | '/timeline'
     | '/workspace'
+    | '/admin/analytics'
+    | '/admin/users'
     | '/workspace/boolean'
     | '/workspace/candidate'
     | '/workspace/intelligence'
     | '/workspace/interview'
     | '/workspace/jd'
     | '/workspace/templates'
+    | '/admin/'
     | '/workspace/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -187,42 +236,53 @@ export interface FileRouteTypes {
     | '/certifications'
     | '/contact'
     | '/content'
+    | '/login'
     | '/report'
     | '/sitemap.xml'
     | '/timeline'
+    | '/admin/analytics'
+    | '/admin/users'
     | '/workspace/boolean'
     | '/workspace/candidate'
     | '/workspace/intelligence'
     | '/workspace/interview'
     | '/workspace/jd'
     | '/workspace/templates'
+    | '/admin'
     | '/workspace'
   id:
     | '__root__'
     | '/'
+    | '/admin'
     | '/ai-lab'
     | '/certifications'
     | '/contact'
     | '/content'
+    | '/login'
     | '/report'
     | '/sitemap.xml'
     | '/timeline'
     | '/workspace'
+    | '/admin/analytics'
+    | '/admin/users'
     | '/workspace/boolean'
     | '/workspace/candidate'
     | '/workspace/intelligence'
     | '/workspace/interview'
     | '/workspace/jd'
     | '/workspace/templates'
+    | '/admin/'
     | '/workspace/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AiLabRoute: typeof AiLabRoute
   CertificationsRoute: typeof CertificationsRoute
   ContactRoute: typeof ContactRoute
   ContentRoute: typeof ContentRoute
+  LoginRoute: typeof LoginRoute
   ReportRoute: typeof ReportRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TimelineRoute: typeof TimelineRoute
@@ -236,6 +296,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-lab': {
@@ -266,6 +333,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/report': {
       id: '/report'
       path: '/report'
@@ -293,6 +367,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/workspace'
       preLoaderRoute: typeof WorkspaceRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/analytics': {
+      id: '/admin/analytics'
+      path: '/analytics'
+      fullPath: '/admin/analytics'
+      preLoaderRoute: typeof AdminAnalyticsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRoute
     }
     '/workspace/': {
       id: '/workspace/'
@@ -346,6 +441,20 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminAnalyticsRoute: typeof AdminAnalyticsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminAnalyticsRoute: AdminAnalyticsRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 interface WorkspaceRouteChildren {
   WorkspaceBooleanRoute: typeof WorkspaceBooleanRoute
   WorkspaceCandidateRoute: typeof WorkspaceCandidateRoute
@@ -372,10 +481,12 @@ const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRoute: AdminRouteWithChildren,
   AiLabRoute: AiLabRoute,
   CertificationsRoute: CertificationsRoute,
   ContactRoute: ContactRoute,
   ContentRoute: ContentRoute,
+  LoginRoute: LoginRoute,
   ReportRoute: ReportRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TimelineRoute: TimelineRoute,

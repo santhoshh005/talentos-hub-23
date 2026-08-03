@@ -1,6 +1,7 @@
 ---
 description: "Generate walkthrough videos from Stitch projects using Remotion with smooth transitions, zooming, and text overlays"
 ---
+
 # Stitch to Remotion Walkthrough Videos
 
 You are a video production specialist focused on creating engaging walkthrough videos from app designs. You combine Stitch's screen retrieval capabilities with Remotion's programmatic video generation to produce smooth, professional presentations.
@@ -12,12 +13,14 @@ This skill enables you to create walkthrough videos that showcase app screens wi
 ## Prerequisites
 
 **Required:**
+
 - Access to the Stitch MCP Server
 - Access to the Remotion MCP Server (or Remotion CLI)
 - Node.js and npm installed
 - A Stitch project with designed screens
 
 **Recommended:**
+
 - Familiarity with Remotion's video capabilities
 - Understanding of React components (Remotion uses React)
 
@@ -26,6 +29,7 @@ This skill enables you to create walkthrough videos that showcase app screens wi
 ### Step 1: Discover Available MCP Servers
 
 Run `list_tools` to identify available MCP servers and their prefixes:
+
 - **Stitch MCP**: Look for `stitch:` or `mcp_stitch:` prefix
 - **Remotion MCP**: Look for `remotion:` or `mcp_remotion:` prefix
 
@@ -62,6 +66,7 @@ Run `list_tools` to identify available MCP servers and their prefixes:
    - If exists, use the existing project structure
 
 2. **Create new Remotion project** (if needed):
+
    ```bash
    npm create video@latest -- --blank
    ```
@@ -100,13 +105,15 @@ Create a modular Remotion composition with these components:
 Use Remotion's `@remotion/transitions` for professional effects:
 
 - **Fade**: Smooth cross-fade between screens
+
   ```tsx
-  import {fade} from '@remotion/transitions/fade';
+  import { fade } from "@remotion/transitions/fade";
   ```
 
 - **Slide**: Directional slide transitions
+
   ```tsx
-  import {slide} from '@remotion/transitions/slide';
+  import { slide } from "@remotion/transitions/slide";
   ```
 
 - **Zoom**: Zoom in/out effects for emphasis
@@ -179,6 +186,7 @@ Create the video components following Remotion best practices:
    - Set frame rate and duration
 
 **Reference Resources:**
+
 - Use `resources/screen-slide-template.tsx` as starting point
 - Follow `resources/composition-checklist.md` for completeness
 - Review examples in `examples/` directory
@@ -186,6 +194,7 @@ Create the video components following Remotion best practices:
 ### Step 3: Preview and Refine
 
 1. **Start Remotion Studio**:
+
    ```bash
    npm run dev
    ```
@@ -205,6 +214,7 @@ Create the video components following Remotion best practices:
 ### Step 4: Render Video
 
 1. **Render using Remotion CLI**:
+
    ```bash
    npx remotion render WalkthroughComposition output.mp4
    ```
@@ -225,23 +235,25 @@ Create the video components following Remotion best practices:
 Highlight clickable elements or important features:
 
 ```tsx
-import {interpolate, useCurrentFrame} from 'remotion';
+import { interpolate, useCurrentFrame } from "remotion";
 
-const Hotspot = ({x, y, label}) => {
+const Hotspot = ({ x, y, label }) => {
   const frame = useCurrentFrame();
   const scale = spring({
     frame,
     fps: 30,
-    config: {damping: 10, stiffness: 100}
+    config: { damping: 10, stiffness: 100 },
   });
-  
+
   return (
-    <div style={{
-      position: 'absolute',
-      left: x,
-      top: y,
-      transform: `scale(${scale})`
-    }}>
+    <div
+      style={{
+        position: "absolute",
+        left: x,
+        top: y,
+        transform: `scale(${scale})`,
+      }}
+    >
       <div className="pulse-ring" />
       <span>{label}</span>
     </div>
@@ -298,6 +310,7 @@ Remotion maintains its own Agent Skills that define best practices. Review these
 - **Installation**: `npx skills add remotion-dev/skills`
 
 Key Remotion skills to leverage:
+
 - Animation timing and easing
 - Composition architecture patterns
 - Performance optimization
@@ -308,6 +321,7 @@ Key Remotion skills to leverage:
 ### Pattern 1: Simple Slide Show
 
 Basic walkthrough with fade transitions:
+
 - 3-5 seconds per screen
 - Cross-fade transitions
 - Bottom text overlay with screen title
@@ -316,6 +330,7 @@ Basic walkthrough with fade transitions:
 ### Pattern 2: Feature Highlight
 
 Focus on specific UI elements:
+
 - Zoom into specific regions
 - Animated circles/arrows pointing to features
 - Slow-motion emphasis on key interactions
@@ -324,6 +339,7 @@ Focus on specific UI elements:
 ### Pattern 3: User Flow
 
 Show step-by-step user journey:
+
 - Sequential screen flow with directional slides
 - Numbered steps overlay
 - Highlight user actions (clicks, taps)
@@ -331,13 +347,13 @@ Show step-by-step user journey:
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| **Blurry screenshots** | Ensure downloaded images are at full resolution; check `screenshot.downloadUrl` quality settings |
-| **Misaligned text** | Verify screen dimensions match composition size; adjust text positioning based on actual screen size |
-| **Choppy animations** | Increase frame rate to 60fps; use proper spring configurations with appropriate damping |
-| **Remotion build fails** | Check Node version compatibility; ensure all dependencies are installed; review Remotion docs |
-| **Timing feels off** | Adjust duration per screen in manifest; preview in Remotion Studio; test with actual users |
+| Issue                    | Solution                                                                                             |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- |
+| **Blurry screenshots**   | Ensure downloaded images are at full resolution; check `screenshot.downloadUrl` quality settings     |
+| **Misaligned text**      | Verify screen dimensions match composition size; adjust text positioning based on actual screen size |
+| **Choppy animations**    | Increase frame rate to 60fps; use proper spring configurations with appropriate damping              |
+| **Remotion build fails** | Check Node version compatibility; ensure all dependencies are installed; review Remotion docs        |
+| **Timing feels off**     | Adjust duration per screen in manifest; preview in Remotion Studio; test with actual users           |
 
 ## Best Practices
 
@@ -351,12 +367,14 @@ Show step-by-step user journey:
 ## Example Usage
 
 **User prompt:**
+
 ```
-Look up the screens in my Stitch project "Calculator App" and build a remotion video 
+Look up the screens in my Stitch project "Calculator App" and build a remotion video
 that shows a walkthrough of the screens.
 ```
 
 **Agent workflow:**
+
 1. List Stitch projects → Find "Calculator App" → Extract project ID
 2. List screens in project → Identify all screens (Home, History, Settings)
 3. Download screenshots for each screen → Save to `assets/screens/`

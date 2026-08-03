@@ -1,38 +1,42 @@
-import { createGroq } from "@ai-sdk/groq";
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+// ---------------------------------------------------------------------------
+// TalentOS AI Gateway — Groq (llama-3.3-70b-versatile)
+// ---------------------------------------------------------------------------
+// Reads AI_API_KEY from the environment. All AI calls across the pipeline
+// route through getAiModel(). Returns null when the key is not configured,
+// causing every caller to fall back to its local deterministic parser.
+// ---------------------------------------------------------------------------
 
-/** Default model used across all AI extractions (Lovable AI Gateway). */
-export const AI_MODEL = "google/gemini-3.6-flash";
-/** Model used when falling back to a direct Groq key. */
+import { createGroq } from "@ai-sdk/groq";
+
+/** The Groq model used for all AI extractions and matching. */
 export const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 /**
- * Returns a configured chat model.
- * Prefers the Lovable AI Gateway (`LOVABLE_API_KEY`); falls back to a direct
- * Groq key (`AI_API_KEY`) when one is configured.
+ * Returns a configured Groq language model instance.
+ * Reads AI_API_KEY from the environment at call time (works in SSR/Nitro).
+ * Returns null when no key is available — every caller must handle null.
  */
 export function getAiModel() {
-  const lovableKey = process.env["LOVABLE_API_KEY"];
-  if (lovableKey) {
-    const gateway = createOpenAICompatible({
-      name: "lovable",
-      baseURL: "https://ai.gateway.lovable.dev/v1",
-      headers: { "Lovable-API-Key": lovableKey },
-      supportsStructuredOutputs: true,
-    });
-    return gateway(AI_MODEL);
+  const key =
+    process.env["AI_API_KEY"] ?? process.env["GROQ_API_KEY"] ?? process.env["VITE_GROQ_API_KEY"];
+
+  if (!key) {
+    console.warn(
+      "[ai-gateway] No Groq API key found. Set AI_API_KEY in .env to enable AI features.",
+    );
+    return null;
   }
 
-  const groqKey = process.env["AI_API_KEY"];
-  if (groqKey) return createGroq({ apiKey: groqKey })(GROQ_MODEL);
-
-  console.warn("[ai-gateway] No AI key configured — AI features are disabled.");
-  return null;
+  const groq = createGroq({ apiKey: key });
+  return groq(GROQ_MODEL);
 }
 
-/** Back-compat helper. */
+/** Back-compat helper used by older callers. */
 export function createAiGatewayProvider(apiKey?: string) {
-  const key = apiKey ?? process.env["AI_API_KEY"];
+  const key = apiKey ?? process.env["AI_API_KEY"] ?? process.env["GROQ_API_KEY"];
   if (!key) return null;
   return createGroq({ apiKey: key });
 }
+
+/** Convenience: get model in one call. */
+export { getAiModel as getAiGatewayModel };

@@ -1,6 +1,7 @@
 ---
 description: "Generate new screens from text prompts or images, edit existing screens with prompts and design system tokens, and generate design variants using Stitch MCP. Includes prompt enhancement pipeline, design mappings, professional UI/UX terminology, design tokens and theme system capabilities."
 ---
+
 # Generate Design
 
 Create new design screens from text descriptions, images, or mockups, edit
@@ -52,6 +53,7 @@ For **new screens**, use this template:
 **PLATFORM:** [Web/Mobile], [Desktop/Mobile]-first
 
 **PAGE STRUCTURE:**
+
 1. **Header:** [Description of navigation and branding]
 2. **Hero Section:** [Headline, subtext, and primary CTA]
 3. **Primary Content Area:** [Detailed component breakdown]
@@ -80,7 +82,7 @@ Suggestions) to the user.
 See [examples/enhanced-prompt.md](examples/enhanced-prompt.md) for a full
 before/after prompt enhancement example.
 
---------------------------------------------------------------------------------
+---
 
 ## Steps
 
@@ -115,7 +117,7 @@ Call the `generate_screen_from_text` tool with the enhanced prompt and the
   "projectId": "...",
   "prompt": "[Your Enhanced Prompt]",
   "designSystem": "assets/...", // Optional: Pass if found in Step 1
-  "deviceType": "DESKTOP"  // Options: MOBILE, DESKTOP, TABLET
+  "deviceType": "DESKTOP" // Options: MOBILE, DESKTOP, TABLET
 }
 ```
 
@@ -276,6 +278,7 @@ Call the `generate_variants` tool with the appropriate options:
 ```
 
 **Variant Options:**
+
 - **`variantCount`**: 1–5 variants (default: 3)
 - **`creativeRange`**: `REFINE` (subtle), `EXPLORE` (balanced), or `REIMAGINE`
   (radical)
@@ -296,7 +299,7 @@ Download the variant HTML and screenshot urls from `outputComponents` to the
 - **Tools**: Use `curl -o` via `run_command` or similar.
 - **Directory**: Ensure `.stitch/designs` exists.
 
---------------------------------------------------------------------------------
+---
 
 ## 💡 Tips
 

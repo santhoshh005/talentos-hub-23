@@ -18,13 +18,13 @@ Extract a self-contained static HTML file from any web application.
 
 You MUST ask the user to choose which strategy to use before proceeding. Present the options clearly, **recommend Strategy A** as the preferred default, and **provide a brief pros/cons summary** for each option to help them make an informed decision.
 
-| | Strategy A (Puppeteer) | Strategy B (Browser Subagent) |
-| :--- | :--- | :--- |
-| **When** | App runs locally, no auth wall | Need to interact with page first (click, fill forms) |
-| **Fidelity** | **Highest — computed styles resolved** | High — rendered DOM |
-| **Setup** | **Zero — no mock needed** | Zero — no mock needed |
-| **Framework** | **Any** | Any |
-| **Output** | **Writes to file — no size limit** | May truncate in agent context |
+|               | Strategy A (Puppeteer)                 | Strategy B (Browser Subagent)                        |
+| :------------ | :------------------------------------- | :--------------------------------------------------- |
+| **When**      | App runs locally, no auth wall         | Need to interact with page first (click, fill forms) |
+| **Fidelity**  | **Highest — computed styles resolved** | High — rendered DOM                                  |
+| **Setup**     | **Zero — no mock needed**              | Zero — no mock needed                                |
+| **Framework** | **Any**                                | Any                                                  |
+| **Output**    | **Writes to file — no size limit**     | May truncate in agent context                        |
 
 > [!WARNING]
 > **Checkpoint — User Confirmation Required.**
@@ -33,7 +33,7 @@ You MUST ask the user to choose which strategy to use before proceeding. Present
 > wait for explicit approval. Do **NOT** make the decision yourself or proceed
 > until the user confirms.
 
-***
+---
 
 ## Strategy A: Puppeteer Snapshot (Recommended)
 
@@ -57,6 +57,7 @@ Launches headless Chrome, captures the fully rendered DOM, and produces a self-c
     > step until the user confirms.
 
 2.  **Run the Snapshot Script**:
+
     ```bash
     npx tsx <SKILL_DIR>/scripts/snapshot.ts \
       --url http://localhost:5173 \
@@ -65,6 +66,7 @@ Launches headless Chrome, captures the fully rendered DOM, and produces a self-c
     ```
 
 3.  **Multiple pages** — run once per route:
+
     ```bash
     npx tsx <SKILL_DIR>/scripts/snapshot.ts \
       --url http://localhost:5173 --output .stitch/home.html --wait 2000
@@ -77,21 +79,20 @@ Launches headless Chrome, captures the fully rendered DOM, and produces a self-c
 4.  **Clean Up Dev Server**:
     If a local dev server was started specifically for snapshot extraction, make sure to stop the server process or terminate the background task once extraction is completed.
 
-
 ### Script Flags
 
-| Flag | Default | Description |
-| :--- | :--- | :--- |
-| `--url` | *(required)* | URL to capture |
-| `--output` | *(required)* | Output file path |
-| `--wait` | `1000` | Extra wait (ms) after network idle. Increase for lazy-loading apps. |
-| `--viewport` | `1280x800` | Viewport size as `WIDTHxHEIGHT` |
-| `--html-class` | — | Class(es) for `<html>` element (e.g., `dark`) |
-| `--remove-fixed` | `false` | Remove fixed/sticky elements (cookie banners, chat widgets) |
-| `--full-height` | `false` | Resize viewport to full scroll height |
-| `--title` | — | Override page title (set to the route path, e.g. `/dashboard` or `/settings/profile`) |
-| `--auth-script` | — | Path to a JS/TS module that exports a default `async (page) => void` function for authentication |
-| `--inline-canvas` | `false` | Convert `<canvas>` elements (ECharts, Chart.js, D3) to base64 `<img>` tags |
+| Flag              | Default      | Description                                                                                      |
+| :---------------- | :----------- | :----------------------------------------------------------------------------------------------- |
+| `--url`           | _(required)_ | URL to capture                                                                                   |
+| `--output`        | _(required)_ | Output file path                                                                                 |
+| `--wait`          | `1000`       | Extra wait (ms) after network idle. Increase for lazy-loading apps.                              |
+| `--viewport`      | `1280x800`   | Viewport size as `WIDTHxHEIGHT`                                                                  |
+| `--html-class`    | —            | Class(es) for `<html>` element (e.g., `dark`)                                                    |
+| `--remove-fixed`  | `false`      | Remove fixed/sticky elements (cookie banners, chat widgets)                                      |
+| `--full-height`   | `false`      | Resize viewport to full scroll height                                                            |
+| `--title`         | —            | Override page title (set to the route path, e.g. `/dashboard` or `/settings/profile`)            |
+| `--auth-script`   | —            | Path to a JS/TS module that exports a default `async (page) => void` function for authentication |
+| `--inline-canvas` | `false`      | Convert `<canvas>` elements (ECharts, Chart.js, D3) to base64 `<img>` tags                       |
 
 ### What It Does Automatically
 
@@ -106,29 +107,29 @@ Launches headless Chrome, captures the fully rendered DOM, and produces a self-c
 
 ### Framework Notes
 
-| Framework | Notes |
-| :--- | :--- |
-| **React + Vite** | Works out of the box. `--wait 1000`. |
-| **Next.js** | `--wait 3000` for SSR hydration. URL: `http://localhost:3000`. `<img srcset>` from `/_next/image` is auto-inlined as base64. |
+| Framework                         | Notes                                                                                                                                                                 |
+| :-------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **React + Vite**                  | Works out of the box. `--wait 1000`.                                                                                                                                  |
+| **Next.js**                       | `--wait 3000` for SSR hydration. URL: `http://localhost:3000`. `<img srcset>` from `/_next/image` is auto-inlined as base64.                                          |
 | **Angular (@angular/cli / v17+)** | Works out of the box with `ng serve` (default URL: `http://localhost:4200`). `--wait 2000` for Angular Material / PrimeNG animation hydration and lazy-loaded routes. |
-| **Vue / Nuxt** | Works out of the box. |
-| **Svelte / SvelteKit** | Works out of the box. |
-| **Storybook** | Use story URL: `--url http://localhost:6006/?path=/story/...` |
-| **SSR (Webpack)** | May need longer `--wait`. |
+| **Vue / Nuxt**                    | Works out of the box.                                                                                                                                                 |
+| **Svelte / SvelteKit**            | Works out of the box.                                                                                                                                                 |
+| **Storybook**                     | Use story URL: `--url http://localhost:6006/?path=/story/...`                                                                                                         |
+| **SSR (Webpack)**                 | May need longer `--wait`.                                                                                                                                             |
 
 ### Troubleshooting
 
-| Issue | Solution |
-| :--- | :--- |
-| Images missing | Increase `--wait` |
-| Images show as broken after server stops | Verify `srcset` was inlined — check log for "Inlined N images". If `srcset` URLs failed, they are auto-removed so `src` (inlined) is used. |
+| Issue                                       | Solution                                                                                                                                            |
+| :------------------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Images missing                              | Increase `--wait`                                                                                                                                   |
+| Images show as broken after server stops    | Verify `srcset` was inlined — check log for "Inlined N images". If `srcset` URLs failed, they are auto-removed so `src` (inlined) is used.          |
 | Icons display as text / Serif unstyled font | Ensure `snapshot.ts` captures CSSOM from `document.styleSheets` (step 0) and same-origin icon fonts (`@font-face`) are inlined as base64 data URIs. |
-| Next.js `/_next/image` not inlined | Ensure the dev server is running when snapshot runs — the script fetches optimized images from the running server. |
-| Dark mode not applied | `--html-class dark` |
-| Cookie banner in output | `--remove-fixed` |
-| Page requires login | Use `--auth-script ./auth.ts` (see Auth-Gated Pages below) |
-| Charts/graphs show as blank boxes | Use `--inline-canvas` to serialize `<canvas>` to base64 `<img>` |
-| `Cannot find module 'puppeteer'` | `npm install -g puppeteer` |
+| Next.js `/_next/image` not inlined          | Ensure the dev server is running when snapshot runs — the script fetches optimized images from the running server.                                  |
+| Dark mode not applied                       | `--html-class dark`                                                                                                                                 |
+| Cookie banner in output                     | `--remove-fixed`                                                                                                                                    |
+| Page requires login                         | Use `--auth-script ./auth.ts` (see Auth-Gated Pages below)                                                                                          |
+| Charts/graphs show as blank boxes           | Use `--inline-canvas` to serialize `<canvas>` to base64 `<img>`                                                                                     |
+| `Cannot find module 'puppeteer'`            | `npm install -g puppeteer`                                                                                                                          |
 
 ### Auth-Gated Pages
 
@@ -136,14 +137,14 @@ For apps with login guards (Vue Router `beforeEach`, React `ProtectedRoute`, etc
 
 ```ts
 // auth-myapp.ts
-import type { Page } from 'puppeteer';
+import type { Page } from "puppeteer";
 
 export default async function authenticate(page: Page) {
   // Example 1: Fill and submit a login form
-  await page.type('#username', 'admin');
-  await page.type('#password', 'password123');
-  await page.click('#login-button');
-  await page.waitForNavigation({ waitUntil: 'networkidle2' });
+  await page.type("#username", "admin");
+  await page.type("#password", "password123");
+  await page.click("#login-button");
+  await page.waitForNavigation({ waitUntil: "networkidle2" });
 
   // Example 2: Inject cookies/localStorage directly
   // await page.evaluate(() => {
@@ -170,6 +171,7 @@ export default async function authenticate(page: Page) {
 ```
 
 Then use it:
+
 ```bash
 npx tsx <SKILL_DIR>/scripts/snapshot.ts \
   --url http://localhost:5173/#/dashboard \
@@ -181,7 +183,7 @@ npx tsx <SKILL_DIR>/scripts/snapshot.ts \
 
 The script navigates to the `--url` first (which may redirect to login), runs your auth function, then **re-navigates** to the original `--url` with the authenticated session.
 
-***
+---
 
 ## Strategy B: Browser Subagent Capture
 
@@ -196,11 +198,13 @@ Use when you need to **interact with the page** (click buttons, fill forms, navi
 
     > [!WARNING]
     > Large pages may truncate. To handle this:
+    >
     > - Remove `<style>` tags before extraction: `document.querySelectorAll('style').forEach(el => el.remove())`
     > - Re-add styles statically (Tailwind CDN link, source CSS)
+
 5.  **Save** to file.
 
-***
+---
 
 ## Appendix: Static Fallback (MockPage.jsx)
 
@@ -238,6 +242,7 @@ npx tsx <SKILL_DIR>/scripts/extract_inline_html.ts \
 ### Post-Processing
 
 Inline local images:
+
 ```bash
 npx tsx <SKILL_DIR>/scripts/post_process.ts \
   .stitch/Page.html --base-dir <app-directory>

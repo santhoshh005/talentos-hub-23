@@ -1,3 +1,7 @@
+// ---------------------------------------------------------------------------
+// TalentOS JD Studio — AI-powered Job Description generator
+// ---------------------------------------------------------------------------
+
 import { generateText } from "ai";
 import { getAiModel } from "./ai-gateway.server";
 
@@ -13,43 +17,60 @@ export interface JDStudioInput {
   tone: string;
 }
 
+const SYSTEM_PROMPT = [
+  "You are an expert Senior Talent Acquisition Specialist with 15+ years of experience writing",
+  "highly detailed, compelling, and inclusive job descriptions for top-tier companies.",
+  "Your JDs are known for:",
+  "- Being extremely specific about skills, tools, and technologies required",
+  "- Having clear, actionable responsibilities (not generic bullet points)",
+  "- Being inclusive and avoiding biased language",
+  "- Following modern JD best practices",
+  "Always return ONLY the raw Markdown content — no preamble, no explanation, no closing remarks.",
+].join(" ");
+
 export async function generateJdContent(input: JDStudioInput): Promise<string> {
   const model = getAiModel();
   if (!model) {
-    throw new Error("AI API Key is not configured. Cannot generate JD.");
+    throw new Error("AI API Key is not configured. Add AI_API_KEY to .env to enable JD Studio.");
   }
 
-  const prompt = `
-You are an expert Talent Acquisition Specialist.
-Your task is to write a highly compelling, inclusive, and professional Job Description.
+  const prompt = `Write a detailed, professional Job Description for this role:
 
-Here are the details for the role:
-- Position Title: ${input.positionTitle}
-- Department: ${input.department || "Not specified"}
-- Seniority Level: ${input.level || "Not specified"}
-- Location: ${input.location}
-- Employment Type: ${input.employmentType || "Not specified"}
-- Required Experience: ${input.requiredExperience}
-- Core Role Description & Overview: ${input.roleDescription}
-- Must-Have Skills / Requirements: ${input.mustHaveSkills}
-- Requested Tone/Style: ${input.tone}
+**Position**: ${input.positionTitle}
+**Department**: ${input.department || "Not specified"}
+**Seniority**: ${input.level || "Not specified"}
+**Location**: ${input.location}
+**Employment Type**: ${input.employmentType || "Full-Time"}
+**Experience Required**: ${input.requiredExperience}
+**Role Overview**: ${input.roleDescription}
+**Must-Have Skills**: ${input.mustHaveSkills}
+**Tone/Style**: ${input.tone}
 
-Please format the Job Description in Markdown with the following sections (use clear headings):
-1. About the Role
-2. Key Responsibilities
-3. What You Bring (Must-Haves)
-4. Why Join Us
+Format the JD in clean Markdown with EXACTLY these five sections:
 
-Ensure the language is inclusive, engaging, and specifically tailored to the requested tone (${input.tone}).
-Do not include any placeholders like [Company Name], just write it in a way that feels complete, or use "our company".
-Return ONLY the raw markdown content.
-`;
+## About the Role
+[2-3 compelling sentences describing the role's impact and mission. Be specific, not generic.]
+
+## Key Responsibilities
+[8-12 highly specific bullet points. Each responsibility should be a concrete action with measurable context. Avoid vague statements like "work with team". Instead: "Design and own the end-to-end data pipeline architecture for 50M+ events/day".]
+
+## What You Bring (Must-Haves)
+[List each required skill/qualification as a bullet. Include specific version numbers, years of experience, and use-case context where relevant. Example: "5+ years of Python (FastAPI, asyncio, Pandas) for production-grade data services".]
+
+## Nice to Have
+[3-5 bonus skills or experiences that would make the candidate stand out.]
+
+## Why Join Us
+[3-4 bullet points with genuine, specific reasons this role is exciting. Mention team culture, tech stack, impact, and growth opportunities.]
+
+Be highly specific. Use the must-have skills (${input.mustHaveSkills}) throughout the JD naturally.`;
 
   try {
     const { text } = await generateText({
       model,
-      temperature: 0.7,
+      temperature: 0.4,
       prompt,
+      system: SYSTEM_PROMPT,
     });
     return text.trim();
   } catch (error: unknown) {
@@ -61,39 +82,38 @@ Return ONLY the raw markdown content.
 export async function generateJdFromResume(resumeText: string, tone: string): Promise<string> {
   const model = getAiModel();
   if (!model) {
-    throw new Error("AI API Key is not configured. Cannot generate JD.");
+    throw new Error("AI API Key is not configured. Add AI_API_KEY to .env to enable JD Studio.");
   }
 
-  const prompt = `
-You are an expert Talent Acquisition Specialist.
-Your task is to write a highly compelling, inclusive, and professional Job Description specifically tailored to the following candidate's resume. 
+  const prompt = `Analyze this resume carefully and reverse-engineer a highly specific, compelling Job Description for the exact role this candidate would be perfectly suited for.
 
-Here is the raw resume text:
+RESUME:
 ---
-${resumeText}
+${resumeText.slice(0, 12000)}
 ---
 
-Your goal is to reverse-engineer a job description for the exact role this candidate would be perfectly suited for. 
-Extract their core competencies, seniority level, domain expertise, and the key responsibilities they have handled, and turn those into the requirements and responsibilities for this Job Description.
+Instructions:
+1. Identify the candidate's: seniority level, domain/industry, primary skills, years of experience, and most impressive accomplishments
+2. Write a JD that perfectly matches their profile — not too senior, not too junior
+3. Use their specific technologies, tools, and domain context throughout
+4. Tone/Style: ${tone}
 
-Requested Tone/Style: ${tone}
+Format in clean Markdown with EXACTLY these five sections:
 
-Please format the Job Description in Markdown with the following sections (use clear headings):
-1. About the Role
-2. Key Responsibilities
-3. What You Bring (Must-Haves)
-4. Why Join Us
+## About the Role
+## Key Responsibilities  
+## What You Bring (Must-Haves)
+## Nice to Have
+## Why Join Us
 
-Ensure the language is inclusive, engaging, and specifically tailored to the requested tone (${tone}).
-Do not include any placeholders like [Company Name], just write it in a way that feels complete, or use "our company".
-Return ONLY the raw markdown content.
-`;
+Be highly specific and technical. Mirror the candidate's actual skills and experience level.`;
 
   try {
     const { text } = await generateText({
       model,
-      temperature: 0.7,
+      temperature: 0.4,
       prompt,
+      system: SYSTEM_PROMPT,
     });
     return text.trim();
   } catch (error: unknown) {

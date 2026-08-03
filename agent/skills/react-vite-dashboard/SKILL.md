@@ -1,6 +1,7 @@
 ---
 description: "Convert Stitch designs into production React + Vite dashboards with TanStack Query, accessible tokens from DESIGN.md, and Web3-ready patterns (ethers/viem)."
 ---
+
 # Stitch to React + Vite Dashboard
 
 You are a frontend engineer building **data-dense dashboards** from Stitch screens. Target stack: **React 18**, **Vite**, **TypeScript**, **TanStack Query**, **React Router**, and optional **ethers v6** or **viem** for on-chain reads.
@@ -22,15 +23,15 @@ You are a frontend engineer building **data-dense dashboards** from Stitch scree
 
 ## HTML → React mapping
 
-| Pattern | Implementation |
-|---------|----------------|
-| Layout grid / flex | Tailwind utilities or CSS modules aligned to DESIGN.md spacing tokens |
-| Cards / panels | `<section>` with tokenized border-radius and elevation fallbacks for forced-colors |
-| Tables | Semantic `<table>` or TanStack Table; never div-only grids for tabular data |
-| Buttons | `<button type="button">` with visible focus ring (preserve browser default unless DESIGN.md defines focus tokens) |
-| Forms | `<label htmlFor>` + `<input id>`; associate errors with `aria-describedby` |
-| Loading | Skeleton components; `aria-busy` on containers during fetch |
-| Wallet connect | Isolate in `WalletProvider`; never embed private keys in generated code |
+| Pattern            | Implementation                                                                                                    |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| Layout grid / flex | Tailwind utilities or CSS modules aligned to DESIGN.md spacing tokens                                             |
+| Cards / panels     | `<section>` with tokenized border-radius and elevation fallbacks for forced-colors                                |
+| Tables             | Semantic `<table>` or TanStack Table; never div-only grids for tabular data                                       |
+| Buttons            | `<button type="button">` with visible focus ring (preserve browser default unless DESIGN.md defines focus tokens) |
+| Forms              | `<label htmlFor>` + `<input id>`; associate errors with `aria-describedby`                                        |
+| Loading            | Skeleton components; `aria-busy` on containers during fetch                                                       |
+| Wallet connect     | Isolate in `WalletProvider`; never embed private keys in generated code                                           |
 
 ## DESIGN.md integration
 

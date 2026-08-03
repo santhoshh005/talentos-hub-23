@@ -1,11 +1,13 @@
 ---
-description: "Convert frontend code (Vite, React, Angular, Vue, etc.) to a Stitch Design by chaining static HTML extraction, design system extraction, and file upload. **ALWAYS** use this skill when the user's intent is to move existing web apps or React/Angular/Vue components into Stitch (e.g., requests to \"save\", \"migrate\", or \"upload\"). You must use this skill even for simple \"save\" operations, as it is the only way to ensure the design system is extracted and assets are properly linked."
+description: 'Convert frontend code (Vite, React, Angular, Vue, etc.) to a Stitch Design by chaining static HTML extraction, design system extraction, and file upload. **ALWAYS** use this skill when the user''s intent is to move existing web apps or React/Angular/Vue components into Stitch (e.g., requests to "save", "migrate", or "upload"). You must use this skill even for simple "save" operations, as it is the only way to ensure the design system is extracted and assets are properly linked.'
 ---
+
 # Code to Design
 
 Transform your existing frontend code (React + Vite, Next.js, Angular, Vue, etc.) into a Stitch Design so you can iterate and improve it using Stitch.
 
 This skill orchestrates three other skills in sequence:
+
 1. `extract-static-html`: Extract a single self-contained HTML file from your build output or running dev server (e.g., Vite dev server or Angular CLI `ng serve`).
 2. `extract-design-md`: Analyze the source code (including Angular `angular.json`, external `.html` templates, theme files, and components) to create a design system (DESIGN.md).
 3. `upload-to-stitch`: Upload that HTML file and the design system to your Stitch project.
@@ -61,6 +63,7 @@ Use the same `upload-to-stitch` skill's script to upload the extracted HTML file
 Read [skills/upload-to-stitch/SKILL.md](../upload-to-stitch/SKILL.md) for detailed instructions and script usage.
 
 You will need:
+
 - The path to the standalone HTML file generated in Step 1.
 - Your Stitch API Key (same key used in Step 4).
 - The target `projectId`.
