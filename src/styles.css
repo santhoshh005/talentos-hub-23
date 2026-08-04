@@ -123,6 +123,12 @@
     color-scheme: dark;
     background-color: var(--color-background);
   }
+
+  /* Global hardware acceleration for glass panels to fix compositing lag */
+  [class*="backdrop-blur"] {
+    transform: translateZ(0);
+    will-change: transform, backdrop-filter;
+  }
 }
 
 @utility glass-panel {
@@ -130,6 +136,8 @@
   backdrop-filter: blur(20px) saturate(140%);
   border: 1px solid color-mix(in oklab, white 8%, transparent);
   box-shadow: var(--shadow-soft);
+  transform: translateZ(0);
+  will-change: transform, backdrop-filter;
 }
 
 @utility text-gradient {

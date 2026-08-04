@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, Trash2, Copy, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CandidateRecord, EmploymentEntry, EducationEntry } from "@/lib/candidate-schemas";
@@ -231,6 +231,13 @@ function TextField({
   onChange: (v: string) => void;
   placeholder?: string;
 }) {
+  const [localValue, setLocalValue] = useState(value);
+
+  // Sync from props if parent changes it
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
   return (
     <label className="block">
       <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -238,9 +245,10 @@ function TextField({
       </span>
       <input
         type="text"
-        value={value}
+        value={localValue}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={() => onChange(localValue)}
         className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </label>
@@ -260,6 +268,12 @@ function TextareaField({
   rows?: number;
   placeholder?: string;
 }) {
+  const [localValue, setLocalValue] = useState(value);
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
   return (
     <label className="block">
       <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -267,9 +281,10 @@ function TextareaField({
       </span>
       <textarea
         rows={rows}
-        value={value}
+        value={localValue}
         placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => setLocalValue(e.target.value)}
+        onBlur={() => onChange(localValue)}
         className="mt-1.5 w-full resize-y rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/30"
       />
     </label>
