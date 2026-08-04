@@ -28,7 +28,7 @@ const RESUME_SYSTEM = [
   'actually seen in the text and a broad CATEGORY tag (e.g. "Salesforce", "Frontend", "Data",',
   '"Cloud", "DevOps", "AI/ML", "Database", "Mobile", "Security", "QA", "Recruitment",',
   '"Finance", "Product", "Marketing", "Healthcare", "Mechanical", "Soft", "Other").',
-  "Return ONLY raw JSON — no markdown, no prose.",
+  "CRITICAL: Return ONLY raw JSON. DO NOT wrap your response in markdown code blocks (e.g., ```json). DO NOT include any text before or after the JSON.",
 ].join(" ");
 
 const JD_SYSTEM = [
@@ -36,7 +36,7 @@ const JD_SYSTEM = [
   "You read a raw job description for ANY domain and emit strict JSON.",
   "Split requirements into required vs preferred. Emit each requirement with canonical + aliases + category + weight.",
   'Never invent values. If a field is absent, use "" or [] or 0.',
-  "Return ONLY raw JSON — no markdown, no prose.",
+  "CRITICAL: Return ONLY raw JSON. DO NOT wrap your response in markdown code blocks (e.g., ```json). DO NOT include any text before or after the JSON.",
 ].join(" ");
 
 function buildResumePrompt(resumeText: string): string {

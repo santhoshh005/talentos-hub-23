@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { motion } from "framer-motion";
 import { Download, RotateCcw, Sparkles } from "lucide-react";
 import { PageShell } from "@/components/layout/PageShell";
@@ -6,8 +6,10 @@ import { RecruiterReport } from "@/components/report/RecruiterReport";
 import { Button } from "@/components/ui/button";
 import { clearResult, useLastReport } from "@/lib/report-store";
 import { downloadRecruiterReportSnapshot } from "@/lib/recruiter-report-pdf";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/lib/auth-store";
+import { trackReportGenerated } from "@/lib/usage-store";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -30,9 +32,19 @@ export const Route = createFileRoute("/report")({
 
 function ReportPage() {
   const navigate = useNavigate();
+  const router = useRouter();
+  const session = useAuthStore();
   const result = useLastReport();
   const [downloading, setDownloading] = useState(false);
   const canDownload = !!result && result.ok;
+
+  useEffect(() => {
+    if (!session?.accessToken) {
+      void router.navigate({ to: "/login" });
+    }
+  }, [session, router]);
+
+  if (!session?.accessToken) return null;
 
   const handleDownload = async () => {
     if (!canDownload || !result) {
@@ -44,6 +56,7 @@ function ReportPage() {
       // Yield so the button state updates before capture begins.
       await new Promise((r) => setTimeout(r, 20));
       await downloadRecruiterReportSnapshot(result);
+      trackReportGenerated();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to generate PDF.");
     } finally {

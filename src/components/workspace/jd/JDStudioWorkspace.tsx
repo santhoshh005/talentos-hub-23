@@ -14,6 +14,7 @@ import { runJDStudioGeneration, runJDFromResumeGeneration } from "@/lib/jd-studi
 import { extractResumeText } from "@/lib/resume-extract";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { trackJdAnalysis } from "@/lib/usage-store";
 
 export function JDStudioWorkspace() {
   const [positionTitle, setPositionTitle] = useState("");
@@ -51,6 +52,7 @@ export function JDStudioWorkspace() {
     },
     onSuccess: (data) => {
       setFinalJD(data);
+      trackJdAnalysis("From Resume");
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate job description.");
@@ -75,6 +77,7 @@ export function JDStudioWorkspace() {
     },
     onSuccess: (data) => {
       setFinalJD(data);
+      trackJdAnalysis(finalPositionTitle);
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate job description.");

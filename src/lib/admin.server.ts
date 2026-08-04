@@ -39,7 +39,10 @@ export async function getUserById(userId: string): Promise<Profile | null> {
  */
 export async function toggleUserAccess(userId: string, isActive: boolean): Promise<void> {
   const admin = getSupabaseAdmin();
-  const { error } = await admin.from("profiles").update({ is_active: isActive } as any).eq("id", userId);
+  const { error } = await admin
+    .from("profiles")
+    .update({ is_active: isActive } as any)
+    .eq("id", userId);
 
   if (error) throw new Error(error.message);
 }
@@ -69,7 +72,10 @@ export async function updateSubscription(
  */
 export async function updateUsageLimit(userId: string, maxUsage: number): Promise<void> {
   const admin = getSupabaseAdmin();
-  const { error } = await admin.from("profiles").update({ max_usage: maxUsage } as any).eq("id", userId);
+  const { error } = await admin
+    .from("profiles")
+    .update({ max_usage: maxUsage } as any)
+    .eq("id", userId);
 
   if (error) throw new Error(error.message);
 }
@@ -79,7 +85,10 @@ export async function updateUsageLimit(userId: string, maxUsage: number): Promis
  */
 export async function updateUserNotes(userId: string, notes: string): Promise<void> {
   const admin = getSupabaseAdmin();
-  const { error } = await admin.from("profiles").update({ notes } as any).eq("id", userId);
+  const { error } = await admin
+    .from("profiles")
+    .update({ notes } as any)
+    .eq("id", userId);
 
   if (error) throw new Error(error.message);
 }
@@ -89,7 +98,10 @@ export async function updateUserNotes(userId: string, notes: string): Promise<vo
  */
 export async function setUserRole(userId: string, role: "user" | "admin"): Promise<void> {
   const admin = getSupabaseAdmin();
-  const { error } = await admin.from("profiles").update({ role } as any).eq("id", userId);
+  const { error } = await admin
+    .from("profiles")
+    .update({ role } as any)
+    .eq("id", userId);
 
   if (error) throw new Error(error.message);
 }

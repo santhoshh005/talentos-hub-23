@@ -1,7 +1,9 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { Outlet, createFileRoute, useRouter } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { WorkspaceHero } from "@/components/workspace/WorkspaceHero";
 import { WorkspaceSubNav } from "@/components/workspace/SubNav";
+import { useAuthStore } from "@/lib/auth-store";
 
 export const Route = createFileRoute("/workspace")({
   head: () => ({
@@ -24,6 +26,17 @@ export const Route = createFileRoute("/workspace")({
 });
 
 function WorkspaceLayout() {
+  const session = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!session?.accessToken) {
+      void router.navigate({ to: "/login" });
+    }
+  }, [session, router]);
+
+  if (!session?.accessToken) return null;
+
   return (
     <AppLayout>
       <WorkspaceHero

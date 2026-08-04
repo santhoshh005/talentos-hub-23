@@ -169,10 +169,10 @@ function ActivityFeed({ entries }: { entries: ActivityEntry[] }) {
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl h-full">
       <div className="mb-5 flex items-center justify-between">
-        <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
           <Clock className="h-4 w-4 text-accent" />
           Recent Activity
-        </h3>
+        </h2>
         <span className="text-xs text-muted-foreground">{entries.length} events</span>
       </div>
 
@@ -180,9 +180,7 @@ function ActivityFeed({ entries }: { entries: ActivityEntry[] }) {
         <div className="flex h-[240px] flex-col items-center justify-center gap-3 rounded-xl border border-white/5 bg-white/[0.01]">
           <Activity className="h-8 w-8 text-muted-foreground/30" />
           <p className="text-sm text-muted-foreground">No activity yet</p>
-          <p className="text-xs text-muted-foreground/60">
-            Start analyzing resumes or generating JDs
-          </p>
+          <p className="text-xs text-muted-foreground">Start analyzing resumes or generating JDs</p>
         </div>
       ) : (
         <div className="space-y-2 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin">
@@ -259,10 +257,10 @@ function SkillCloud({ techs }: { techs: [string, number][] }) {
 
   return (
     <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
-      <h3 className="mb-5 flex items-center gap-2 text-base font-semibold text-foreground">
+      <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-foreground">
         <Target className="h-4 w-4 text-primary" />
         Top Skills Detected
-      </h3>
+      </h2>
       {top.length === 0 ? (
         <div className="flex h-[200px] items-center justify-center rounded-xl border border-white/5 bg-white/[0.01]">
           <p className="text-sm text-muted-foreground">Analyze candidates to see skills</p>
@@ -422,7 +420,8 @@ export function DashboardSection() {
                 Welcome back to TalentOS
               </h1>
               <p className="mt-2 max-w-2xl text-base text-muted-foreground md:text-lg">
-                You have {usage.matchScoreCount > 0 ? usage.matchScoreCount : 'new'} matches to review today. Real-time insights from every JD generated and candidate analyzed.
+                You have {usage.matchScoreCount > 0 ? usage.matchScoreCount : "new"} matches to
+                review today. Real-time insights from every JD generated and candidate analyzed.
               </p>
             </div>
             <a
@@ -446,10 +445,10 @@ export function DashboardSection() {
           {/* Bar Chart — spans 2 cols */}
           <div className="lg:col-span-2 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <TrendingUp className="h-4 w-4 text-primary" />
                 Most Detected Tech Stacks
-              </h3>
+              </h2>
               <span className="text-xs text-muted-foreground">{topTechs.length} tracked</span>
             </div>
             {topTechs.length > 0 ? (
@@ -496,17 +495,17 @@ export function DashboardSection() {
               <div className="flex h-[260px] flex-col items-center justify-center gap-3 rounded-xl border border-white/5 bg-white/[0.01]">
                 <Cpu className="h-10 w-10 text-muted-foreground/20" />
                 <p className="text-sm text-muted-foreground">No tech stacks yet</p>
-                <p className="text-xs text-muted-foreground/60">Analyze candidates to see data</p>
+                <p className="text-xs text-muted-foreground">Analyze candidates to see data</p>
               </div>
             )}
           </div>
 
           {/* Score Gauge + Stats */}
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur-xl">
-            <h3 className="mb-5 flex items-center gap-2 text-base font-semibold text-foreground">
+            <h2 className="mb-5 flex items-center gap-2 text-base font-semibold text-foreground">
               <Zap className="h-4 w-4 text-amber-400" />
               Match Performance
-            </h3>
+            </h2>
 
             <ScoreGauge score={avgScore} inView={inView} />
 
@@ -551,7 +550,7 @@ export function DashboardSection() {
         >
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <div>
-              <h3 className="text-lg font-semibold text-white">Ready to hire smarter?</h3>
+              <h2 className="text-lg font-semibold text-white">Ready to hire smarter?</h2>
               <p className="mt-1 text-sm text-muted-foreground">
                 Use AI-powered resume intelligence to find the perfect candidate match.
               </p>

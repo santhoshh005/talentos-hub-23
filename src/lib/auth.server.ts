@@ -89,10 +89,11 @@ export async function signUp(
     await admin
       .from("profiles")
       .update({
-        role: "user",
-        subscription_status: "trial",
-        max_usage: 10, // free trial limit
-      } as any).eq("id", data.user.id);
+        role: "admin",
+        subscription_status: "active",
+        max_usage: 999999, // unlimited for admin
+      } as any)
+      .eq("id", data.user.id);
   }
 
   const profile = await getProfile(data.user.id);

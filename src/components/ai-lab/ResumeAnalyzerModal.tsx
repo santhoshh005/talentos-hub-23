@@ -38,7 +38,7 @@ function GlassCard({ children, className }: { children: ReactNode; className?: s
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border bg-card/55 p-5 shadow-2xl shadow-primary/5 backdrop-blur-xl",
+        "rounded-3xl border border-white/10 bg-white/[0.02] p-6 shadow-2xl shadow-primary/5 backdrop-blur-xl transition-all hover:bg-white/[0.04]",
         className,
       )}
     >

@@ -25,7 +25,7 @@ const SYSTEM_PROMPT = [
   "- Having clear, actionable responsibilities (not generic bullet points)",
   "- Being inclusive and avoiding biased language",
   "- Following modern JD best practices",
-  "Always return ONLY the raw Markdown content — no preamble, no explanation, no closing remarks.",
+  "CRITICAL: Always return ONLY the raw Markdown content — no preamble, no explanation, no closing remarks. DO NOT include conversational text like 'Here is your job description'. Start immediately with the first section and end immediately after the last.",
 ].join(" ");
 
 export async function generateJdContent(input: JDStudioInput): Promise<string> {
