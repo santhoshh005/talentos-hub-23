@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo } from "react";
+import { useEffect, useRef, memo } from "react";
 import { motion } from "framer-motion";
 
 /**
@@ -8,17 +8,22 @@ import { motion } from "framer-motion";
  */
 export const HeroBackground = memo(function HeroBackground() {
   const ref = useRef<HTMLDivElement>(null);
-  const [pos, setPos] = useState({ x: 0.5, y: 0.35 });
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+    
+    // Set initial values
+    el.style.setProperty("--mouse-x", "50%");
+    el.style.setProperty("--mouse-y", "35%");
+
     const onMove = (e: MouseEvent) => {
       const r = el.getBoundingClientRect();
-      setPos({
-        x: (e.clientX - r.left) / r.width,
-        y: (e.clientY - r.top) / r.height,
-      });
+      const x = (e.clientX - r.left) / r.width;
+      const y = (e.clientY - r.top) / r.height;
+      // Use CSS variables to bypass React state entirely for mouse moves
+      el.style.setProperty("--mouse-x", `${x * 100}%`);
+      el.style.setProperty("--mouse-y", `${y * 100}%`);
     };
     window.addEventListener("mousemove", onMove);
     return () => window.removeEventListener("mousemove", onMove);
@@ -84,7 +89,7 @@ export const HeroBackground = memo(function HeroBackground() {
       <div
         className="absolute inset-0 transition-[background] duration-200"
         style={{
-          background: `radial-gradient(320px circle at ${pos.x * 100}% ${pos.y * 100}%, oklch(0.78 0.15 220 / 0.18), transparent 60%)`,
+          background: `radial-gradient(320px circle at var(--mouse-x) var(--mouse-y), oklch(0.78 0.15 220 / 0.18), transparent 60%)`,
         }}
       />
 

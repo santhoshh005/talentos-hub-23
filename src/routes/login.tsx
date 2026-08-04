@@ -92,9 +92,6 @@ function LoginPage() {
 
 function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -104,10 +101,15 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setError("");
   }, [mode]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
     setLoading(true);
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const fullName = formData.get("fullName") as string;
 
     try {
       if (mode === "login") {
@@ -153,9 +155,7 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: mode === "login" ? 12 : -12 }}
         transition={{ duration: 0.2 }}
-        onSubmit={(e) => {
-          void handleSubmit(e);
-        }}
+        onSubmit={handleSubmit}
         className="space-y-4"
       >
         {mode === "signup" && (
@@ -168,8 +168,7 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
               name="fullName"
               type="text"
               required
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              defaultValue=""
               placeholder="Your full name"
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-muted-foreground/50 focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
             />
@@ -185,8 +184,7 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
             name="email"
             type="email"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            defaultValue=""
             placeholder="you@example.com"
             className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm text-white placeholder:text-muted-foreground/50 focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
           />
@@ -202,8 +200,7 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
               name="password"
               type={showPassword ? "text" : "password"}
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              defaultValue=""
               placeholder={mode === "signup" ? "Min. 8 characters" : "Your password"}
               className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2.5 pr-11 text-sm text-white placeholder:text-muted-foreground/50 focus:border-accent/50 focus:outline-none focus:ring-1 focus:ring-accent/30 transition-all"
             />
@@ -221,10 +218,10 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <AnimatePresence>
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3"
+               initial={{ opacity: 0, y: -8 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, y: -8 }}
+               className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3"
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
               <p className="text-sm text-rose-300">{error}</p>
