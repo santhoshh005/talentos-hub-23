@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, memo } from "react";
 import { motion } from "framer-motion";
 
 /**
@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
  * subtle grid, mouse-follow glow, and floating particles.
  * Pointer-events disabled so it never blocks the hero UI.
  */
-export function HeroBackground() {
+export const HeroBackground = memo(function HeroBackground() {
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: 0.5, y: 0.35 });
 
@@ -120,4 +120,4 @@ export function HeroBackground() {
       })}
     </div>
   );
-}
+});
