@@ -33,12 +33,15 @@ function AdminUsers() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = useCallback(async (isPolling = false) => {
-    if (!isPolling) setLoading(true);
-    const data = await listUsers();
-    setUsers(data);
-    if (!isPolling) setLoading(false);
-  }, [listUsers]);
+  const fetchUsers = useCallback(
+    async (isPolling = false) => {
+      if (!isPolling) setLoading(true);
+      const data = await listUsers();
+      setUsers(data);
+      if (!isPolling) setLoading(false);
+    },
+    [listUsers],
+  );
 
   useEffect(() => {
     void fetchUsers(false);

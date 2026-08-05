@@ -27,10 +27,10 @@ function AdminOverview() {
         console.error("Failed to fetch platform analytics:", err);
       }
     };
-    
+
     void fetchStats();
     const interval = setInterval(fetchStats, 10000); // Poll every 10 seconds
-    
+
     return () => {
       mounted = false;
       clearInterval(interval);

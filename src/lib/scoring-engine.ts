@@ -53,12 +53,11 @@ export function scoreMatch(input: ScoringInput): ScoringResult {
   // pushed below 70%.
   const effectiveEvidence = matched.length > 0 && evidenceScore === 0 ? 30 : evidenceScore;
 
-  // Enhance the scoring: 60% coverage, 40% evidence
-  let rawScore = 0.6 * skillCoverage + 0.4 * effectiveEvidence;
-
-  // Severe penalty for missing skills (if coverage is < 60%)
-  if (skillCoverage < 60) {
-    rawScore = rawScore * (skillCoverage / 60);
+  // Fair scoring: 70% coverage, 30% evidence
+  // Baseline minimum for candidates with matches to avoid artificial 3% scores
+  let rawScore = 0.7 * skillCoverage + 0.3 * effectiveEvidence;
+  if (matched.length > 0 && rawScore < 35) {
+    rawScore = Math.max(35, rawScore);
   }
 
   const matchPercentage = Math.round(rawScore);

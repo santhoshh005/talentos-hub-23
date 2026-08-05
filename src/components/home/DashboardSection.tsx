@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   Users,
@@ -424,12 +425,12 @@ export function DashboardSection() {
                 review today. Real-time insights from every JD generated and candidate analyzed.
               </p>
             </div>
-            <a
-              href="/workspace/intelligence"
+            <Link
+              to="/workspace/intelligence"
               className="bg-gradient-to-r from-primary to-accent text-white px-6 py-3 rounded-[14px] text-sm font-semibold shadow-lg hover:shadow-[0_0_15px_rgba(56,189,248,0.4)] transition-all active:scale-95 whitespace-nowrap"
             >
               Review Matches
-            </a>
+            </Link>
           </div>
         </motion.div>
 
@@ -556,19 +557,19 @@ export function DashboardSection() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <a
-                href="/workspace/intelligence"
+              <Link
+                to="/workspace/intelligence"
                 className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary/25 transition-all hover:scale-105"
               >
                 Run Intelligence
                 <ChevronRight className="h-4 w-4" />
-              </a>
-              <a
-                href="/workspace/jd"
+              </Link>
+              <Link
+                to="/workspace/jd"
                 className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm font-medium text-white/80 transition-all hover:bg-white/10"
               >
                 Generate JD
-              </a>
+              </Link>
             </div>
           </div>
         </motion.div>

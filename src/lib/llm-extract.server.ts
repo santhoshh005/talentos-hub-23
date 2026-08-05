@@ -28,8 +28,9 @@ const RESUME_SYSTEM = [
   'actually seen in the text and a broad CATEGORY tag (e.g. "Salesforce", "Frontend", "Data",',
   '"Cloud", "DevOps", "AI/ML", "Database", "Mobile", "Security", "QA", "Recruitment",',
   '"Finance", "Product", "Marketing", "Healthcare", "Mechanical", "Soft", "Other").',
-  "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE skill, technology, tool, certification, and detail found in the resume. Accurately calculate total years of experience.",
-  "CRITICAL: Be strict with categorizing seniority and domain based ONLY on explicit titles or responsibilities.",
+  "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE skill, technology, tool, certification, project, and detail found in the resume.",
+  "CRITICAL: Always extract all Projects (titles + descriptions) and Certifications (names + issuers) explicitly.",
+  "CRITICAL: Calculate totalYears from employment history if not explicitly stated.",
   "CRITICAL: Return ONLY raw JSON. DO NOT wrap your response in markdown code blocks (e.g., ```json). DO NOT include any text before or after the JSON.",
 ].join(" ");
 

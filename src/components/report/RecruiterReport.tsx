@@ -344,9 +344,15 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
         <div className="grid gap-4 md:grid-cols-2">
           <ProfileCard icon={Clock} title="Experience">
             <p className="text-sm text-muted-foreground">Total</p>
-            <p className="text-lg font-medium">{resume.experience}</p>
+            <p className="text-lg font-medium">
+              {resume.experience === "Not Found" ? "Fresher / Entry-Level" : resume.experience}
+            </p>
             <p className="mt-3 text-sm text-muted-foreground">Relevant</p>
-            <p className="text-lg font-medium">{resume.relevantExperience}</p>
+            <p className="text-lg font-medium">
+              {resume.relevantExperience === "Not Found"
+                ? "Entry-Level"
+                : resume.relevantExperience}
+            </p>
           </ProfileCard>
           <ProfileCard icon={GraduationCap} title="Education">
             <ul className="space-y-2 text-sm">
@@ -385,16 +391,20 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
             </ol>
           </ProfileCard>
           <ProfileCard icon={FolderKanban} title="Projects" className="md:col-span-2">
-            <ul className="grid gap-2 text-sm md:grid-cols-2">
-              {resume.projects.map((p, i) => (
-                <li
-                  key={i}
-                  className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-foreground/90"
-                >
-                  {p}
-                </li>
-              ))}
-            </ul>
+            {resume.projects.length > 0 ? (
+              <ul className="grid gap-2 text-sm md:grid-cols-2">
+                {resume.projects.map((p, i) => (
+                  <li
+                    key={i}
+                    className="rounded-lg border border-white/5 bg-white/[0.02] p-3 text-foreground/90"
+                  >
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">Not Found</p>
+            )}
           </ProfileCard>
         </div>
       </motion.div>

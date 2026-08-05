@@ -37,11 +37,17 @@ function buildPrompt(resume: ParsedResumeV3, jd: ParsedJDV3): string {
   return `RULES:
 1. Produce ONE entry for EVERY JD requirement — never skip.
 2. Confidence bands: exact=100, equivalent=95, related=80, missing=0.
-3. "matchedResumeSkill" MUST come from CANDIDATE_SKILLS (canonical or alias). Empty when status is "missing".
-4. Never invent a candidate skill. If unsure, mark missing.
+3. "matchedResumeSkill" MUST come from CANDIDATE_SKILLS or CANDIDATE_CONTEXT. Empty when status is "missing".
+4. Be intelligent: map implied skills from candidate projects and employment context to JD requirements as "equivalent" or "related" (e.g. "Full-Stack Web Development" implies HTML, CSS, JavaScript, Web Development).
 
 CANDIDATE_SKILLS:
 ${JSON.stringify(resumeSkills)}
+
+CANDIDATE_CONTEXT:
+- Employment: ${JSON.stringify(resume.employment.map((e) => `${e.title} at ${e.company} (${e.summary})`))}
+- Projects: ${JSON.stringify(resume.projects)}
+- Education: ${JSON.stringify(resume.education)}
+- Certifications: ${JSON.stringify(resume.certifications)}
 
 JD_REQUIREMENTS:
 ${JSON.stringify(jdRequirements)}`;

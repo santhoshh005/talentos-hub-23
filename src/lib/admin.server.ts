@@ -113,8 +113,16 @@ export async function setUserRole(userId: string, role: "user" | "admin"): Promi
 export async function getPlatformAnalytics() {
   const admin = getSupabaseAdmin() as any;
 
-  const [{ count: totalUsers }, { count: activeUsers }, { count: trialUsers }, { count: blockedUsers }] = await Promise.all([
-    admin.from("profiles").select("*", { count: "exact", head: true }).neq("full_name", "Deleted User"),
+  const [
+    { count: totalUsers },
+    { count: activeUsers },
+    { count: trialUsers },
+    { count: blockedUsers },
+  ] = await Promise.all([
+    admin
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .neq("full_name", "Deleted User"),
     admin
       .from("profiles")
       .select("*", { count: "exact", head: true })
