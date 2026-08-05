@@ -160,7 +160,10 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
       >
         {mode === "signup" && (
           <div>
-            <label htmlFor="fullName" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+            <label
+              htmlFor="fullName"
+              className="mb-1.5 block text-xs font-medium text-muted-foreground"
+            >
               Full Name
             </label>
             <input
@@ -191,7 +194,10 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-muted-foreground">
+          <label
+            htmlFor="password"
+            className="mb-1.5 block text-xs font-medium text-muted-foreground"
+          >
             Password
           </label>
           <div className="relative">
@@ -218,10 +224,10 @@ function AuthForm({ mode }: { mode: "login" | "signup" }) {
         <AnimatePresence>
           {error && (
             <motion.div
-               initial={{ opacity: 0, y: -8 }}
-               animate={{ opacity: 1, y: 0 }}
-               exit={{ opacity: 0, y: -8 }}
-               className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              className="flex items-start gap-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3"
             >
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-rose-400" />
               <p className="text-sm text-rose-300">{error}</p>

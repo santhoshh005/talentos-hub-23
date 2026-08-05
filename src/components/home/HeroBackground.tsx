@@ -12,7 +12,7 @@ export const HeroBackground = memo(function HeroBackground() {
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    
+
     // Set initial values
     el.style.setProperty("--mouse-x", "50%");
     el.style.setProperty("--mouse-y", "35%");
@@ -52,25 +52,37 @@ export const HeroBackground = memo(function HeroBackground() {
         style={{
           background:
             "conic-gradient(from 90deg at 50% 50%, transparent 0deg, oklch(0.555 0.22 264 / 0.15) 90deg, transparent 180deg, oklch(0.78 0.15 220 / 0.18) 270deg, transparent 360deg)",
-          filter: "blur(80px)",
+          willChange: "transform",
         }}
         animate={{ rotate: 360 }}
         transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
       />
 
-      {/* Glowing orbs */}
+      {/* Glowing orbs - replaced expensive blurs with highly optimized radial gradients */}
       <motion.div
-        className="absolute -top-32 left-1/4 h-[420px] w-[420px] rounded-full bg-primary/25 blur-[120px]"
+        className="absolute -top-[10%] left-[10%] h-[600px] w-[600px] rounded-full pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, oklch(0.555 0.22 264 / 0.15) 0%, transparent 70%)",
+          willChange: "transform",
+        }}
         animate={{ x: [0, 40, -20, 0], y: [0, -30, 20, 0] }}
         transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute top-1/3 right-[10%] h-[360px] w-[360px] rounded-full bg-accent/25 blur-[120px]"
+        className="absolute top-1/4 right-[0%] h-[500px] w-[500px] rounded-full pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, oklch(0.78 0.15 220 / 0.15) 0%, transparent 70%)",
+          willChange: "transform",
+        }}
         animate={{ x: [0, -30, 20, 0], y: [0, 40, -20, 0] }}
         transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-0 left-[15%] h-[300px] w-[300px] rounded-full bg-[oklch(0.6_0.2_280)]/20 blur-[120px]"
+        className="absolute bottom-0 left-[5%] h-[450px] w-[450px] rounded-full pointer-events-none"
+        style={{
+          background: "radial-gradient(circle, oklch(0.6 0.2 280 / 0.12) 0%, transparent 70%)",
+          willChange: "transform",
+        }}
         animate={{ x: [0, 30, -15, 0], y: [0, 20, -25, 0] }}
         transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
       />
@@ -109,6 +121,7 @@ export const HeroBackground = memo(function HeroBackground() {
               top: `${top}%`,
               width: size,
               height: size,
+              willChange: "transform, opacity",
             }}
             animate={{
               y: [0, -30, 0],

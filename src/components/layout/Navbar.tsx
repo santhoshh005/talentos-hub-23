@@ -35,7 +35,8 @@ function UserMenu() {
   if (!session) return null;
 
   const { user, profile } = session;
-  const initial = profile?.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "?";
+  const initial =
+    profile?.full_name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "?";
   const isAdmin = profile?.role === "admin";
 
   const handleLogout = async () => {
@@ -125,7 +126,7 @@ export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  
+
   const isAuthenticated = useIsAuthenticated();
 
   useEffect(() => {

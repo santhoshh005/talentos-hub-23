@@ -62,7 +62,7 @@ async function extractPdf(file: File): Promise<string> {
     pages.push(lines.filter(Boolean).join("\n"));
   }
   const text = normalize(pages.join("\n\n"));
-  if (text.length < 40) {
+  if (text.length < 20) {
     throw new Error(
       "This PDF does not contain readable text. Please upload a text-based PDF or DOCX resume.",
     );
@@ -72,14 +72,15 @@ async function extractPdf(file: File): Promise<string> {
 
 async function extractDocx(file: File): Promise<string> {
   // @ts-expect-error - browser build has no types
-  const mammoth = (await import("mammoth/mammoth.browser")) as {
+  const mammothModule = (await import("mammoth/mammoth.browser")) as any;
+  const mammoth = (mammothModule.default || mammothModule) as {
     extractRawText: (o: { arrayBuffer: ArrayBuffer }) => Promise<{ value: string }>;
   };
   const buf = await file.arrayBuffer();
   const result = await mammoth.extractRawText({ arrayBuffer: buf });
   const text = normalize(result.value ?? "");
-  if (text.length < 40) {
-    throw new Error("This DOCX does not contain enough readable resume text.");
+  if (text.length < 20) {
+    throw new Error("This DOCX does not contain enough readable text.");
   }
   return text;
 }

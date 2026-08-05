@@ -184,7 +184,7 @@ function JDStudioForm({
       const dropped = event.dataTransfer.files?.[0];
       if (dropped) void processResumeFile(dropped);
     },
-    [processResumeFile]
+    [processResumeFile],
   );
 
   const handleGenerate = (e: React.FormEvent) => {
@@ -215,7 +215,7 @@ function JDStudioForm({
               "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               mode === "manual"
                 ? "bg-white/10 text-foreground"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             Manual Entry
@@ -227,7 +227,7 @@ function JDStudioForm({
               "rounded-md px-3 py-1.5 text-xs font-medium transition-colors",
               mode === "resume"
                 ? "bg-white/10 text-foreground"
-                : "text-muted-foreground hover:text-foreground"
+                : "text-muted-foreground hover:text-foreground",
             )}
           >
             From Resume
@@ -238,7 +238,10 @@ function JDStudioForm({
       {mode === "manual" ? (
         <form onSubmit={handleGenerate} className="space-y-5">
           <div>
-            <label htmlFor="position-title" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="position-title"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Select Position <span className="text-red-500">*</span>
             </label>
             <Select name="positionTitle" value={positionTitle} onValueChange={setPositionTitle}>
@@ -256,7 +259,10 @@ function JDStudioForm({
           </div>
 
           <div>
-            <label htmlFor="custom-position" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="custom-position"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Or Enter Custom Position Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -272,7 +278,10 @@ function JDStudioForm({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="department" className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="department"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Department
               </label>
               <Select name="department" value={department} onValueChange={setDepartment}>
@@ -290,7 +299,10 @@ function JDStudioForm({
               </Select>
             </div>
             <div>
-              <label htmlFor="level" className="mb-1 block text-sm font-medium text-muted-foreground">
+              <label
+                htmlFor="level"
+                className="mb-1 block text-sm font-medium text-muted-foreground"
+              >
                 Level
               </label>
               <Select name="level" value={level} onValueChange={setLevel}>
@@ -312,7 +324,10 @@ function JDStudioForm({
           </div>
 
           <div>
-            <label htmlFor="location" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="location"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Location <span className="text-red-500">*</span>
             </label>
             <input
@@ -328,7 +343,10 @@ function JDStudioForm({
           </div>
 
           <div>
-            <label htmlFor="employment-type" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="employment-type"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Employment type
             </label>
             <Select name="employmentType" value={employmentType} onValueChange={setEmploymentType}>
@@ -346,10 +364,17 @@ function JDStudioForm({
           </div>
 
           <div>
-            <label htmlFor="required-experience" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="required-experience"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Required Experience <span className="text-red-500">*</span>
             </label>
-            <Select name="requiredExperience" value={requiredExperience} onValueChange={setRequiredExperience}>
+            <Select
+              name="requiredExperience"
+              value={requiredExperience}
+              onValueChange={setRequiredExperience}
+            >
               <SelectTrigger id="required-experience">
                 <SelectValue placeholder="Select experience" />
               </SelectTrigger>
@@ -365,7 +390,10 @@ function JDStudioForm({
           </div>
 
           <div>
-            <label htmlFor="role-description" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="role-description"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Role Description / Overview <span className="text-red-500">*</span>
             </label>
             <textarea
@@ -381,7 +409,10 @@ function JDStudioForm({
           </div>
 
           <div>
-            <label htmlFor="must-have-skills" className="mb-1 block text-sm font-medium text-muted-foreground">
+            <label
+              htmlFor="must-have-skills"
+              className="mb-1 block text-sm font-medium text-muted-foreground"
+            >
               Must-have skills <span className="text-red-500">*</span>
             </label>
             <input
@@ -432,7 +463,9 @@ function JDStudioForm({
               <SelectContent>
                 <SelectItem value="Clear & professional">Clear & professional</SelectItem>
                 <SelectItem value="Warm & welcoming">Warm & welcoming</SelectItem>
-                <SelectItem value="Highly technical & precise">Highly technical & precise</SelectItem>
+                <SelectItem value="Highly technical & precise">
+                  Highly technical & precise
+                </SelectItem>
                 <SelectItem value="Startup & dynamic">Startup & dynamic</SelectItem>
               </SelectContent>
             </Select>
@@ -441,7 +474,13 @@ function JDStudioForm({
           <div className="pt-4 border-t border-white/10">
             <Button
               type="submit"
-              disabled={isPendingManual || !finalPositionTitle || !location || !roleDescription || !mustHaveSkills}
+              disabled={
+                isPendingManual ||
+                !finalPositionTitle ||
+                !location ||
+                !roleDescription ||
+                !mustHaveSkills
+              }
               className="w-full bg-gradient-to-r from-primary to-accent py-6 font-semibold text-white shadow-lg shadow-primary/20"
             >
               {isPendingManual ? (
@@ -467,7 +506,9 @@ function JDStudioForm({
             onDrop={onDropResume}
             className={cn(
               "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed p-8 text-center transition-colors",
-              dragActive ? "border-accent bg-accent/10" : "border-white/10 bg-black/20 hover:border-accent/50"
+              dragActive
+                ? "border-accent bg-accent/10"
+                : "border-white/10 bg-black/20 hover:border-accent/50",
             )}
           >
             {isExtracting ? (
@@ -521,7 +562,9 @@ function JDStudioForm({
               <SelectContent>
                 <SelectItem value="Clear & professional">Clear & professional</SelectItem>
                 <SelectItem value="Warm & welcoming">Warm & welcoming</SelectItem>
-                <SelectItem value="Highly technical & precise">Highly technical & precise</SelectItem>
+                <SelectItem value="Highly technical & precise">
+                  Highly technical & precise
+                </SelectItem>
                 <SelectItem value="Startup & dynamic">Startup & dynamic</SelectItem>
               </SelectContent>
             </Select>
