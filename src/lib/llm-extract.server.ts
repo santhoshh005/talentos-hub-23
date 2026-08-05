@@ -135,8 +135,12 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
 
   const fallback = () => {
     const legacy = parseJdLocally(jdText);
-    const required = arr(legacy.requiredSkills).map((s) => coerceRequirement(str(s)));
-    const preferred = arr(legacy.preferredSkills).map((s) => coerceRequirement(str(s)));
+    const required = arr(legacy.requiredSkills)
+      .map((s) => coerceRequirement(str(s)))
+      .filter((r): r is NonNullable<ReturnType<typeof coerceRequirement>> => r !== null);
+    const preferred = arr(legacy.preferredSkills)
+      .map((s) => coerceRequirement(str(s)))
+      .filter((r): r is NonNullable<ReturnType<typeof coerceRequirement>> => r !== null);
 
     return ParsedJDV3Schema.parse({
       jobTitle: str(legacy.jobTitle),
@@ -196,6 +200,20 @@ function coerceParsedResume(raw: unknown): ParsedResumeV3 {
   const employment = arr(src.employment)
     .map((e) => coerceEmployment(e))
     .filter((e) => e.company);
+
+  const certifications = strArr(src.certifications);
+  for (const cert of certifications) {
+    if (cert.length < 50) {
+      // Avoid adding entire paragraphs as skills
+      skills.push({
+        canonical: cert,
+        aliases: [],
+        category: "Certification",
+        years: 0,
+        evidence: ["Found in certifications section"],
+      });
+    }
+  }
   return ParsedResumeV3Schema.parse({
     name: str(src.name),
     email: str(src.email),
@@ -232,10 +250,10 @@ function coerceParsedJd(raw: unknown): ParsedJDV3 {
   const src = obj(raw);
   const required = arr(src.required)
     .map((r) => coerceRequirement(r))
-    .filter((r) => r.canonical);
+    .filter((r): r is NonNullable<ReturnType<typeof coerceRequirement>> => r !== null);
   const preferred = arr(src.preferred)
     .map((r) => coerceRequirement(r))
-    .filter((r) => r.canonical);
+    .filter((r): r is NonNullable<ReturnType<typeof coerceRequirement>> => r !== null);
   return ParsedJDV3Schema.parse({
     jobTitle: str(src.jobTitle),
     domain: str(src.domain),
@@ -270,13 +288,38 @@ function coerceSkillEntry(raw: unknown) {
 }
 
 function coerceRequirement(raw: unknown) {
+  const parseStr = (s: string) => {
+    const trimmed = s.trim();
+    const lower = trimmed.toLowerCase();
+    if (
+      lower.startsWith("as well as") ||
+      lower.startsWith("or other") ||
+      lower.startsWith("any additional") ||
+      lower === "other" ||
+      lower === "etc" ||
+      lower === "and"
+    ) {
+      return null;
+    }
+    // Filter out long vague sentences with no distinct nouns/acronyms
+    if (trimmed.length > 40 && !/[A-Z]/.test(trimmed)) {
+      return null;
+    }
+    return trimmed;
+  };
+
   if (typeof raw === "string") {
-    return { canonical: raw.trim(), aliases: [], category: "Other", weight: 1 };
+    const val = parseStr(raw);
+    if (!val) return null;
+    return { canonical: val, aliases: [], category: "Other", weight: 1 };
   }
   const src = obj(raw);
+  const val = parseStr(str(src.canonical));
+  if (!val) return null;
+
   const weight = Math.max(1, Math.min(3, Math.round(num(src.weight)) || 1));
   return {
-    canonical: str(src.canonical).trim(),
+    canonical: val,
     aliases: strArr(src.aliases),
     category: str(src.category) || "Other",
     weight,

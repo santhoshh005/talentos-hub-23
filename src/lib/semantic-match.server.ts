@@ -81,7 +81,7 @@ export async function runSemanticMatch(
       system: SYSTEM,
       prompt: buildPrompt(resume, jd),
     });
-    return coerceMatches(object, jdRequirements);
+    return coerceMatches(object, jdRequirements, resume);
   };
 
   try {
@@ -98,42 +98,102 @@ export async function runSemanticMatch(
   }
 }
 
+function fuzzyMatch(jdSkill: string, candidateSkill: string): boolean {
+  const normalize = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(
+        /^(certification in|familiarity with|knowledge of|experience with|understanding of)\s+/i,
+        "",
+      )
+      .replace(/[^a-z0-9]/g, "");
+
+  const nJd = normalize(jdSkill);
+  const nCan = normalize(candidateSkill);
+
+  if (!nJd || !nCan) return false;
+  return nJd.includes(nCan) || nCan.includes(nJd);
+}
+
 function coerceMatches(
   raw: unknown,
   jdRequirements: Array<{ canonical: string }>,
+  resume: ParsedResumeV3,
 ): SemanticMatchV3 {
   const src = typeof raw === "object" && raw !== null ? (raw as Record<string, unknown>) : {};
   const rawList = Array.isArray(src.matches) ? src.matches : [];
   const byReq = new Map<string, SemanticMatchEntry>();
+
+  // Build a flat list of all candidate skills for fuzzy matching
+  const candidateSkills = new Set<string>();
+  for (const s of resume.skills) {
+    candidateSkills.add(s.canonical);
+    for (const a of s.aliases) candidateSkills.add(a);
+  }
+  const candidateSkillsArr = Array.from(candidateSkills);
+
   for (const item of rawList) {
     if (typeof item !== "object" || item === null) continue;
     const rec = item as Record<string, unknown>;
     const requirement = typeof rec.requirement === "string" ? rec.requirement.trim() : "";
     if (!requirement) continue;
+
     const statusRaw = typeof rec.status === "string" ? rec.status.trim().toLowerCase() : "missing";
-    const status = (
+    let status = (
       ["exact", "equivalent", "related", "missing"].includes(statusRaw) ? statusRaw : "missing"
     ) as SemanticMatchEntry["status"];
+
+    let matchedResumeSkill =
+      typeof rec.matchedResumeSkill === "string" ? rec.matchedResumeSkill.trim() : "";
+    let reason = typeof rec.reason === "string" ? rec.reason.trim() : "";
+
+    // Fuzzy override if the LLM marks it missing but we can substring match it!
+    if (status === "missing" || !matchedResumeSkill) {
+      for (const canSkill of candidateSkillsArr) {
+        if (fuzzyMatch(requirement, canSkill)) {
+          status = "equivalent";
+          matchedResumeSkill = canSkill;
+          reason = "Fuzzy substring match (LLM override).";
+          break;
+        }
+      }
+    }
+
     byReq.set(requirement.toLowerCase(), {
       requirement,
       status,
-      matchedResumeSkill:
-        typeof rec.matchedResumeSkill === "string" ? rec.matchedResumeSkill.trim() : "",
+      matchedResumeSkill,
       confidence: clampConfidence(rec.confidence, status),
-      reason: typeof rec.reason === "string" ? rec.reason.trim() : "",
+      reason,
     });
   }
+
   const merged: SemanticMatchEntry[] = jdRequirements.map((r) => {
-    const hit = byReq.get(r.canonical.toLowerCase());
-    if (hit) return { ...hit, requirement: r.canonical };
-    return {
-      requirement: r.canonical,
-      status: "missing",
-      matchedResumeSkill: "",
-      confidence: 0,
-      reason: "Model did not return a verdict for this requirement.",
-    };
+    let hit = byReq.get(r.canonical.toLowerCase());
+
+    // If the LLM completely ignored this requirement, try to fuzzy match it ourselves
+    if (!hit) {
+      let fallbackStatus: SemanticMatchEntry["status"] = "missing";
+      let fallbackMatched = "";
+      for (const canSkill of candidateSkillsArr) {
+        if (fuzzyMatch(r.canonical, canSkill)) {
+          fallbackStatus = "equivalent";
+          fallbackMatched = canSkill;
+          break;
+        }
+      }
+      hit = {
+        requirement: r.canonical,
+        status: fallbackStatus,
+        matchedResumeSkill: fallbackMatched,
+        confidence: fallbackStatus !== "missing" ? 95 : 0,
+        reason: fallbackStatus !== "missing" ? "Fuzzy fallback." : "Model missed.",
+      };
+    }
+
+    return { ...hit, requirement: r.canonical };
   });
+
   return { matches: merged };
 }
 
@@ -154,6 +214,7 @@ function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): Semantic
   }
   const jdRequirements = [...jd.required, ...jd.preferred];
   const matches: SemanticMatchEntry[] = jdRequirements.map((r) => {
+    // 1. Exact or strict alias match
     const keys = [r.canonical, ...r.aliases].map((k) => k.toLowerCase());
     for (const k of keys) {
       const hit = candidateIndex.get(k);
@@ -165,16 +226,30 @@ function deterministicFallback(resume: ParsedResumeV3, jd: ParsedJDV3): Semantic
           status,
           matchedResumeSkill: hit,
           confidence: status === "exact" ? 100 : 95,
-          reason: "Deterministic alias match (LLM unavailable).",
+          reason: "Deterministic alias match.",
         };
       }
     }
+
+    // 2. Fuzzy fallback
+    for (const [canLower, canOriginal] of candidateIndex.entries()) {
+      if (fuzzyMatch(r.canonical, canOriginal)) {
+        return {
+          requirement: r.canonical,
+          status: "equivalent",
+          matchedResumeSkill: canOriginal,
+          confidence: 95,
+          reason: "Deterministic fuzzy match.",
+        };
+      }
+    }
+
     return {
       requirement: r.canonical,
       status: "missing",
       matchedResumeSkill: "",
       confidence: 0,
-      reason: "No alias overlap found (LLM unavailable).",
+      reason: "No alias or fuzzy overlap found.",
     };
   });
   return { matches };
