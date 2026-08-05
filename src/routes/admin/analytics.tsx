@@ -1,22 +1,38 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState, useCallback } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { getDailyAnalyticsFn } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/admin/analytics")({
   component: AdminAnalytics,
 });
 
-// Placeholder data for the admin analytics view
-const mockData = [
-  { name: "Mon", analyses: 12, jds: 5 },
-  { name: "Tue", analyses: 19, jds: 8 },
-  { name: "Wed", analyses: 15, jds: 12 },
-  { name: "Thu", analyses: 22, jds: 15 },
-  { name: "Fri", analyses: 28, jds: 20 },
-  { name: "Sat", analyses: 10, jds: 4 },
-  { name: "Sun", analyses: 8, jds: 2 },
-];
+// Remove mockData
 
 function AdminAnalytics() {
+  const getDailyAnalytics = useServerFn(getDailyAnalyticsFn);
+  const [data, setData] = useState<any[]>([]);
+
+  const fetchAnalytics = useCallback(async () => {
+    try {
+      const result = await getDailyAnalytics();
+      setData(result);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [getDailyAnalytics]);
+
+  useEffect(() => {
+    void fetchAnalytics();
+
+    // Poll every 10 seconds to keep the dashboard live
+    const interval = setInterval(() => {
+      void fetchAnalytics();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [fetchAnalytics]);
   return (
     <div className="space-y-6">
       <div>
@@ -29,7 +45,7 @@ function AdminAnalytics() {
           <h3 className="mb-6 font-semibold text-white">Platform Activity (Last 7 Days)</h3>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={mockData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <XAxis
                   dataKey="name"
                   stroke="#666"

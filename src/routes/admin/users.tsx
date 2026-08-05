@@ -42,6 +42,13 @@ function AdminUsers() {
 
   useEffect(() => {
     void fetchUsers();
+
+    // Poll every 10 seconds to keep the dashboard live
+    const interval = setInterval(() => {
+      void fetchUsers();
+    }, 10000);
+
+    return () => clearInterval(interval);
   }, [fetchUsers]);
 
   const handleToggleAccess = async (userId: string, current: boolean) => {
@@ -64,7 +71,11 @@ function AdminUsers() {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (window.confirm("Are you sure you want to delete this user? This will clear their data and permanently suspend them.")) {
+    if (
+      window.confirm(
+        "Are you sure you want to delete this user? This will clear their data and permanently suspend them.",
+      )
+    ) {
       await softDeleteUser({ data: { userId } });
       await fetchUsers();
     }
@@ -146,19 +157,10 @@ function AdminUsers() {
                     </select>
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-white/10">
-                        <div
-                          className="h-full bg-accent"
-                          style={{
-                            width: `${Math.min(100, (user.usage_count / user.max_usage) * 100)}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {user.usage_count} / {user.max_usage}
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium text-white">
+                      {user.usage_count}{" "}
+                      <span className="text-xs text-muted-foreground">Generations</span>
+                    </span>
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">

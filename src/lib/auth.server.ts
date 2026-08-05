@@ -85,7 +85,7 @@ export async function signUp(
 
   // Auto-promote to admin if this is the configured admin email
   if (ADMIN_EMAIL && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    const admin = getSupabaseAdmin();
+    const admin = getSupabaseAdmin() as any;
     await admin
       .from("profiles")
       .update({
@@ -140,7 +140,7 @@ export async function verifySession(accessToken: string): Promise<Profile | null
  * Fetch a profile by user ID using the admin client (bypasses RLS).
  */
 export async function getProfile(userId: string): Promise<Profile | null> {
-  const admin = getSupabaseAdmin();
+  const admin = getSupabaseAdmin() as any;
   const { data, error } = await admin.from("profiles").select("*").eq("id", userId).single();
 
   if (error || !data) return null;

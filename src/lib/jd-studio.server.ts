@@ -22,10 +22,10 @@ const SYSTEM_PROMPT = [
   "highly detailed, compelling, and inclusive job descriptions for top-tier companies.",
   "Your JDs are known for:",
   "- Being extremely specific about skills, tools, and technologies required",
-  "- Having clear, actionable responsibilities (not generic bullet points)",
-  "- Being inclusive and avoiding biased language",
-  "- Following modern JD best practices",
-  "CRITICAL: Always return ONLY the raw Markdown content — no preamble, no explanation, no closing remarks. DO NOT include conversational text like 'Here is your job description'. Start immediately with the first section and end immediately after the last.",
+  "- Avoiding generic or vague bullet points (e.g., 'work with team', 'develop software')",
+  "- Emphasizing actionable outcomes and precise technological constraints",
+  "- Maintaining an inclusive and unbiased tone",
+  "CRITICAL: Always return ONLY the raw Markdown content — no preamble, no explanation, no conversational text like 'Here is your job description'. Start immediately with the first section.",
 ].join(" ");
 
 export async function generateJdContent(input: JDStudioInput): Promise<string> {

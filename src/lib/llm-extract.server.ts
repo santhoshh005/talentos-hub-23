@@ -28,7 +28,8 @@ const RESUME_SYSTEM = [
   'actually seen in the text and a broad CATEGORY tag (e.g. "Salesforce", "Frontend", "Data",',
   '"Cloud", "DevOps", "AI/ML", "Database", "Mobile", "Security", "QA", "Recruitment",',
   '"Finance", "Product", "Marketing", "Healthcare", "Mechanical", "Soft", "Other").',
-  "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE skill, technology, tool, and detail found in the resume. Missed details hurt candidate scores.",
+  "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE skill, technology, tool, certification, and detail found in the resume. Accurately calculate total years of experience.",
+  "CRITICAL: Be strict with categorizing seniority and domain based ONLY on explicit titles or responsibilities.",
   "CRITICAL: Return ONLY raw JSON. DO NOT wrap your response in markdown code blocks (e.g., ```json). DO NOT include any text before or after the JSON.",
 ].join(" ");
 
@@ -37,7 +38,8 @@ const JD_SYSTEM = [
   "You read a raw job description for ANY domain and emit strict JSON.",
   "Split requirements into required vs preferred. Emit each requirement with canonical + aliases + category + weight.",
   'Never invent values. If a field is absent, use "" or [] or 0.',
-  "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE required and preferred skill. Missed skills will result in inaccurate matching.",
+  "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE required and preferred skill. Deduplicate correctly.",
+  "CRITICAL: Use explicit constraints for minimum and maximum years of experience. Identify core responsibilities vs vague statements.",
   "CRITICAL: Return ONLY raw JSON. DO NOT wrap your response in markdown code blocks (e.g., ```json). DO NOT include any text before or after the JSON.",
 ].join(" ");
 

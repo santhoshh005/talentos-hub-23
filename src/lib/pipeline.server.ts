@@ -40,8 +40,7 @@ export const PipelineInputSchema = z.object({
 export type PipelineInput = z.infer<typeof PipelineInputSchema>;
 
 type PipelineStageName =
-  | "resumeParser"
-  | "jdIntelligence"
+  | "parseAndExtract"
   | "skillNormalization"
   | "matching"
   | "evidence"
@@ -112,32 +111,31 @@ interface PipelineContext {
 
 const defaultPipelineStages: PipelineStage[] = [
   {
-    name: "resumeParser",
+    name: "parseAndExtract",
     run: async (ctx) => {
-      ctx.resumeV3 = await extractResumeV3(ctx.input.resumeText);
-      ctx.resume = adaptResumeV3ToLegacy(ctx.resumeV3);
-    },
-  },
-  {
-    name: "jdIntelligence",
-    run: async (ctx) => {
-      ctx.jdV3 = await extractJDV3(ctx.input.jobDescription);
-      ctx.jobDescription = adaptJdV3ToLegacy(ctx.jdV3);
+      const [resumeV3, jdV3] = await Promise.all([
+        extractResumeV3(ctx.input.resumeText),
+        extractJDV3(ctx.input.jobDescription),
+      ]);
+      ctx.resumeV3 = resumeV3;
+      ctx.jdV3 = jdV3;
+      ctx.resume = adaptResumeV3ToLegacy(resumeV3);
+      ctx.jobDescription = adaptJdV3ToLegacy(jdV3);
     },
   },
   {
     name: "skillNormalization",
     run: async (ctx) => {
-      requireStage(ctx.resumeV3, "resumeParser");
-      requireStage(ctx.jdV3, "jdIntelligence");
+      requireStage(ctx.resumeV3, "parseAndExtract");
+      requireStage(ctx.jdV3, "parseAndExtract");
       ctx.normalizedSkills = buildNormalizedFromV3(ctx.resumeV3, ctx.jdV3);
     },
   },
   {
     name: "matching",
     run: async (ctx) => {
-      requireStage(ctx.resumeV3, "resumeParser");
-      requireStage(ctx.jdV3, "jdIntelligence");
+      requireStage(ctx.resumeV3, "parseAndExtract");
+      requireStage(ctx.jdV3, "parseAndExtract");
       requireStage(ctx.normalizedSkills, "skillNormalization");
       const semantic = await runSemanticMatch(ctx.resumeV3, ctx.jdV3);
       ctx.semantic = semantic;
@@ -147,7 +145,7 @@ const defaultPipelineStages: PipelineStage[] = [
   {
     name: "evidence",
     run: async (ctx) => {
-      requireStage(ctx.resume, "resumeParser");
+      requireStage(ctx.resume, "parseAndExtract");
       requireStage(ctx.normalizedSkills, "skillNormalization");
       ctx.evidence = buildEvidence({
         resume: ctx.resume,
@@ -166,8 +164,8 @@ const defaultPipelineStages: PipelineStage[] = [
   {
     name: "recruiterIntelligence",
     run: async (ctx) => {
-      requireStage(ctx.resume, "resumeParser");
-      requireStage(ctx.jobDescription, "jdIntelligence");
+      requireStage(ctx.resume, "parseAndExtract");
+      requireStage(ctx.jobDescription, "parseAndExtract");
       requireStage(ctx.matching, "matching");
       requireStage(ctx.evidence, "evidence");
       requireStage(ctx.scoring, "scoring");

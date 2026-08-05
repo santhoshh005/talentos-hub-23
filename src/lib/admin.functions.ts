@@ -14,6 +14,8 @@ import {
   setUserRole,
   getPlatformAnalytics,
   softDeleteUser,
+  incrementUserUsage,
+  getDailyAnalytics,
 } from "./admin.server";
 
 const UserIdSchema = z.object({ userId: z.string().uuid() });
@@ -89,3 +91,21 @@ export const softDeleteUserFn = createServerFn({ method: "POST" })
     await softDeleteUser(data.userId);
     return { ok: true };
   });
+
+export const incrementUsageFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        eventType: z.enum(["analysis", "jd_generation", "report_download"]).optional(),
+      })
+      .parse(data),
+  )
+  .handler(async ({ data }) => {
+    await incrementUserUsage(data.userId, data.eventType);
+    return { ok: true };
+  });
+
+export const getDailyAnalyticsFn = createServerFn({ method: "GET" }).handler(async () => {
+  return getDailyAnalytics();
+});

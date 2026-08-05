@@ -38,14 +38,18 @@ export interface Database {
         Row: Profile;
         Insert: Partial<Profile> & { id: string; email: string };
         Update: Partial<Profile>;
-        Relationships: [];
+        Relationships: any[];
       };
       usage_events: {
         Row: UsageEvent;
         Insert: Omit<UsageEvent, "id" | "created_at">;
         Update: Partial<UsageEvent>;
-        Relationships: [];
+        Relationships: any[];
       };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }

@@ -15,10 +15,16 @@ import { extractResumeText } from "@/lib/resume-extract";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { trackJdAnalysis } from "@/lib/usage-store";
+import { incrementUsageFn } from "@/lib/admin.functions";
+import { useAuthStore } from "@/lib/auth-store";
+import { useServerFn } from "@tanstack/react-start";
 
 export function JDStudioWorkspace() {
   const [finalJD, setFinalJD] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const incrementDbUsage = useServerFn(incrementUsageFn);
+  const session = useAuthStore();
 
   const { mutate: mutateFromResume, isPending: isPendingFromResume } = useMutation({
     mutationFn: async (data: { resumeText: string; tone: string }) => {
@@ -27,6 +33,11 @@ export function JDStudioWorkspace() {
     onSuccess: (data) => {
       setFinalJD(data);
       trackJdAnalysis("From Resume");
+      if (session?.user?.id) {
+        incrementDbUsage({ data: { userId: session.user.id, eventType: "jd_generation" } }).catch(
+          console.error,
+        );
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate job description.");
@@ -50,6 +61,11 @@ export function JDStudioWorkspace() {
     onSuccess: (data, variables) => {
       setFinalJD(data);
       trackJdAnalysis(variables.positionTitle);
+      if (session?.user?.id) {
+        incrementDbUsage({ data: { userId: session.user.id, eventType: "jd_generation" } }).catch(
+          console.error,
+        );
+      }
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate job description.");

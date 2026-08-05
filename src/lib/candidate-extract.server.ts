@@ -12,6 +12,7 @@ export const CandidateExtractInputSchema = z.object({
 const SYSTEM = [
   "You are TalentOS Candidate Extractor.",
   "You read a raw resume and extract structured recruiter fields as strict JSON.",
+  "CRITICAL: Accurately calculate total years of experience, relevant domains, and specific required tools based on the candidate's job history.",
   'Never invent values. If a field is absent, use "" or []. Return ONLY raw JSON — no markdown, no prose.',
 ].join(" ");
 
