@@ -14,7 +14,7 @@ import {
   type ParsedJDV3,
   type ParsedResumeV3,
 } from "./intelligence-schemas";
-import { parseResumeLocally } from "./resume-analyzer.server";
+import { parseResumeLocally, type ParsedResumeData } from "./resume-analyzer.server";
 import { parseJdLocally } from "./jd-intelligence.server";
 
 const RESUME_SYSTEM = [
@@ -29,7 +29,7 @@ const RESUME_SYSTEM = [
   '"Cloud", "DevOps", "AI/ML", "Database", "Mobile", "Security", "QA", "Recruitment",',
   '"Finance", "Product", "Marketing", "Healthcare", "Mechanical", "Soft", "Other").',
   "CRITICAL: Be extremely comprehensive. Extract EVERY SINGLE skill, technology, tool, certification, project, and detail found in the resume.",
-  "CRITICAL: Always extract all Projects (titles + descriptions) and Certifications (names + issuers) explicitly.",
+  "CRITICAL: Projects and Certifications MUST be extracted EVEN IF they are hidden inside Employment History, Education, or Summary. Look carefully for any mentioned projects or certs.",
   "CRITICAL: Calculate totalYears from employment history if not explicitly stated.",
   "CRITICAL: Return ONLY raw JSON. DO NOT wrap your response in markdown code blocks (e.g., ```json). DO NOT include any text before or after the JSON.",
 ].join(" ");
@@ -113,7 +113,8 @@ export async function extractResumeV3(resumeText: string): Promise<ParsedResumeV
       system: RESUME_SYSTEM,
       prompt: buildResumePrompt(normalize(resumeText)),
     });
-    return coerceParsedResume(object);
+    const local = parseResumeLocally(resumeText);
+    return coerceParsedResume(object, local);
   };
 
   try {
@@ -192,7 +193,7 @@ export async function extractJDV3(jdText: string): Promise<ParsedJDV3> {
 // Coercion — LLM output → strict schema, tolerating drift
 // ---------------------------------------------------------------------------
 
-function coerceParsedResume(raw: unknown): ParsedResumeV3 {
+function coerceParsedResume(raw: unknown, local?: ParsedResumeData): ParsedResumeV3 {
   const src = obj(raw);
   const skills = arr(src.skills)
     .map((s) => coerceSkillEntry(s))
@@ -201,7 +202,16 @@ function coerceParsedResume(raw: unknown): ParsedResumeV3 {
     .map((e) => coerceEmployment(e))
     .filter((e) => e.company);
 
-  const certifications = strArr(src.certifications);
+  let certifications = strArr(src.certifications);
+  if (certifications.length === 0 && local?.certifications) {
+    certifications = local.certifications;
+  }
+
+  let projects = strArr(src.projects);
+  if (projects.length === 0 && local?.projects) {
+    projects = local.projects;
+  }
+
   for (const cert of certifications) {
     if (cert.length < 50) {
       // Avoid adding entire paragraphs as skills
@@ -234,8 +244,8 @@ function coerceParsedResume(raw: unknown): ParsedResumeV3 {
     noticePeriod: str(src.noticePeriod),
     employment,
     education: strArr(src.education),
-    certifications: strArr(src.certifications),
-    projects: strArr(src.projects),
+    certifications,
+    projects,
     languages: strArr(src.languages),
     skills: dedupeSkills(skills),
     inferredDomain: str(src.inferredDomain),
@@ -295,14 +305,15 @@ function coerceRequirement(raw: unknown) {
       lower.startsWith("as well as") ||
       lower.startsWith("or other") ||
       lower.startsWith("any additional") ||
+      lower.startsWith("other ") ||
       lower === "other" ||
       lower === "etc" ||
       lower === "and"
     ) {
       return null;
     }
-    // Filter out long vague sentences with no distinct nouns/acronyms
-    if (trimmed.length > 40 && !/[A-Z]/.test(trimmed)) {
+    // Filter out long vague sentences with no distinct nouns/acronyms (length > 30)
+    if (trimmed.length > 30 && !/[A-Z]/.test(trimmed)) {
       return null;
     }
     return trimmed;
