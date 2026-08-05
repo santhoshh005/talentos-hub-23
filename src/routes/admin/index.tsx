@@ -18,7 +18,23 @@ function AdminOverview() {
   } | null>(null);
 
   useEffect(() => {
-    void getAnalytics().then(setStats);
+    let mounted = true;
+    const fetchStats = async () => {
+      try {
+        const data = await getAnalytics();
+        if (mounted) setStats(data);
+      } catch (err) {
+        console.error("Failed to fetch platform analytics:", err);
+      }
+    };
+    
+    void fetchStats();
+    const interval = setInterval(fetchStats, 10000); // Poll every 10 seconds
+    
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [getAnalytics]);
 
   if (!stats) return <div className="animate-pulse">Loading analytics...</div>;

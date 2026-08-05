@@ -33,19 +33,19 @@ function AdminUsers() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsers = useCallback(async () => {
-    setLoading(true);
+  const fetchUsers = useCallback(async (isPolling = false) => {
+    if (!isPolling) setLoading(true);
     const data = await listUsers();
     setUsers(data);
-    setLoading(false);
+    if (!isPolling) setLoading(false);
   }, [listUsers]);
 
   useEffect(() => {
-    void fetchUsers();
+    void fetchUsers(false);
 
     // Poll every 10 seconds to keep the dashboard live
     const interval = setInterval(() => {
-      void fetchUsers();
+      void fetchUsers(true);
     }, 10000);
 
     return () => clearInterval(interval);
