@@ -8,12 +8,14 @@ import {
   CheckCircle2,
   XCircle,
   Pencil,
+  Trash2,
 } from "lucide-react";
 import {
   listUsersFn,
   toggleAccessFn,
   updateSubscriptionFn,
   setRoleFn,
+  softDeleteUserFn,
 } from "@/lib/admin.functions";
 import type { Profile } from "@/lib/supabase-types";
 
@@ -26,6 +28,7 @@ function AdminUsers() {
   const toggleAccess = useServerFn(toggleAccessFn);
   const updateSub = useServerFn(updateSubscriptionFn);
   const setRole = useServerFn(setRoleFn);
+  const softDeleteUser = useServerFn(softDeleteUserFn);
 
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -58,6 +61,13 @@ function AdminUsers() {
   ) => {
     await updateSub({ data: { userId, status } });
     await fetchUsers();
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm("Are you sure you want to delete this user? This will clear their data and permanently suspend them.")) {
+      await softDeleteUser({ data: { userId } });
+      await fetchUsers();
+    }
   };
 
   return (
@@ -173,6 +183,13 @@ function AdminUsers() {
                         title={user.role === "admin" ? "Demote to User" : "Promote to Admin"}
                       >
                         <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => void handleDeleteUser(user.id)}
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-rose-500/20 hover:text-rose-400"
+                        title="Delete User"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </td>

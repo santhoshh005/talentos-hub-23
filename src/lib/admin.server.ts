@@ -131,3 +131,31 @@ export async function getPlatformAnalytics() {
     blockedUsers: 0,
   };
 }
+
+/**
+ * Soft delete a user: suspend them, block subscription, clear PII, and delete usage events.
+ */
+export async function softDeleteUser(userId: string): Promise<void> {
+  const admin = getSupabaseAdmin();
+  
+  // 1. Delete associated usage events
+  const { error: eventsError } = await admin
+    .from("usage_events")
+    .delete()
+    .eq("user_id", userId);
+    
+  if (eventsError) throw new Error(eventsError.message);
+
+  // 2. Soft-delete the profile
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({
+      is_active: false,
+      subscription_status: "blocked",
+      full_name: "Deleted User",
+      notes: "User deleted by admin",
+    } as any)
+    .eq("id", userId);
+
+  if (profileError) throw new Error(profileError.message);
+}

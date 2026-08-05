@@ -13,6 +13,7 @@ import {
   updateUserNotes,
   setUserRole,
   getPlatformAnalytics,
+  softDeleteUser,
 } from "./admin.server";
 
 const UserIdSchema = z.object({ userId: z.string().uuid() });
@@ -81,3 +82,10 @@ export const setRoleFn = createServerFn({ method: "POST" })
 export const getAnalyticsFn = createServerFn({ method: "GET" }).handler(async () => {
   return getPlatformAnalytics();
 });
+
+export const softDeleteUserFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) => UserIdSchema.parse(data))
+  .handler(async ({ data }) => {
+    await softDeleteUser(data.userId);
+    return { ok: true };
+  });
