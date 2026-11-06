@@ -14,6 +14,7 @@ import appCss from "../styles.css?url";
 import { AppLayout } from "../components/layout/AppLayout";
 import { LoaderProvider } from "../components/loader/LoaderProvider";
 import { FirstVisitGate } from "../components/loader/FirstVisitGate";
+import { useSessionKeepAlive } from "../lib/auth-store";
 
 function NotFoundComponent() {
   return (
@@ -39,7 +40,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: unknown; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -141,6 +142,7 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useSessionKeepAlive();
 
   return (
     <QueryClientProvider client={queryClient}>

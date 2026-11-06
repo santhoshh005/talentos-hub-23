@@ -19,8 +19,7 @@ import { runResumeIntelligence } from "@/lib/pipeline.functions";
 import { extractResumeText } from "@/lib/resume-extract";
 import { setResult } from "@/lib/report-store";
 import { clearIntake, setIntake, useIntake } from "@/lib/intake-store";
-import { trackCandidateAnalysis, trackJdAnalysis } from "@/lib/usage-store";
-import { incrementUsageFn } from "@/lib/admin.functions";
+import { trackCandidateAnalysis } from "@/lib/usage-store";
 import { useAuthStore } from "@/lib/auth-store";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +51,6 @@ function GlassCard({ children, className }: { children: ReactNode; className?: s
 export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate();
   const runPipeline = useServerFn(runResumeIntelligence);
-  const incrementDbUsage = useServerFn(incrementUsageFn);
   const intake = useIntake();
   const session = useAuthStore();
 
@@ -159,7 +157,6 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
         ? await nextFile.text()
         : await extractResumeText(nextFile);
       setIntake({ jobDescription: text.trim() });
-      trackJdAnalysis();
       toast.success("Job description loaded");
     } catch (caught) {
       console.error("[TalentOS Resume Analyzer] JD extraction failed:", caught);
@@ -170,6 +167,12 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
   }, []);
 
   const runAnalysis = useCallback(async () => {
+    if (!session?.accessToken) {
+      toast.error("Please sign in to run an analysis.");
+      onClose();
+      navigate({ to: "/login" });
+      return;
+    }
     if (!resumeText || resumeText.trim().length < 20) {
       toast.error("Upload a resume first.");
       return;
@@ -197,12 +200,6 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
         setResult(output);
         const matchScore = output.scoring?.matchPercentage ?? undefined;
         trackCandidateAnalysis(output.resume?.technologies || [], matchScore);
-
-        if (session?.user?.id) {
-          incrementDbUsage({ data: { userId: session.user.id, eventType: "analysis" } }).catch(
-            console.error,
-          );
-        }
         // brief hold so the last step visibly illuminates, then navigate
         setTimeout(() => {
           onClose();
@@ -220,15 +217,7 @@ export function ResumeAnalyzerModal({ open, onClose }: { open: boolean; onClose:
       setErrorMessage(message);
       setPhase("error");
     }
-  }, [
-    jobDescription,
-    navigate,
-    onClose,
-    resumeText,
-    runPipeline,
-    incrementDbUsage,
-    session?.user?.id,
-  ]);
+  }, [jobDescription, navigate, onClose, resumeText, runPipeline, session?.accessToken]);
 
   const retry = useCallback(() => {
     setErrorMessage("");

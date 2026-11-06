@@ -30,18 +30,16 @@ export function getSupabaseAdmin() {
 }
 
 /**
- * Server-side Supabase client using the anon key.
- * Respects RLS — used for user-authenticated operations.
+ * Server-side Supabase client using the anon key (stateless, no session
+ * persistence). Used for sign-in / sign-up / token verification.
  */
-export function getSupabaseClient(accessToken?: string) {
+export function getSupabaseClient() {
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     throw new Error("Supabase not configured. Set SUPABASE_URL and SUPABASE_ANON_KEY.");
   }
-  const client = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY);
-  if (accessToken) {
-    void client.auth.setSession({ access_token: accessToken, refresh_token: "" });
-  }
-  return client;
+  return createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 }
 
 export const SUPABASE_ANON_KEY_PUBLIC = SUPABASE_ANON_KEY;

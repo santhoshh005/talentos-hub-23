@@ -32,6 +32,7 @@ export async function signIn(email: string, password: string): Promise<AuthResul
     return { ok: false, error: error?.message ?? "Login failed" };
   }
 
+  await maybeBootstrapAdmin(data.user);
   const profile = await getProfile(data.user.id);
   if (!profile) {
     return { ok: false, error: "Profile not found. Please contact admin." };
@@ -83,18 +84,7 @@ export async function signUp(
     };
   }
 
-  // Auto-promote to admin if this is the configured admin email
-  if (ADMIN_EMAIL && email.toLowerCase() === ADMIN_EMAIL.toLowerCase()) {
-    const admin = getSupabaseAdmin() as any;
-    await admin
-      .from("profiles")
-      .update({
-        role: "admin",
-        subscription_status: "active",
-        max_usage: 999999, // unlimited for admin
-      } as any)
-      .eq("id", data.user.id);
-  }
+  await maybeBootstrapAdmin(data.user);
 
   const profile = await getProfile(data.user.id);
   if (!profile) {
@@ -111,11 +101,70 @@ export async function signUp(
 }
 
 /**
- * Sign out — invalidates the current session.
+ * Sign out — revokes the session (and its refresh token) server-side.
  */
 export async function signOut(accessToken: string): Promise<void> {
-  const supabase = getSupabaseClient(accessToken);
-  await supabase.auth.signOut();
+  try {
+    const admin = getSupabaseAdmin();
+    await admin.auth.admin.signOut(accessToken, "local");
+  } catch (error) {
+    // The client clears its session regardless; never fail logout.
+    console.warn("[auth] sign-out revoke failed:", (error as Error).message);
+  }
+}
+
+/**
+ * Exchange a refresh token for a new session. Re-checks account status so a
+ * suspended user cannot keep a session alive by refreshing.
+ */
+export async function refreshUserSession(refreshToken: string): Promise<AuthResult | AuthError> {
+  const supabase = getSupabaseClient();
+  const { data, error } = await supabase.auth.refreshSession({ refresh_token: refreshToken });
+  if (error || !data.session || !data.user) {
+    return { ok: false, error: "Your session has expired. Please sign in again." };
+  }
+  const profile = await getProfile(data.user.id);
+  if (!profile || !profile.is_active || profile.subscription_status === "blocked") {
+    return { ok: false, error: "Your account has been suspended. Please contact admin." };
+  }
+  return {
+    ok: true,
+    user: { id: data.user.id, email: data.user.email ?? "" },
+    profile,
+    accessToken: data.session.access_token,
+    refreshToken: data.session.refresh_token,
+  };
+}
+
+/**
+ * One-time admin bootstrap: promote the configured ADMIN_EMAIL only when the
+ * address is verified AND no admin exists yet. Once an admin exists, further
+ * role changes must go through the admin panel — so squatting the admin
+ * address after setup grants nothing.
+ */
+async function maybeBootstrapAdmin(user: {
+  id: string;
+  email?: string;
+  email_confirmed_at?: string | null;
+}): Promise<void> {
+  if (!ADMIN_EMAIL || !user.email) return;
+  if (user.email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()) return;
+  if (!user.email_confirmed_at) return;
+  try {
+    const admin = getSupabaseAdmin() as any;
+    const { count, error } = await admin
+      .from("profiles")
+      .select("id", { count: "exact", head: true })
+      .eq("role", "admin");
+    if (error || (count ?? 0) > 0) return;
+    await admin
+      .from("profiles")
+      .update({ role: "admin", subscription_status: "active", max_usage: 999999 } as any)
+      .eq("id", user.id);
+    console.info("[auth] bootstrapped initial admin account");
+  } catch (error) {
+    console.error("[auth] admin bootstrap failed:", (error as Error).message);
+  }
 }
 
 /**
@@ -123,7 +172,7 @@ export async function signOut(accessToken: string): Promise<void> {
  * Returns null if the token is invalid or expired.
  */
 export async function verifySession(accessToken: string): Promise<Profile | null> {
-  const supabase = getSupabaseClient(accessToken);
+  const supabase = getSupabaseClient();
   const { data } = await supabase.auth.getUser(accessToken);
   if (!data.user) return null;
 

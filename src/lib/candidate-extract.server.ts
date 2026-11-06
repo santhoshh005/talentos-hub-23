@@ -5,7 +5,7 @@ import { CandidateRecordSchema, type CandidateRecord } from "./candidate-schemas
 import { mergeCandidate } from "./candidate-parse";
 
 export const CandidateExtractInputSchema = z.object({
-  resumeText: z.string().min(20, "Resume text is too short"),
+  resumeText: z.string().min(20, "Resume text is too short").max(60_000, "Resume is too long"),
   seed: z.record(z.string(), z.unknown()).optional(),
 });
 

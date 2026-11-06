@@ -37,7 +37,10 @@ export function ExcelImportPanel({
       setColumns(suggestFieldMapping(headers));
     } catch (err) {
       console.error(err);
-      toast.error("Could not read Excel file.");
+      const message = err instanceof Error ? err.message : "";
+      toast.error(
+        /upload an \.xlsx|under 5 MB/.test(message) ? message : "Could not read Excel file.",
+      );
     } finally {
       setBusy(false);
     }

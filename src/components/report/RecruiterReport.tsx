@@ -189,7 +189,7 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
                 </span>
                 <p className="max-w-[220px] text-xs text-muted-foreground">{rec.description}</p>
                 <div className="mt-1 flex gap-3 text-[10px] uppercase tracking-widest text-muted-foreground">
-                  <span>Skills {scoring.skillCoverage}%</span>
+                  <span>Must-haves {scoring.requiredCoverage ?? scoring.skillCoverage}%</span>
                   <span>Evidence {scoring.evidenceScore}%</span>
                 </div>
               </div>
@@ -202,6 +202,52 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
             <MetaStat icon={Clock} label="Notice" value={resume.noticePeriod} />
             <MetaStat icon={ShieldCheck} label="Seniority" value={intelligence.inferredSeniority} />
           </div>
+
+          {scoring.breakdown?.length ? (
+            <div className="mt-6 border-t border-white/5 pt-6">
+              <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-xs uppercase tracking-widest text-muted-foreground">
+                  How this score was calculated
+                </span>
+                {scoring.criticalGaps?.length ? (
+                  <span className="text-xs text-rose-300">
+                    Capped: missing critical {scoring.criticalGaps.join(", ")}
+                  </span>
+                ) : null}
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {scoring.breakdown.map((c) => (
+                  <div key={c.key} className="rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                    <div className="flex items-baseline justify-between text-xs text-muted-foreground">
+                      <span>{c.label}</span>
+                      <span>{Math.round(c.weight * 100)}% weight</span>
+                    </div>
+                    <div className="mt-1 text-lg font-semibold tabular-nums">{c.score}%</div>
+                    <div
+                      className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5"
+                      role="progressbar"
+                      aria-label={c.label}
+                      aria-valuenow={c.score}
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                    >
+                      <div
+                        className={cn(
+                          "h-full rounded-full",
+                          c.score >= 75
+                            ? "bg-emerald-400"
+                            : c.score >= 50
+                              ? "bg-amber-400"
+                              : "bg-rose-400",
+                        )}
+                        style={{ width: `${Math.max(2, c.score)}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </GlassCard>
       </motion.div>
 
@@ -252,7 +298,11 @@ export function RecruiterReport({ data }: { data: PipelineResult }) {
                 key={m.skill}
                 label={m.skill}
                 tone="emerald"
-                tooltip={`Confidence ${m.confidence} · ${m.kind}`}
+                tooltip={`Confidence ${m.confidence} · ${m.kind}${
+                  m.resumeOriginal && m.resumeOriginal.toLowerCase() !== m.skill.toLowerCase()
+                    ? ` · via "${m.resumeOriginal}"`
+                    : ""
+                }`}
                 delay={i * 0.03}
               />
             ))}

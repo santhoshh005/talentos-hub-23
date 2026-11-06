@@ -25,7 +25,12 @@ import { normalizeSkills, type SkillNormalizationOutput } from "./skill-normaliz
 import { matchSkills, type MatchingResult } from "./matching-engine";
 import { buildEvidence, type SkillEvidence } from "./evidence-engine";
 import { scoreMatch, type ScoringResult } from "./scoring-engine";
-import { buildRecruiterIntelligence, type RecruiterIntelligence } from "./recruiter-intelligence";
+import {
+  buildRecruiterIntelligence,
+  parseRequiredYears,
+  type RecruiterIntelligence,
+} from "./recruiter-intelligence";
+import type { ExperienceInput, RequirementMeta } from "./scoring-engine";
 import { extractResumeV3, extractJDV3 } from "./llm-extract.server";
 import { runSemanticMatch } from "./semantic-match.server";
 import type { ParsedJDV3, ParsedResumeV3, SemanticMatchV3 } from "./intelligence-schemas";
@@ -33,8 +38,16 @@ import type { NormalizedSkill } from "./skill-normalizer";
 import type { SkillMatch } from "./matching-engine";
 
 export const PipelineInputSchema = z.object({
-  resumeText: z.string().min(20),
-  jobDescription: z.string().min(20),
+  resumeText: z
+    .string()
+    .trim()
+    .min(20, "Resume text is too short")
+    .max(60_000, "Resume is too long (max 60,000 characters)"),
+  jobDescription: z
+    .string()
+    .trim()
+    .min(20, "Job description is too short")
+    .max(30_000, "Job description is too long (max 30,000 characters)"),
 });
 
 export type PipelineInput = z.infer<typeof PipelineInputSchema>;
@@ -158,7 +171,12 @@ const defaultPipelineStages: PipelineStage[] = [
     run: async (ctx) => {
       requireStage(ctx.matching, "matching");
       requireStage(ctx.evidence, "evidence");
-      ctx.scoring = scoreMatch({ matching: ctx.matching, evidence: ctx.evidence });
+      ctx.scoring = scoreMatch({
+        matching: ctx.matching,
+        evidence: ctx.evidence,
+        requirements: ctx.jdV3 ? buildRequirementMeta(ctx.jdV3) : undefined,
+        experience: buildExperienceInput(ctx.resumeV3, ctx.jdV3, ctx.jobDescription),
+      });
     },
   },
   {
@@ -184,20 +202,36 @@ const defaultPipelineStages: PipelineStage[] = [
         try {
           const { object } = await generateObject({
             model: aiModel,
+            temperature: 0.3,
             schema: z.object({
               aiFitSummary: z
                 .string()
-                .describe("A summary of why the candidate is a good fit or not"),
+                .describe(
+                  "3-5 sentence recruiter-facing verdict in Markdown: fit, top strengths, key gaps, hiring recommendation",
+                ),
               aiInterviewQuestions: z
                 .array(z.string())
-                .describe("List of suggested interview questions"),
+                .describe("6-8 targeted interview questions probing gaps and verifying claims"),
             }),
-            prompt: `Based on this resume and job description, provide a fit summary and interview questions.\n\nResume: ${ctx.input.resumeText.slice(0, 10000)}\n\nJob Description: ${ctx.input.jobDescription.slice(0, 10000)}`,
+            system: [
+              "You are a senior technical recruiter writing an objective candidate assessment.",
+              "Ground every statement in the provided facts. Never invent employers, skills, or numbers.",
+              "Use the deterministic score as the source of truth; do not contradict it.",
+              "Interview questions must be specific to this candidate and role: probe missing must-have skills,",
+              "verify thinly evidenced claims, and test depth on the strongest matching skills. No generic questions.",
+            ].join(" "),
+            prompt: buildFitPrompt(ctx),
           });
-          ctx.intelligence.aiFitSummary = object.aiFitSummary;
-          ctx.intelligence.aiInterviewQuestions = object.aiInterviewQuestions;
+          ctx.intelligence.aiFitSummary = object.aiFitSummary?.trim() || undefined;
+          ctx.intelligence.aiInterviewQuestions = (object.aiInterviewQuestions ?? [])
+            .map((q) => q.trim())
+            .filter(Boolean)
+            .slice(0, 10);
         } catch (err) {
-          console.warn("[Pipeline] ai generation failed in recruiterIntelligence", err);
+          console.warn(
+            "[Pipeline] ai generation failed in recruiterIntelligence",
+            (err as Error).message,
+          );
         }
       }
     },
@@ -457,4 +491,77 @@ function adaptSemanticToMatchingResult(
       relatedMatches: matchingSkills.filter((m) => m.kind === "related").length,
     },
   };
+}
+
+// ---------------------------------------------------------------------------
+// Scoring inputs
+// ---------------------------------------------------------------------------
+
+function buildRequirementMeta(jd: ParsedJDV3): Record<string, RequirementMeta> {
+  const out: Record<string, RequirementMeta> = {};
+  for (const r of jd.preferred) {
+    out[r.canonical.toLowerCase()] = { weight: Math.min(r.weight || 1, 2), required: false };
+  }
+  // Must-haves win when a skill appears in both lists.
+  for (const r of jd.required) {
+    out[r.canonical.toLowerCase()] = { weight: r.weight || 2, required: true };
+  }
+  return out;
+}
+
+function buildExperienceInput(
+  resume: ParsedResumeV3 | undefined,
+  jdV3: ParsedJDV3 | undefined,
+  jd: JdIntelligence | undefined,
+): ExperienceInput | null {
+  const candidateYears = resume?.totalYears ?? 0;
+  if (!(candidateYears > 0)) return null;
+  if (jdV3 && (jdV3.minYears > 0 || jdV3.maxYears > 0)) {
+    return { candidateYears, minYears: jdV3.minYears, maxYears: jdV3.maxYears };
+  }
+  const parsed = parseRequiredYears(jd?.experienceRequired ?? "");
+  return parsed ? { candidateYears, minYears: parsed.min, maxYears: parsed.max } : null;
+}
+
+function buildFitPrompt(ctx: PipelineContext): string {
+  const s = ctx.scoring;
+  const i = ctx.intelligence;
+  const facts = {
+    role: ctx.jobDescription?.jobTitle,
+    seniority: i?.inferredSeniority,
+    domain: i?.inferredDomain,
+    candidate: {
+      name: ctx.resume?.name,
+      currentRole: ctx.resume?.currentDesignation,
+      currentCompany: ctx.resume?.currentCompany,
+      totalYears: i?.candidateYears,
+      requiredYears: i?.requiredYears,
+      experienceAlignment: i?.seniorityAlignment,
+    },
+    score: {
+      overall: s?.matchPercentage,
+      recommendation: i?.recommendation.label,
+      mustHaveCoverage: s?.requiredCoverage,
+      niceToHaveCoverage: s?.preferredCoverage,
+      evidenceDepth: s?.evidenceScore,
+      experienceFit: s?.experienceFit,
+    },
+    matchedSkills: (s?.matchedWithEvidence ?? []).slice(0, 25).map((m) => ({
+      skill: m.skill,
+      via: m.kind === "exact" ? m.skill : m.resumeOriginal,
+      matchType: m.kind,
+      evidence: m.evidenceStrength,
+    })),
+    missingMustHave: s?.missingRequired ?? [],
+    criticalGaps: s?.criticalGaps ?? [],
+    missingNiceToHave: s?.missingPreferred ?? [],
+  };
+  return `FACTS (computed, authoritative):
+${JSON.stringify(facts)}
+
+RESUME EXCERPT:
+${ctx.input.resumeText.slice(0, 6000)}
+
+JOB DESCRIPTION EXCERPT:
+${ctx.input.jobDescription.slice(0, 4000)}`;
 }

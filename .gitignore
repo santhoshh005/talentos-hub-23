@@ -33,3 +33,6 @@ dist-ssr
 
 .env
 .env.*
+
+# Generated recruiter reports (may contain candidate personal data)
+Report_*.pdf

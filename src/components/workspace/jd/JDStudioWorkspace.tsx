@@ -1,6 +1,15 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, Sparkles, Copy, CheckCircle2, Upload } from "lucide-react";
+import {
+  Loader2,
+  Sparkles,
+  Copy,
+  CheckCircle2,
+  Upload,
+  Download,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,16 +24,12 @@ import { extractResumeText } from "@/lib/resume-extract";
 import { cn } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { trackJdAnalysis } from "@/lib/usage-store";
-import { incrementUsageFn } from "@/lib/admin.functions";
-import { useAuthStore } from "@/lib/auth-store";
-import { useServerFn } from "@tanstack/react-start";
+import { checkJDQuality } from "@/lib/jd-quality";
 
 export function JDStudioWorkspace() {
   const [finalJD, setFinalJD] = useState("");
   const [copied, setCopied] = useState(false);
-
-  const incrementDbUsage = useServerFn(incrementUsageFn);
-  const session = useAuthStore();
+  const [lastSkills, setLastSkills] = useState("");
 
   const { mutate: mutateFromResume, isPending: isPendingFromResume } = useMutation({
     mutationFn: async (data: { resumeText: string; tone: string }) => {
@@ -32,12 +37,8 @@ export function JDStudioWorkspace() {
     },
     onSuccess: (data) => {
       setFinalJD(data);
+      setLastSkills("");
       trackJdAnalysis("From Resume");
-      if (session?.user?.id) {
-        incrementDbUsage({ data: { userId: session.user.id, eventType: "jd_generation" } }).catch(
-          console.error,
-        );
-      }
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate job description.");
@@ -60,24 +61,45 @@ export function JDStudioWorkspace() {
     },
     onSuccess: (data, variables) => {
       setFinalJD(data);
+      setLastSkills(variables.mustHaveSkills);
       trackJdAnalysis(variables.positionTitle);
-      if (session?.user?.id) {
-        incrementDbUsage({ data: { userId: session.user.id, eventType: "jd_generation" } }).catch(
-          console.error,
-        );
-      }
     },
     onError: (error) => {
       toast.error(error.message || "Failed to generate job description.");
     },
   });
 
-  const handleCopy = () => {
-    if (finalJD) {
-      navigator.clipboard.writeText(finalJD);
+  const isGenerating = isPendingManual || isPendingFromResume;
+  const quality = useMemo(
+    () => (finalJD ? checkJDQuality(finalJD, lastSkills) : null),
+    [finalJD, lastSkills],
+  );
+
+  const handleCopy = async () => {
+    if (!finalJD) return;
+    try {
+      await navigator.clipboard.writeText(finalJD);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Clipboard access was blocked. Select the text and copy manually.");
     }
+  };
+
+  const handleDownload = () => {
+    if (!finalJD) return;
+    const title = /^#\s+(.+)$/m.exec(finalJD)?.[1] ?? "job-description";
+    const slug =
+      title
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "") || "job-description";
+    const url = URL.createObjectURL(new Blob([finalJD], { type: "text/markdown;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${slug}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -95,25 +117,90 @@ export function JDStudioWorkspace() {
         <div className="mb-4 flex items-center justify-between border-b border-white/10 pb-4">
           <h3 className="text-lg font-semibold text-foreground">Preview</h3>
           {finalJD && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCopy}
-              disabled={!finalJD}
-              className="border-white/10 bg-white/5 text-xs text-muted-foreground hover:bg-white/10 hover:text-foreground"
-            >
-              {copied ? (
-                <CheckCircle2 className="h-4 w-4 text-green-500" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-              {copied ? "Copied!" : "Copy Markdown"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                className="border-white/10 bg-white/5 text-xs text-muted-foreground hover:bg-white/10 hover:text-foreground"
+              >
+                <Download className="h-4 w-4" />
+                Download .md
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleCopy}
+                disabled={!finalJD}
+                className="border-white/10 bg-white/5 text-xs text-muted-foreground hover:bg-white/10 hover:text-foreground"
+              >
+                {copied ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {copied ? "Copied!" : "Copy Markdown"}
+              </Button>
+            </div>
           )}
         </div>
 
-        <div className="prose prose-invert prose-sm max-w-none flex-1 overflow-y-auto pr-4">
-          {finalJD ? (
+        {quality && !isGenerating && (
+          <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground">
+              <span>
+                Quality{" "}
+                <strong
+                  className={cn(
+                    "text-sm",
+                    quality.score >= 85
+                      ? "text-emerald-400"
+                      : quality.score >= 65
+                        ? "text-amber-400"
+                        : "text-rose-400",
+                  )}
+                >
+                  {quality.score}/100
+                </strong>
+              </span>
+              <span>{quality.wordCount} words</span>
+              <span>~{quality.readingMinutes} min read</span>
+            </div>
+            {quality.issues.length > 0 ? (
+              <ul className="mt-2 space-y-1">
+                {quality.issues.map((issue) => (
+                  <li key={issue.message} className="flex items-start gap-2 text-muted-foreground">
+                    {issue.severity === "warn" ? (
+                      <AlertTriangle
+                        className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400"
+                        aria-hidden
+                      />
+                    ) : (
+                      <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-sky-400" aria-hidden />
+                    )}
+                    <span>{issue.message}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-emerald-400/90">
+                Inclusive wording, all sections present, every must-have covered.
+              </p>
+            )}
+          </div>
+        )}
+
+        <div
+          className="prose prose-invert prose-sm max-w-none flex-1 overflow-y-auto pr-4"
+          aria-live="polite"
+          aria-busy={isGenerating}
+        >
+          {isGenerating ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="h-8 w-8 animate-spin opacity-60" aria-hidden />
+              <p>Drafting your job description…</p>
+            </div>
+          ) : finalJD ? (
             <div className="prose prose-invert max-w-none text-sm text-muted-foreground prose-headings:text-foreground prose-a:text-accent">
               <ReactMarkdown>{finalJD}</ReactMarkdown>
             </div>

@@ -3,6 +3,7 @@
 // ---------------------------------------------------------------------------
 import { generateObject } from "ai";
 import { getAiModel } from "./ai-gateway.server";
+import { fuzzyMatch } from "./skill-fuzzy";
 import {
   SemanticMatchV3Schema,
   type ParsedJDV3,
@@ -98,23 +99,6 @@ export async function runSemanticMatch(
   }
 }
 
-function fuzzyMatch(jdSkill: string, candidateSkill: string): boolean {
-  const normalize = (s: string) =>
-    s
-      .toLowerCase()
-      .replace(
-        /^(certification in|familiarity with|knowledge of|experience with|understanding of)\s+/i,
-        "",
-      )
-      .replace(/[^a-z0-9]/g, "");
-
-  const nJd = normalize(jdSkill);
-  const nCan = normalize(candidateSkill);
-
-  if (!nJd || !nCan) return false;
-  return nJd.includes(nCan) || nCan.includes(nJd);
-}
-
 function coerceMatches(
   raw: unknown,
   jdRequirements: Array<{ canonical: string }>,
@@ -147,16 +131,26 @@ function coerceMatches(
       typeof rec.matchedResumeSkill === "string" ? rec.matchedResumeSkill.trim() : "";
     let reason = typeof rec.reason === "string" ? rec.reason.trim() : "";
 
-    // Fuzzy override if the LLM marks it missing but we can substring match it!
+    // Recover obvious equivalences the LLM missed (token-aware, conservative).
     if (status === "missing" || !matchedResumeSkill) {
       for (const canSkill of candidateSkillsArr) {
         if (fuzzyMatch(requirement, canSkill)) {
           status = "equivalent";
           matchedResumeSkill = canSkill;
-          reason = "Fuzzy substring match (LLM override).";
+          reason = "Token-level name match recovered by TalentOS.";
           break;
         }
       }
+    }
+
+    if (
+      status !== "missing" &&
+      matchedResumeSkill &&
+      !isGrounded(matchedResumeSkill, candidateSkillsArr, resume)
+    ) {
+      status = "missing";
+      matchedResumeSkill = "";
+      reason = "Model cited a skill not found in the resume; treated as missing.";
     }
 
     byReq.set(requirement.toLowerCase(), {
@@ -195,6 +189,20 @@ function coerceMatches(
   });
 
   return { matches: merged };
+}
+
+function isGrounded(matched: string, candidateSkills: string[], resume: ParsedResumeV3): boolean {
+  const lower = matched.toLowerCase();
+  if (candidateSkills.some((c) => c.toLowerCase() === lower || fuzzyMatch(matched, c))) return true;
+  // The matcher may cite implied skills from projects / employment context.
+  const context = [
+    ...resume.projects,
+    ...resume.certifications,
+    ...resume.employment.map((e) => `${e.title} ${e.summary}`),
+  ]
+    .join(" | ")
+    .toLowerCase();
+  return lower.length >= 2 && context.includes(lower);
 }
 
 function clampConfidence(raw: unknown, status: SemanticMatchEntry["status"]): number {

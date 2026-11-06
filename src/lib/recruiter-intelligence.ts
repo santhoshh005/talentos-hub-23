@@ -198,7 +198,7 @@ function inferDomain(jd: JdIntelligence, resume: ParsedResumeData): string {
   return jd.jobTitle && jd.jobTitle !== "Not Found" ? jd.jobTitle : "General";
 }
 
-function parseRequiredYears(text: string): { min: number; max: number } | null {
+export function parseRequiredYears(text: string): { min: number; max: number } | null {
   if (!text) return null;
   const range = text.match(/(\d+(?:\.\d+)?)\s*[-–to]{1,3}\s*(\d+(?:\.\d+)?)/);
   if (range) return { min: parseFloat(range[1]), max: parseFloat(range[2]) };
@@ -320,10 +320,22 @@ export function buildRecruiterIntelligence(
   if (resumeV3?.risks && resumeV3.risks.length > 0) {
     risks.push(...resumeV3.risks.slice(0, 4));
   }
-  if (matching.missingSkills.length > 0) {
-    const topMissing = matching.missingSkills.slice(0, 5).join(", ");
+  const missingRequired = scoring.missingRequired ?? matching.missingSkills;
+  const missingPreferred = scoring.missingPreferred ?? [];
+  if (scoring.criticalGaps?.length) {
+    risks.unshift(
+      `Lacks critical must-have${scoring.criticalGaps.length === 1 ? "" : "s"}: ${scoring.criticalGaps.slice(0, 4).join(", ")} — score capped accordingly.`,
+    );
+  }
+  if (missingRequired.length > 0) {
+    const topMissing = missingRequired.slice(0, 5).join(", ");
     risks.push(
-      `Missing ${matching.missingSkills.length} required skill${matching.missingSkills.length === 1 ? "" : "s"}: ${topMissing}${matching.missingSkills.length > 5 ? "…" : ""}.`,
+      `Missing ${missingRequired.length} must-have skill${missingRequired.length === 1 ? "" : "s"}: ${topMissing}${missingRequired.length > 5 ? "…" : ""}.`,
+    );
+  }
+  if (missingPreferred.length > 0 && risks.length < 6) {
+    risks.push(
+      `Missing ${missingPreferred.length} nice-to-have skill${missingPreferred.length === 1 ? "" : "s"}: ${missingPreferred.slice(0, 4).join(", ")}${missingPreferred.length > 4 ? "…" : ""}.`,
     );
   }
   if (alignment === "Under" && requiredYears) {
@@ -355,14 +367,14 @@ export function buildRecruiterIntelligence(
 
   const llmSummary = resumeV3?.summary?.trim();
   const summary = llmSummary
-    ? `${llmSummary} Skill coverage ${scoring.skillCoverage}% (${matching.similarity.matchedRequiredSkills}/${matching.similarity.totalRequiredSkills}), evidence ${scoring.evidenceScore}%, overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`
+    ? `${llmSummary} Must-have coverage ${scoring.requiredCoverage}% (${scoring.matchedRequired}/${scoring.totalRequired}), evidence ${scoring.evidenceScore}%, overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`
     : [
         `${resume.name} is a ${resume.currentDesignation} at ${resume.currentCompany}`,
         candidateYears > 0
           ? `with ${candidateYears} years of experience`
           : "with unspecified tenure",
         `applying for a ${seniorityLabel} ${inferredDomain} role.`,
-        `Skill coverage: ${scoring.skillCoverage}% (${matching.similarity.matchedRequiredSkills}/${matching.similarity.totalRequiredSkills} required), evidence strength: ${scoring.evidenceScore}%.`,
+        `Must-have coverage: ${scoring.requiredCoverage}% (${scoring.matchedRequired}/${scoring.totalRequired}), evidence strength: ${scoring.evidenceScore}%.`,
         `Overall match ${scoring.matchPercentage}% — ${recommendation.label.toLowerCase()}.`,
       ].join(" ");
 

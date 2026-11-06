@@ -4,7 +4,8 @@
 
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { signIn, signUp, signOut, verifySession } from "./auth.server";
+import { signIn, signUp, signOut, verifySession, refreshUserSession } from "./auth.server";
+import { authMiddleware } from "./auth-middleware";
 
 const LoginSchema = z.object({
   email: z.string().email("Invalid email"),
@@ -41,4 +42,32 @@ export const verifySessionFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const profile = await verifySession(data.accessToken);
     return { profile };
+  });
+
+/** The caller's own plan usage, for the dashboard quota meter. */
+export const getMyUsageFn = createServerFn({ method: "GET" })
+  .middleware([authMiddleware])
+  .handler(async ({ context }) => {
+    const p = context.profile;
+    const { getUserStats } = await import("./admin.server");
+    const stats = await getUserStats(p.id).catch((error: Error) => {
+      console.error("[usage] stats lookup failed:", error.message);
+      return null;
+    });
+    return {
+      stats,
+      used: Number(p.usage_count ?? 0),
+      limit: Number(p.max_usage ?? 0),
+      unlimited: p.role === "admin",
+      status: p.subscription_status,
+      expiresAt: p.subscription_expires_at ?? null,
+    };
+  });
+
+export const refreshSessionFn = createServerFn({ method: "POST" })
+  .validator((data: unknown) =>
+    z.object({ refreshToken: z.string().min(10).max(4096) }).parse(data),
+  )
+  .handler(async ({ data }) => {
+    return refreshUserSession(data.refreshToken);
   });

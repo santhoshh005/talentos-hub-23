@@ -17,6 +17,22 @@ export interface UsageState {
   matchScoreCount: number; // how many scored analyses
   techStacksDetected: Record<string, number>;
   recentActivity: ActivityEntry[];
+  /** Score distribution keyed by recommendation band. */
+  scoreBuckets: ScoreBuckets;
+}
+
+export interface ScoreBuckets {
+  strong: number; // >= 80
+  good: number; // 65..79
+  review: number; // 45..64
+  low: number; // < 45
+}
+
+export function bucketForScore(score: number): keyof ScoreBuckets {
+  if (score >= 80) return "strong";
+  if (score >= 65) return "good";
+  if (score >= 45) return "review";
+  return "low";
 }
 
 const STORAGE_KEY = "talentos:usage-tracker:v2.0";
@@ -30,6 +46,7 @@ const empty: UsageState = {
   matchScoreCount: 0,
   techStacksDetected: {},
   recentActivity: [],
+  scoreBuckets: { strong: 0, good: 0, review: 0, low: 0 },
 };
 
 let current: UsageState = { ...empty };
@@ -45,7 +62,12 @@ function hydrate(): void {
     const legacyV1 = window.localStorage.getItem("talentos:usage-tracker:v1");
 
     if (raw) {
-      current = { ...empty, ...(JSON.parse(raw) as Partial<UsageState>) };
+      const parsed = JSON.parse(raw) as Partial<UsageState>;
+      current = {
+        ...empty,
+        ...parsed,
+        scoreBuckets: { ...empty.scoreBuckets, ...(parsed.scoreBuckets ?? {}) },
+      };
     } else if (legacyV1_1) {
       const legacy = JSON.parse(legacyV1_1) as Partial<UsageState>;
       current = {
@@ -103,13 +125,17 @@ export function trackCandidateAnalysis(techs: string[] = [], score?: number): vo
     nextTechs[t] = (nextTechs[t] || 0) + 1;
   });
 
-  const scorePatch =
-    score !== undefined
-      ? {
-          totalMatchScore: current.totalMatchScore + score,
-          matchScoreCount: current.matchScoreCount + 1,
-        }
-      : {};
+  const validScore = typeof score === "number" && Number.isFinite(score);
+  const scorePatch = validScore
+    ? {
+        totalMatchScore: current.totalMatchScore + score,
+        matchScoreCount: current.matchScoreCount + 1,
+        scoreBuckets: {
+          ...current.scoreBuckets,
+          [bucketForScore(score)]: current.scoreBuckets[bucketForScore(score)] + 1,
+        },
+      }
+    : {};
 
   current = {
     ...current,
@@ -158,6 +184,7 @@ export function trackReportGenerated(): void {
 }
 
 export function getAverageMatchScore(): number {
+  hydrate();
   if (current.matchScoreCount === 0) return 0;
   return Math.round(current.totalMatchScore / current.matchScoreCount);
 }

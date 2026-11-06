@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { useAuthStore } from "@/lib/auth-store";
 import { trackReportGenerated } from "@/lib/usage-store";
+import { incrementUsageFn } from "@/lib/admin.functions";
 
 export const Route = createFileRoute("/report")({
   head: () => ({
@@ -57,6 +58,7 @@ function ReportPage() {
       await new Promise((r) => setTimeout(r, 20));
       await downloadRecruiterReportSnapshot(result);
       trackReportGenerated();
+      incrementUsageFn({ data: { eventType: "report_download" } }).catch(() => undefined);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to generate PDF.");
     } finally {

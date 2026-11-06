@@ -1,16 +1,44 @@
 import { CANDIDATE_FIELDS } from "../candidate-schemas";
 import type { TemplateColumn } from "./template-types";
 
+const MAX_TEMPLATE_BYTES = 5 * 1024 * 1024;
+const MAX_HEADER_COLUMNS = 200;
+const MAX_HEADER_LENGTH = 120;
+
+/**
+ * Reads only the header row of the first sheet. The parser is restricted
+ * (first sheet, one row, no formulas/HTML/styles/VBA) and the file is
+ * size-checked to limit exposure to malformed-workbook parser bugs.
+ */
 export async function parseTemplateHeaders(file: File): Promise<string[]> {
+  if (!/\.xlsx$/i.test(file.name)) throw new Error("Please upload an .xlsx file.");
+  if (file.size > MAX_TEMPLATE_BYTES) throw new Error("Template file must be under 5 MB.");
+
   const XLSX = await import("xlsx");
   const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
+  const wb = XLSX.read(buf, {
+    type: "array",
+    sheets: 0,
+    sheetRows: 1,
+    cellFormula: false,
+    cellHTML: false,
+    cellStyles: false,
+    bookVBA: false,
+  });
   const first = wb.SheetNames[0];
   if (!first) return [];
   const sheet = wb.Sheets[first];
-  const rows = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, defval: "" });
-  const header = rows[0] ?? [];
-  return header.map((h) => String(h ?? "").trim()).filter(Boolean);
+  if (!sheet) return [];
+  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, defval: "" });
+  const header = Array.isArray(rows[0]) ? rows[0] : [];
+  return header
+    .slice(0, MAX_HEADER_COLUMNS)
+    .map((h) =>
+      String(h ?? "")
+        .trim()
+        .slice(0, MAX_HEADER_LENGTH),
+    )
+    .filter(Boolean);
 }
 
 const HINTS: Record<string, string[]> = {

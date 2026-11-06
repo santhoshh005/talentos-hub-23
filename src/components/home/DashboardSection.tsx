@@ -14,6 +14,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { useUsageStore, getAverageMatchScore, type ActivityEntry } from "@/lib/usage-store";
+import { useAuthStore } from "@/lib/auth-store";
+import { getMyUsageFn } from "@/lib/auth.functions";
 import {
   BarChart,
   Bar,
@@ -335,10 +337,54 @@ function ScoreGauge({ score, inView }: { score: number; inView: boolean }) {
 export function DashboardSection() {
   const ref = useRef<HTMLDivElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
-  const usage = useUsageStore();
+  const localUsage = useUsageStore();
+  const session = useAuthStore();
+  const [quota, setQuota] = useState<Awaited<ReturnType<typeof getMyUsageFn>> | null>(null);
+
+  useEffect(() => {
+    if (!session?.accessToken) {
+      setQuota(null);
+      return;
+    }
+    let active = true;
+    getMyUsageFn()
+      .then((q) => active && setQuota(q))
+      .catch(() => active && setQuota(null));
+    return () => {
+      active = false;
+    };
+  }, [
+    session?.accessToken,
+    localUsage.totalCandidates,
+    localUsage.totalJds,
+    localUsage.totalReports,
+  ]);
+
+  // Signed in: account-wide stats from the server (all devices). Otherwise: this browser only.
+  const server = quota?.stats ?? null;
+  const usage = server
+    ? {
+        totalCandidates: server.analyses,
+        totalJds: server.jds,
+        totalReports: server.reports,
+        matchScoreCount: server.scoredCount,
+        scoreBuckets: server.scoreBuckets,
+        techStacksDetected: server.techs,
+        recentActivity: server.recent,
+      }
+    : localUsage;
+
+  const buckets = usage.scoreBuckets;
+  const bucketRows = [
+    { label: "Strong (80+)", value: buckets.strong, color: "bg-emerald-500" },
+    { label: "Good (65–79)", value: buckets.good, color: "bg-sky-500" },
+    { label: "Review (45–64)", value: buckets.review, color: "bg-amber-500" },
+    { label: "Low (<45)", value: buckets.low, color: "bg-rose-500" },
+  ];
+  const bucketTotal = bucketRows.reduce((s, b) => s + b.value, 0);
 
   const techEntries = Object.entries(usage.techStacksDetected);
-  const avgScore = getAverageMatchScore();
+  const avgScore = server ? server.averageScore : getAverageMatchScore();
 
   const topTechs = [...techEntries]
     .sort((a, b) => b[1] - a[1])
@@ -421,8 +467,16 @@ export function DashboardSection() {
                 Welcome back to TalentOS
               </h1>
               <p className="mt-2 max-w-2xl text-base text-muted-foreground md:text-lg">
-                You have {usage.matchScoreCount > 0 ? usage.matchScoreCount : "new"} matches to
-                review today. Real-time insights from every JD generated and candidate analyzed.
+                {usage.totalCandidates > 0
+                  ? `You've analyzed ${usage.totalCandidates} candidate${usage.totalCandidates === 1 ? "" : "s"}${
+                      buckets.strong > 0
+                        ? ` — ${buckets.strong} strong match${buckets.strong === 1 ? "" : "es"}`
+                        : ""
+                    }. `
+                  : "Analyze your first resume to start building insights. "}
+                {server
+                  ? "Insights across every JD generated and candidate analyzed on your account."
+                  : "Insights from activity on this device. Sign in to see your account-wide stats."}
               </p>
             </div>
             <Link
@@ -525,6 +579,66 @@ export function DashboardSection() {
                 </div>
               ))}
             </div>
+
+            {bucketTotal > 0 && (
+              <div className="mt-5">
+                <p className="mb-2 text-xs text-muted-foreground">Score distribution</p>
+                <div
+                  className="flex h-2 overflow-hidden rounded-full bg-white/5"
+                  role="img"
+                  aria-label={bucketRows.map((b) => `${b.label}: ${b.value}`).join(", ")}
+                >
+                  {bucketRows.map((b) =>
+                    b.value > 0 ? (
+                      <div
+                        key={b.label}
+                        className={b.color}
+                        style={{ width: `${(b.value / bucketTotal) * 100}%` }}
+                      />
+                    ) : null,
+                  )}
+                </div>
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                  {bucketRows.map((b) => (
+                    <span
+                      key={b.label}
+                      className="flex items-center gap-1.5 text-[11px] text-muted-foreground"
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${b.color}`} />
+                      {b.label} · {b.value}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {quota && (
+              <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Plan usage</span>
+                  <span className="tabular-nums text-white">
+                    {quota.unlimited
+                      ? `${quota.used} · unlimited`
+                      : `${quota.used} / ${quota.limit}`}
+                  </span>
+                </div>
+                {!quota.unlimited && quota.limit > 0 && (
+                  <div
+                    className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/5"
+                    role="progressbar"
+                    aria-label="Plan usage"
+                    aria-valuenow={quota.used}
+                    aria-valuemin={0}
+                    aria-valuemax={quota.limit}
+                  >
+                    <div
+                      className={`h-full rounded-full ${quota.used / quota.limit >= 0.8 ? "bg-rose-400" : "bg-emerald-400"}`}
+                      style={{ width: `${Math.min(100, (quota.used / quota.limit) * 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
 
             {usage.matchScoreCount === 0 && (
               <div className="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-3 text-center">
